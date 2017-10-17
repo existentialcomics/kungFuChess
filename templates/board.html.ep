@@ -16,11 +16,15 @@
 <body>
 <div id="container"></div>
 
- <button enabled="false" onclick="joinGame()">Join</button> 
+<script>
+	var playerAuth = "123";
+	var gameId = "1";
 
-<script src="pieces/pieces.js"></script>
-
-<script src="game.js">
 </script>
+
+<script src="/pieces/pieces.js"></script>
+<script src="/game.js"></script>
+
+<button enabled="false" onclick="joinGame()">Join</button> 
 </body>
 </html>

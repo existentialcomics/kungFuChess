@@ -9,9 +9,6 @@ use JSON::XS;
 
 my %games = ();
 
-my $wi = AnyEvent->timer (after => 1, cb => sub {
-	warn "timeout\n";
-});
 print "Starting websocket server...\n";
 my $server = Net::WebSocket::Server->new(
 	listen => 8080,
