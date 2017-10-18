@@ -7,15 +7,21 @@ use Data::Dumper;
 use ChessPiece;
 use JSON::XS;
 
+### current running games
 my %games = ();
+### all connected clients
+my %clients = ();
 
 get '/' => {
 	text => 'I ♥ Mojolicious!'
 };
 
-get '/game/:game' => sub {
+get '/game/:gameId' => sub {
 	my $c = shift;
 	app->log->debug( "Entering game" );
+
+	my $playerAuth = "";
+	$c->stash('playerAuth' => $playerAuth);
 
 	$c->render('template' => 'board', format => 'html', handler => 'ep');
 	return;
@@ -36,7 +42,9 @@ get '/create' => sub {
 
 	# spin up game server, wait for it to send authjoin
 	app->log->debug( "starting game client $gameId, $auth" );
-	system('/usr/bin/perl /home/corey/kungFuChessGame.pl ' . $gameId . ' ' . $auth . ' > /home/corey/game.log 2>/home/corey/errors.log &');
+	# spin up game server, wait for it to send authjoin
+	app->log->debug('/usr/bin/perl /home/corey/kungfuchess/kungFuChessGame.pl ' . $gameId . ' ' . $auth . ' > /home/corey/game.log 2>/home/corey/errors.log &');
+	system('/usr/bin/perl /home/corey/kungfuchess/kungFuChessGame.pl ' . $gameId . ' ' . $auth . ' > /home/corey/game.log 2>/home/corey/errors.log &');
 
 	$c = $c->redirect_to("/game/$gameId");
 };
@@ -49,12 +57,21 @@ post '/login' => sub {
 
 };
 
-websocket '/game' => sub {
+websocket '/ws' => sub {
 	my $self = shift;
 
 	app->log->debug(sprintf 'Client connected: %s', $self->tx);
 	my $id = sprintf "%s", $self->tx;
-	#$clients->{$id} = $self->tx;
+	$self->inactivity_timeout(300);
+	$clients{$id} = $self->tx;
+	#
+	$self->on(finish => sub {
+		## delete player
+		app->log->debug("connection closed for $id");
+
+	});
+
+	my $gameId = "";
 
 	$self->on(message => sub {
 		my ($self, $msg) = @_;
@@ -70,10 +87,12 @@ websocket '/game' => sub {
 			my $auth   = create_uuid_as_string();
 
 			my $color = 'white';
-			$games{$msg->{gameId}}->{players}->{$auth} =
+			$gameId = $msg->{gameId};
+			$games{$msg->{gameId}}->{players}->{$id} =
 				{
 					'color' => $color,
 					'conn'  => $self,
+					'auth'  => $auth
 				};
 			my $ret = {
 				'c' => 'joined',
@@ -85,10 +104,14 @@ websocket '/game' => sub {
 			serverBroadcast($msg->{gameId}, $msg);
 			print "player joined, auth: $auth\n";
 		} elsif ($msg->{'c'} eq 'move'){
+			app->log->debug('move');
 			return 0 if (! ($msg->{gameId} && $msg->{auth}));                          # no game / auth tokens
-			return 0 if (! exists($games{$msg->{gameId}}->{players}->{$msg->{auth}})); # player doesn't exist
+			return 0 if (! exists($games{$msg->{gameId}}->{players}->{$id}));		   # player doesn't exist
+			return 0 if (! exists($games{$msg->{gameId}}->{players}->{$msg->{auth}})); # player move auth token is correct
+			app->log->debug('move authed');
 
 			# pass the move request to the server
+			# TODO pass the player's color to the server
 			serverBroadcast($msg->{gameId}, $msg);
 		} elsif ($msg->{'c'} eq 'authmove'){
 			return 0 if (! ($msg->{gameId} && $msg->{auth}));                          # no game / auth tokens
@@ -111,44 +134,24 @@ websocket '/game' => sub {
 			$msg->{'c'} = 'kill';
 			playerBroadcast($msg->{gameId}, $msg);
 		} elsif ($msg->{'c'} eq 'authjoin'){
+			app->log->debug('authjoin recieved');
 			return 0 if (! ($msg->{gameId} && $msg->{auth}));                          # no game / auth tokens
 			return 0 if ($games{$msg->{gameId}}->{auth} ne $msg->{auth});              # incorrect server auth
-			$games{$msg->{gameId}}->{'serverConn'} = $self;
+			app->log->debug('authjoin verified');
+			$games{$msg->{gameId}}->{'serverConn'} = $self->tx;
 			$games{$msg->{gameId}}->{'readyToJoin'} = 1;
 			print "game client ready...\n";
+			print Dumper($self->tx);
 			my $ret = {
 				'c' => 'readyToJoin',
 				'gameId' => $msg->{gameId}
 			};
 			playerBroadcast($msg->{gameId}, $ret);
-			#$games{$msg->{gameId}}->{creatorConn}->send_utf8(encode_json $msg);
-		} elsif ($msg->{'c'} eq 'create'){
-			my $gameId = create_uuid_as_string();
-			my $auth   = create_uuid_as_string();
-
-			$games{$gameId} = {
-				'players' => {},
-				'readyToJoin' => 0,
-				'serverConn' => '',
-				'auth'       => $auth,
-			};
-
-			# spin up game server, wait for it to send authjoin
-			print "starting game client $gameId, $auth\n";
-			system('/usr/bin/perl /home/corey/kungFuChessGame.pl ' . $gameId . ' ' . $auth . ' > /home/corey/game.log 2>/home/corey/errors.log &');
 		} else {
 			print "bad message: $msg\n";
 		}
 	});
-
-
 };
-
-sub creatorBroadcast {
-	my ($gameId, $msg) = @_;
-	print "creator broadcast $gameId\n";
-	$games{$gameId}->{creatorConn}->send_utf8(encode_json $msg);
-}
 
 sub playerBroadcast {
 	my ($gameId, $msg) = @_;
@@ -162,7 +165,8 @@ sub playerBroadcast {
 
 sub serverBroadcast {
 	my ($gameId, $msg) = @_;
-	$games{$gameId}->{serverConn}->send_utf8(encode_json $msg);
+	print "server broadcast for gameId: $gameId\n";
+	$games{$gameId}->{serverConn}->send(encode_json $msg);
 }
 
 sub addConn {

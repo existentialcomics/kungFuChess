@@ -17,14 +17,12 @@
 <div id="container"></div>
 
 <script>
-	var playerAuth = "123";
-	var gameId = "1";
-
+	var gameId = "<%= $gameId %>";
 </script>
 
 <script src="/pieces/pieces.js"></script>
 <script src="/game.js"></script>
 
-<button enabled="false" onclick="joinGame()">Join</button> 
+<button enabled="false" onclick="playerJoinGame()">Join</button> 
 </body>
 </html>

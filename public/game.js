@@ -9,25 +9,35 @@ var pieces = {};
 var piecesByImageId = {};
 
 var globalIdCount = 1;
-var gameId;
 var authId;
 var myColor;
 
 console.log("connecting...");
-var conn = new WebSocket("ws://www1.existentialcomics.com:8080");
+var conn = new WebSocket("ws://www1.existentialcomics.com:3000/ws");
 
 var joinGame = function(){
 		var ret = {
 			'c' : 'join',
-            'gameId' : msg.gameId
+            'gameId' : gameId
 		};
-        gameId = msg.gameId;
+        gameId = gameId;
+        sendMsg(ret);
+}
+
+var playerJoinGame = function(){
+		var ret = {
+			'c' : 'playerjoin',
+            'gameId' : gameId
+		};
+        gameId = gameId;
         sendMsg(ret);
 }
 
 conn.onopen = function(evt) {
 	// finished connecting.
 	// maybe query for ready to join
+	console.log("connected!");
+	joinGame();
 }
 
 sendMsg = function(msg) {

@@ -34,13 +34,14 @@ sub _init {
 
 	my $client = AnyEvent::WebSocket::Client->new;
 
-	$client->connect("ws://localhost:8080")->cb(sub {
+	$client->connect("ws://localhost:3000/ws")->cb(sub {
 		print "begin connection callback...\n";
 		# make $connection an our variable rather than
 		# my so that it will stick around.  Once the
 		# connection falls out of scope any callbacks
 		# tied to it will be destroyed.
-		our $connection = eval { shift->recv };
+		my $hs = shift;
+		our $connection = eval { $hs->recv };
 		$self->{conn} = $connection;
 		if($@) {
 		 # handle error...
@@ -262,6 +263,8 @@ sub handleMessage {
 	print "msg: $msg->{c}\n";
 
 	if ($msg->{c} eq 'join'){
+		$self->sendAllGamePieces();
+	} elsif ($msg->{c} eq 'playerjoin'){
 		$self->sendAllGamePieces();
 	} elsif ($msg->{c} eq 'move'){
 		print "moving piece $msg->{id}\n";
