@@ -10,7 +10,7 @@ var piecesByImageId = {};
 
 var globalIdCount = 1;
 var authId;
-var myColor;
+var myColor = "";
 
 console.log("connecting...");
 var conn = new WebSocket("ws://www1.existentialcomics.com:3000/ws");
@@ -32,6 +32,14 @@ var playerJoinGame = function(){
         gameId = gameId;
         sendMsg(ret);
 }
+
+var resetGamePieces = function(){
+    for(id in pieces){
+		pieces[id].image.x(getX(pieces[id].image.x()));
+		pieces[id].image.y(getY(pieces[id].image.y()));
+    }
+	pieceLayer.draw();
+};
 
 conn.onopen = function(evt) {
 	// finished connecting.
@@ -55,7 +63,16 @@ conn.onmessage = function(evt) {
     // Example: move:123,1,4
     if (msg.c == 'move'){
         pieces[msg.id].move(msg.x, msg.y);
-    } else if (msg.c == 'readyToJoin'){
+    } else if (msg.c == 'promote'){
+		console.log('promoting ' + msg.id);
+		pieces[msg.id].image.destroy();
+		var newQueen = getQueen(pieces[msg.id].x, pieces[msg.id].y, pieces[msg.id].color);
+		newQueen.id = msg.id;
+		pieceLayer.add(newQueen.image);
+		pieces[msg.id] = newQueen;
+		newQueen.image.draggable(pieces[msg.id].image.draggable());
+		pieceLayer.draw();
+	} else if (msg.c == 'readyToJoin'){
 		var ret = {
 			'c' : 'join',
             'gameId' : msg.gameId
@@ -65,6 +82,17 @@ conn.onmessage = function(evt) {
     } else if (msg.c == 'joined'){
         authId = msg.p_auth;
         myColor = msg.color;
+		console.log('joined ' + authId + ", ", myColor);
+		// TODO mark all color pieces as draggabble
+		for(id in pieces){
+			if (pieces[id].color == myColor){
+				pieces[id].image.draggable(true);
+			}
+		}
+		console.log('begin reset');
+		resetGamePieces();
+		console.log('end reset');
+		pieceLayer.draw();
     } else if (msg.c == 'spawn'){
         var piece;
         if (msg.type == 'queen'){
@@ -82,9 +110,11 @@ conn.onmessage = function(evt) {
         } 
         piece.id = msg.id;
         console.log('adding piece ' + msg.type);
-        pieceLayer.add(piece.image);
-        pieces[msg.id] = piece;
-        pieceLayer.draw();
+		if (! (msg.id in pieces)){
+			pieceLayer.add(piece.image);
+			pieces[msg.id] = piece;
+			pieceLayer.draw();
+		}
     } else if (msg.c == 'kill'){
         console.log('killing ' + msg.id);
         pieces[msg.id].image.destroy();
@@ -101,18 +131,37 @@ conn.onmessage = function(evt) {
 var getBoardPos = function(pos){
     var bPos = {};
     console.log(pos.x);
-    bPos.x = Math.floor(pos.x / width * 8);
-    bPos.y = Math.floor(pos.y / height * 8);
+    console.log(pos.y);
+    bPos.x = Math.floor(getX(pos.x) / width * 8);
+    bPos.y = Math.floor(getY(pos.y) / height * 8);
+	if (myColor == 'black'){
+		bPos.y++;
+	}
+	console.debug(bPos);
     return bPos;
 };
 
 var getPixelPos = function(pos){
     var bPos = {};
     console.log(pos.x);
-    bPos.x = Math.floor(pos.x * width / 8);
-    bPos.y = Math.floor(pos.y * height / 8);
+    bPos.x = Math.floor(getX(pos.x) * width / 8);
+    bPos.y = Math.floor(getY(pos.y) * height / 8);
     return bPos;
-}
+};
+
+var getX = function(x){
+	if (myColor == 'black'){
+		//return width - x - (width / 8);
+	}
+	return x;
+};
+
+var getY = function(y){
+	if (myColor == 'black'){
+		return height - y - (height / 8);
+	}
+	return y;
+};
 
 var getPieceImage = function(x, y, image){
     var pieceImage = new Konva.Image({
@@ -121,10 +170,10 @@ var getPieceImage = function(x, y, image){
         y: y * height / 8,
         width: width / 8,
         height: height / 8,
-        draggable: true
+        draggable: false
     });
     return pieceImage;
-}
+};
 
 var getPawn = function(x, y, color){
     var pawnImage;
@@ -275,15 +324,15 @@ var getPiece = function(x, y, color, image){
             piece.anim = new Konva.Animation(function(frame) {
                 var new_x = (piece.start_x * width / 8) + ((piece.x - piece.start_x) * (frame.time / piece.anim_length) * width / 8);
                 var new_y = (piece.start_y * width / 8) + ((piece.y - piece.start_y) * (frame.time / piece.anim_length) * width / 8);
-                piece.image.setX(new_x);
-                piece.image.setY(new_y);
+                piece.image.setX(getX(new_x));
+                piece.image.setY(getY(new_y));
                 if (frame.time > piece.anim_length){
                     this.stop();
                     piece.image.draggable = true;
                     piece.isMoving = false;
                     var rect = new Konva.Rect({
-                      x: piece.x * width / 8,
-                      y: piece.y * width / 8,
+                      x: getX(piece.x * width / 8),
+                      y: getY(piece.y * width / 8),
                       width: width / 8,
                       height: height / 8,
                       fill: '#888822',
@@ -295,7 +344,7 @@ var getPiece = function(x, y, color, image){
                         node: rect,
                         duration: 10,
                         height: 0,
-                        y: (piece.y * width / 8) + (width / 8),
+                        y: (getY(piece.y * width / 8) + (width / 8)),
                     });
                     piece.delayRect = rect;
                     tween.play();
@@ -312,8 +361,8 @@ var getPiece = function(x, y, color, image){
     }
 
     piece.setImagePos = function(x, y){
-        piece.image.setX(this.x * width / 8);
-        piece.image.setY(this.y * width / 8);
+        piece.image.setX(getX(this.x * width / 8));
+        piece.image.setY(getY(this.y * width / 8));
         pieceLayer.draw();
     }
     return piece;
@@ -365,6 +414,9 @@ var text = new Konva.Text({
 });
 stage.on("dragstart", function(e){
     //e.target.moveTo(tempLayer);
+    var pos = stage.getPointerPosition();
+	e.target.offsetX(e.target.x() - pos.x + (width  / 8 / 2));
+	e.target.offsetY(e.target.y() - pos.y + (height / 8 / 2));
     pieceLayer.draw();
 });
 
@@ -374,6 +426,9 @@ var previousShape;
 //});
 stage.on("dragend", function(e){
     var pos = stage.getPointerPosition();
+
+	e.target.offsetX(0);
+	e.target.offsetY(0);
 
     piece = piecesByImageId[e.target._id];
 

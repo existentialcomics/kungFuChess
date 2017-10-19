@@ -84,31 +84,48 @@ websocket '/ws' => sub {
 
 		if ($msg->{'c'} eq 'join'){
 			return 0 if (! $msg->{gameId} );
-			my $auth   = create_uuid_as_string();
 
-			my $color = 'white';
-			$gameId = $msg->{gameId};
-			$games{$msg->{gameId}}->{players}->{$id} =
-				{
-					'color' => $color,
-					'conn'  => $self,
-					'auth'  => $auth
-				};
 			my $ret = {
 				'c' => 'joined',
-				'color' => 'white',
-				'p_auth' => $auth
 			};
+			$games{$msg->{gameId}}->{players}->{$id} =
+				{
+					'conn'  => $self,
+				};
 
 			$self->send(encode_json $ret);
 			serverBroadcast($msg->{gameId}, $msg);
-			print "player joined, auth: $auth\n";
+			app->log->debug('player joined');
+		} elsif ($msg->{'c'} eq 'playerjoin'){
+			my @availableColors = getAvailableColors($msg->{gameId});
+			print Dumper(@availableColors);
+
+			if (scalar(@availableColors > 0)){
+				my $color = $availableColors[rand @availableColors];
+				my $auth   = create_uuid_as_string();
+				$games{$msg->{gameId}}->{players}->{$id} =
+					{
+						'color' => $color,
+						'conn'  => $self,
+						'auth'  => $auth
+					};
+				my $ret = {
+					'c' => 'joined',
+					'color' =>  $color,
+					'p_auth' => $auth
+				};
+				$self->send(encode_json $ret);
+			}
+
 		} elsif ($msg->{'c'} eq 'move'){
 			app->log->debug('move');
 			return 0 if (! ($msg->{gameId} && $msg->{auth}));                          # no game / auth tokens
 			return 0 if (! exists($games{$msg->{gameId}}->{players}->{$id}));		   # player doesn't exist
-			return 0 if (! exists($games{$msg->{gameId}}->{players}->{$msg->{auth}})); # player move auth token is correct
 			app->log->debug('move authed');
+			app->log->debug(Dumper($msg));
+
+			$msg->{color} = $games{$msg->{gameId}}->{players}->{$id}->{color};
+			return 0 if ($msg->{color} eq '');
 
 			# pass the move request to the server
 			# TODO pass the player's color to the server
@@ -133,6 +150,10 @@ websocket '/ws' => sub {
 
 			$msg->{'c'} = 'kill';
 			playerBroadcast($msg->{gameId}, $msg);
+		} elsif ($msg->{'c'} eq 'promote'){
+			return 0 if (! ($msg->{gameId} && $msg->{auth}));                          # no game / auth tokens
+			return 0 if ($games{$msg->{gameId}}->{auth} ne $msg->{auth});              # incorrect server auth
+			playerBroadcast($msg->{gameId}, $msg);
 		} elsif ($msg->{'c'} eq 'authjoin'){
 			app->log->debug('authjoin recieved');
 			return 0 if (! ($msg->{gameId} && $msg->{auth}));                          # no game / auth tokens
@@ -141,7 +162,6 @@ websocket '/ws' => sub {
 			$games{$msg->{gameId}}->{'serverConn'} = $self->tx;
 			$games{$msg->{gameId}}->{'readyToJoin'} = 1;
 			print "game client ready...\n";
-			print Dumper($self->tx);
 			my $ret = {
 				'c' => 'readyToJoin',
 				'gameId' => $msg->{gameId}
@@ -149,6 +169,7 @@ websocket '/ws' => sub {
 			playerBroadcast($msg->{gameId}, $ret);
 		} else {
 			print "bad message: $msg\n";
+			print Dumper($msg);
 		}
 	});
 };
@@ -161,6 +182,20 @@ sub playerBroadcast {
 		print "broadcasting to player $msg->{c}\n";
 		$player->{conn}->send(encode_json $msg);
 	}
+}
+
+sub getAvailableColors {
+	my $gameId = shift;
+	my %colors = (
+		'black' => 1,
+		'white' => 1,
+	);
+	foreach my $player (values %{ $games{$gameId}->{players}}){
+		if ($player->{color} ne ''){
+			delete $colors{$player->{color}};
+		}
+	}
+	return keys %colors;
 }
 
 sub serverBroadcast {

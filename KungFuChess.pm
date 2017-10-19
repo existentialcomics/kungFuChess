@@ -269,6 +269,7 @@ sub handleMessage {
 	} elsif ($msg->{c} eq 'move'){
 		print "moving piece $msg->{id}\n";
 		my $piece = $self->getPiece($msg->{id});
+		return if ($msg->{color} ne $piece->{color});
 		if ($self->isLegalMove($piece, $msg->{x}, $msg->{y})){
 			# change the category from move to authmove and reflect it back
 			$msg->{c} = 'authmove';

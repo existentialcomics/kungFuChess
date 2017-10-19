@@ -157,6 +157,18 @@ sub setMovingInterval {
 				$self->setMovingInterval();
 			}
             $self->{game}->checkForKills($self);
+			if ($self->{type} eq 'pawn'){
+				# don't have to worry about colors because pawns don't go backwards
+				if ($self->{y} == 0 || $self->{y} == 7){
+					$self->{type} = 'queen';
+					$self->{game}->send(
+						{
+							'c' => 'promote',
+							'id' => $self->{id}
+						}
+					);
+				}
+			}
 		}
 	);
 }
