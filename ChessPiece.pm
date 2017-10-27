@@ -5,6 +5,7 @@ use Time::HiRes;
 use AnyEvent;
 use Data::Dumper;
 
+our $timer = 1;
 
 sub new {
 	my $class = shift;
@@ -119,7 +120,7 @@ sub move {
 	if ($y < $self->{y}) { $yI = -1 }
 	if ($y == $self->{y}){ $yI = 0  }
 
-	$self->{interval} = 1;
+	$self->{interval} = $timer / 10;
 
 	print "ix, iy: $xI, $yI\n";
 
@@ -127,7 +128,7 @@ sub move {
 		$xI = $diffX;
 		$yI = $diffY;
 
-		$self->{interval} = 2;
+		$self->{interval} = $timer / 5;
 	}
 
 	$self->{xI} = $xI;
@@ -152,7 +153,7 @@ sub setMovingInterval {
 				$self->{y} == $self->{moving_y}){
 				print "finished moving \n";
 				$self->{isMoving} = 0;
-                $self->{readyToMove} = time() + 10;
+                $self->{readyToMove} = time() + $timer;
 			} else {
 				$self->setMovingInterval();
 			}

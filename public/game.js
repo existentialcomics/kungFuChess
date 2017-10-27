@@ -12,6 +12,8 @@ var globalIdCount = 1;
 var authId;
 var myColor = "";
 
+var timer = 1;
+
 console.log("connecting...");
 var conn = new WebSocket("ws://www1.existentialcomics.com:3000/ws");
 
@@ -320,7 +322,8 @@ var getPiece = function(x, y, color, image){
             this.image.draggable = false;
             this.isMoving = true;
             piece.firstMove = false;
-            piece.anim_length = Math.sqrt( Math.pow(Math.abs(this.start_x - this.x), 2) + Math.pow(Math.abs(this.start_y - this.y), 2)) * 1000;
+			// TODO 1000 is speed
+            piece.anim_length = Math.sqrt( Math.pow(Math.abs(this.start_x - this.x), 2) + Math.pow(Math.abs(this.start_y - this.y), 2)) * timer * 100;
             piece.anim = new Konva.Animation(function(frame) {
                 var new_x = (piece.start_x * width / 8) + ((piece.x - piece.start_x) * (frame.time / piece.anim_length) * width / 8);
                 var new_y = (piece.start_y * width / 8) + ((piece.y - piece.start_y) * (frame.time / piece.anim_length) * width / 8);
@@ -342,7 +345,8 @@ var getPiece = function(x, y, color, image){
 
                     var tween = new Konva.Tween({
                         node: rect,
-                        duration: 10,
+						// TIMER
+                        duration: timer,
                         height: 0,
                         y: (getY(piece.y * width / 8) + (width / 8)),
                     });

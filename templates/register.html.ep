@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html>
+<head>
+</head>
+<body>
+
+Register:<br />
+<form method='POST' action='/register'>
+    <label>username</label>
+    <input type='text'     name='username' value=''>
+    <br />
+    <label>password</label>
+    <input type='password' name="password" value=''>
+    <input type='submit' value="Submit"/>
+</form>
+</body>
+</html>
