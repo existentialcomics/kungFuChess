@@ -15,9 +15,12 @@ use Digest;
 my $cfg = new Config::Simple('kungFuChess.cnf');
 
 ### current running games
-my %games = ();
+my %games   = ();
+
 ### all connected clients
 my %clients = ();
+
+
 
 app->log->debug('connecting to db...');
 app->plugin('database', { 
@@ -34,20 +37,14 @@ app->plugin('authentication' => {
     'load_user' =>
         sub { 
             my ($app, $uid) = @_;
-            if ($uid == 1){
-                return {
-                    'id' => 1,
-                    'screenname' => 'corey',
-                    'rating' => 1600
-                };
-            }
-            my @row = $app->db()->selectall_array('SELECT player_id, screenname, rating FROM players WHERE player_id = ?', {}, $uid);
+            my @rows = $app->db()->selectall_array('SELECT player_id, screenname, rating FROM players WHERE player_id = ?', {}, $uid);
 
-            if (@row){
+            foreach my $row (@rows){
                 my $user = {
-                    'id'         => $row[0],
-                    'screenname' => $row[1],
-                    'rating'     => $row[2],
+                    'id'         => $row->[0],
+                    'screenname' => $row->[1],
+                    'rating'     => $row->[2],
+                    'auth'       =>  create_uuid_as_string(),
                 };
                 return $user;
             }
@@ -57,21 +54,21 @@ app->plugin('authentication' => {
     'validate_user' =>
         sub {
             my ($app, $username, $password, $extradata) = @_;
-            if ($username eq 'corey'){
-                return 1;
-            }
             print "validating $username, $password, " . encryptPassword($password) . "\n";
-            my @row = $app->db()->selectall_array('SELECT player_id FROM players WHERE screenname = ? AND password = ?', {}, $username, $password);
-            print Dumper(@row);
-            if (@row){
-                return $row[0];
+            my @rows = $app->db()->selectall_array('SELECT player_id FROM players WHERE screenname = ? AND password = ?', {}, $username, $password);
+            print Dumper(@rows);
+            if (@rows){
+                print "Validated $rows[0]->[0]!\n";
+                return $rows[0]->[0];
             }
             return undef;
         },
 });
 
-get '/debug' => {
-	text => Dumper(app->db())
+get '/debug/:debugVar' => sub {
+    my $c = shift;
+    my $debug = Dumper($c->stash('debugVar'));
+    $c->render('text' => "$debug");
 };
 
 get '/' => sub {
@@ -87,8 +84,46 @@ get '/game/:gameId' => sub {
 	my $c = shift;
 	app->log->debug( "Entering game" );
 
-	my $playerAuth = "";
-	$c->stash('playerAuth' => $playerAuth);
+    my $gameId = $c->stash('gameId');
+    my $user = $c->current_user();
+    $games{$gameId}->{playersByAuth}->{$user->{auth}} = $user;
+
+    print "auth: $user->{auth}\n";
+	$c->stash('authId' => $user->{auth});
+	$c->stash('timer' => 10);
+	$c->stash('autojoin' => 1);
+    my ($white, $black) = getPlayers($gameId);
+
+    my $alreadyJoined = 0;
+    if (defined($white->{id})){
+        if ($white->{id} == $user->{id}){
+            $alreadyJoined = 1;
+            $c->stash('color', 'white');
+        }
+    }
+    if (defined($black->{id})){
+        if ($black->{id} == $user->{id}){
+            $alreadyJoined = 1;
+            $c->stash('color', 'black');
+        }
+    }
+
+    if (!$alreadyJoined){
+        if (!defined($white->{id})){
+            app->db()->do('UPDATE games SET white_player = ? WHERE game_id = ?', {}, $user->{id}, $gameId);
+            $c->stash('color', 'white');
+        } elsif (!defined($black->{id})){
+            app->db()->do('UPDATE games SET black_player = ? WHERE game_id = ?', {}, $user->{id}, $gameId);
+            $c->stash('color', 'black');
+        } else {
+            $c->stash('color', 'spectator');
+            # full
+        }
+        ($white, $black) = getPlayers($gameId);
+    }
+
+    $c->stash('whitePlayer' => encode_json $white);
+    $c->stash('blackPlayer' => encode_json $black);
 
 	$c->render('template' => 'board', format => 'html', handler => 'ep');
 	return;
@@ -117,7 +152,7 @@ get '/create' => sub {
 	app->log->debug('/usr/bin/perl /home/corey/kungfuchess/kungFuChessGame.pl ' . $gameId . ' ' . $auth . ' > /home/corey/game.log 2>/home/corey/errors.log &');
 	system('/usr/bin/perl /home/corey/kungfuchess/kungFuChessGame.pl ' . $gameId . ' ' . $auth . ' > /home/corey/game.log 2>/home/corey/errors.log &');
 
-	$c = $c->redirect_to("/game/$gameId");
+	$c = $c->redirect_to("/game/$gameId?join=1");
 };
 
 get '/register' => sub {
@@ -159,6 +194,7 @@ post '/login' => sub {
     print "login $u, $p\n";
     if ($c->authenticate($u, encryptPassword($p))){
         print "authed $u!\n";
+        my $user = $c->current_user();
 	    $c->redirect_to("/");
     }
     $c->stash('error' => 'Invalid username or password');
@@ -201,37 +237,57 @@ websocket '/ws' => sub {
 				};
 
 			$self->send(encode_json $ret);
+            if ($games{$msg->{gameId}}->{'readyToJoin'} == 1){
+                my $ret = {
+                    'c' => 'readyToJoin',
+                    'gameId' => $msg->{gameId}
+                };
+                $self->send(encode_json $ret);
+            };
 			serverBroadcast($msg->{gameId}, $msg);
 			app->log->debug('player joined');
-		} elsif ($msg->{'c'} eq 'playerjoin'){
+		} elsif ($msg->{'c'} eq 'chat'){
+            app->log->debug("chat msg recieved");
+            playerBroadcast($msg->{gameId}, $msg);
+		} elsif ($msg->{'c'} eq 'playerjoin'){ # i.e. sit down to a board
 			my @availableColors = getAvailableColors($msg->{gameId});
 
 			if (scalar(@availableColors > 0)){
+                my $user  = $games{$msg->{gameId}}->{playersByAuth}->{$msg->{auth}};
 				my $color = $availableColors[rand @availableColors];
-				my $auth   = create_uuid_as_string();
 				$games{$msg->{gameId}}->{players}->{$id} =
 					{
 						'color' => $color,
 						'conn'  => $self,
-						'auth'  => $auth
+						'auth'  => $msg->{auth},
+                        'user'  => $user
 					};
 				my $ret = {
 					'c' => 'joined',
 					'color' =>  $color,
-					'p_auth' => $auth
 				};
 				$self->send(encode_json $ret);
+                my $userSend = {};
+                $userSend->{screenname} = $user->{screenname};
+                $userSend->{rating} = $user->{rating};
+                $userSend->{id} = $user->{id};
+                print "sending player sit\n";
+                print Dumper($userSend);
+                playerBroadcast($msg->{gameId}, {
+                        'c' => 'playersit',
+                        'color' => $color,
+                        'user' => $userSend
+                    }
+                );
 			}
 			@availableColors = getAvailableColors($msg->{gameId});
 			if (scalar(@availableColors == 0)){
 				playerBroadcast($msg->{gameId}, { 'c' => 'full' });
 			}
+
 		} elsif ($msg->{'c'} eq 'move'){
-			app->log->debug('move');
 			return 0 if (! ($msg->{gameId} && $msg->{auth}));                          # no game / auth tokens
 			return 0 if (! exists($games{$msg->{gameId}}->{players}->{$id}));		   # player doesn't exist
-			app->log->debug('move authed');
-			app->log->debug(Dumper($msg));
 
 			$msg->{color} = $games{$msg->{gameId}}->{players}->{$id}->{color};
 			return 0 if ($msg->{color} eq '');
@@ -240,34 +296,34 @@ websocket '/ws' => sub {
 			# TODO pass the player's color to the server
 			serverBroadcast($msg->{gameId}, $msg);
 		} elsif ($msg->{'c'} eq 'authmove'){
-			return 0 if (! ($msg->{gameId} && $msg->{auth}));                          # no game / auth tokens
-			return 0 if ($games{$msg->{gameId}}->{auth} ne $msg->{auth});              # incorrect server auth
+            gameauth($msg);
 
 			# pass the move request to the server
 			$msg->{'c'} = 'move';
 			playerBroadcast($msg->{gameId}, $msg);
 		} elsif ($msg->{'c'} eq 'spawn'){
-			return 0 if (! ($msg->{gameId} && $msg->{auth}));                          # no game / auth tokens
-			return 0 if ($games{$msg->{gameId}}->{auth} ne $msg->{auth});              # incorrect server auth
+            gameauth($msg);
 
 			print "broadcast spawn...\n";
 			playerBroadcast($msg->{gameId}, $msg);
 
+		} elsif ($msg->{'c'} eq 'playerlost'){
+            gameauth($msg);
+			playerBroadcast($msg->{gameId}, $msg);
+            # end game here
+            updateRatings($msg->{gameId}, $msg->{color});
 		} elsif ($msg->{'c'} eq 'authkill'){
-			return 0 if (! ($msg->{gameId} && $msg->{auth}));                          # no game / auth tokens
-			return 0 if ($games{$msg->{gameId}}->{auth} ne $msg->{auth});              # incorrect server auth
+            gameauth($msg);
 
 			$msg->{'c'} = 'kill';
 			playerBroadcast($msg->{gameId}, $msg);
 		} elsif ($msg->{'c'} eq 'promote'){
-			return 0 if (! ($msg->{gameId} && $msg->{auth}));                          # no game / auth tokens
-			return 0 if ($games{$msg->{gameId}}->{auth} ne $msg->{auth});              # incorrect server auth
+            gameauth($msg);
+
 			playerBroadcast($msg->{gameId}, $msg);
 		} elsif ($msg->{'c'} eq 'authjoin'){
-			app->log->debug('authjoin recieved');
-			return 0 if (! ($msg->{gameId} && $msg->{auth}));                          # no game / auth tokens
-			return 0 if ($games{$msg->{gameId}}->{auth} ne $msg->{auth});              # incorrect server auth
-			app->log->debug('authjoin verified');
+            gameauth($msg);
+
 			$games{$msg->{gameId}}->{'serverConn'} = $self->tx;
 			$games{$msg->{gameId}}->{'readyToJoin'} = 1;
 			print "game client ready...\n";
@@ -283,6 +339,14 @@ websocket '/ws' => sub {
 		}
 	});
 };
+
+sub gameauth {
+    my $msg = shift;
+    return 0 if (! ($msg->{gameId} && $msg->{auth}));                          # no game / auth tokens
+    return 0 if ($games{$msg->{gameId}}->{auth} ne $msg->{auth});              # incorrect server auth
+
+    return 1;
+}
 
 sub playerBroadcast {
 	my ($gameId, $msg) = @_;
@@ -300,6 +364,7 @@ sub getAvailableColors {
 		'black' => 1,
 		'white' => 1,
 	);
+    # TODO this will loop through 1000s if there are many observers
 	foreach my $player (values %{ $games{$gameId}->{players}}){
 		if ($player->{color} ne ''){
 			delete $colors{$player->{color}};
@@ -335,6 +400,58 @@ sub encryptPassword {
     $bcrypt->add($password);
 
     return $bcrypt->b64digest();
+}
+
+# result 1 = white wins, 0 = black wins, .5 = draw
+sub updateRatings {
+    my $gameId = shift;
+    my $loser  = shift;
+
+    my $result = ($loser eq 'black' ? 1 : 0);
+
+    my ($white, $black) = getPlayers($gameId);
+
+    # k variable controls change rate
+    my $k = 32;
+    
+    # transformed rating (on a normal curve)
+    my $r1 = 10 ** ($white->{rating} / 400);
+    my $r2 = 10 ** ($black->{rating} / 400);
+
+    # expected score
+    my $e1 = $r1 / ($r1 + $r2);
+    my $e2 = $r2 / ($r1 + $r2);
+
+    $white->{rating} = $white->{rating} + $k * ($result - $e1);
+    $black->{rating} = $black->{rating} + $k * ((1 - $result) - $e2);
+    savePlayer($white);
+    savePlayer($black);
+}
+
+sub getPlayers {
+    my $gameId = shift;
+
+    my @rows = qw(screennname id rating is_provisional);
+    my @white = app->db()->selectrow_array('select screenname, player_id, rating, is_provisional from games g LEFT JOIN players p ON g.white_player = p.player_id WHERE game_id = ?', {}, $gameId);
+    my @black = app->db()->selectrow_array('select screenname, player_id, rating, is_provisional from games g LEFT JOIN players p ON g.black_player = p.player_id WHERE game_id = ?', {}, $gameId);
+    my %white;
+    @white{@rows} = @white;
+
+    my %black;
+    @black{@rows} = @black;
+
+    print "get players:\n";
+    print Dumper(%white);
+    print Dumper(%black);
+
+    return (\%white, \%black);
+}
+
+sub savePlayer {
+    my $player = shift;
+
+    my $sth = app->db()->prepare('UPDATE players SET rating = ?, is_provisional = ?');
+    $sth->execute($player->{rating}, $player->{provisional});
 }
 
 app->start;

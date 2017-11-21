@@ -2,6 +2,7 @@
 <html>
 <head>
     <script src="https://cdn.rawgit.com/konvajs/konva/1.6.5/konva.min.js"></script>
+    <script src="/jquery-3.2.min.js"></script>
     <meta charset="utf-8">
     <title>Konva Drop Events Demo</title>
     <style>
@@ -11,18 +12,60 @@
             overflow: hidden;
             background-color: #F0F0F0;
         }
+        #chatlog { padding:5px; background:#ddd; border-radius:5px; overflow-y: scroll;
+            border:1px solid #CCC; margin-top:10px; height: 160px; }
+        #chat-input {
+            border-radius:2px;
+            border:1px solid #ccc;
+            margin-top:10px;
+            padding:5px;
+            width:400px;
+        }
+        #status { width:88px; display:block; float:left; margin-top:15px; }
+        #container {
+            height:520px;
+            width:520px;
+        }
+        #sidebar {
+            height:520px;
+            width:200px;
+        }
     </style>
 </head>
 <body>
-<div id="container"></div>
+<center>
+    <div id="gameContainer">
+        <div id="container" style="height:520px;width:520px">
+        <!-- javascript puts pieces here -->
+        </div>
+        <div id="sidebar">
+            <span id="whitePlayer">(white player empty)</span><br />
+            <button disabled="true" id="join" onclick="playerJoinGame()">Join</button><br />
+            <span id="blackPlayer">(black player empty)</span>
+        </div>
+    </div>
+</center>
+
+<div id="chatlog" disabled="true"></div>
+<br />
+<input type="text" id="chat-input"></input>
+<span id="status">Connecting...</span><br>
+
+whitePlayer:"<%== $whitePlayer %>" <br /> 
+blackPlayer:"<%== $blackPlayer %>" <br /> 
 
 <script>
-	var gameId = "<%= $gameId %>";
+    var whitePlayer = JSON.parse('<%== $whitePlayer %>');
+    var blackPlayer = JSON.parse('<%== $blackPlayer %>');
+	var gameId   = "<%= $gameId %>";
+    var myColor  = "<%= $color %>";
+	var authId   = "<%= $authId %>";
+	var timer    = "<%= $timer %>";
+	var autojoin = "<%= $autojoin %>";
 </script>
 
 <script src="/pieces/pieces.js"></script>
 <script src="/game.js"></script>
 
-<button enabled="false" onclick="playerJoinGame()">Join</button> 
 </body>
 </html>

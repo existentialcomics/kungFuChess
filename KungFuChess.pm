@@ -340,11 +340,21 @@ sub killPiece {
     my $self = shift;
     my $piece = shift;
 
-    my $msg = {
-        'c' => 'authkill',
-        'id' => $piece->{id}
-    };
-    $self->send($msg);
+    if ($piece->{type} eq 'king'){
+        my $msg = {
+            'c' => 'playerlost',
+            'color' => $piece->{color}
+        };
+        $self->send($msg);
+        # game over
+        exit;
+    } else {
+        my $msg = {
+            'c' => 'authkill',
+            'id' => $piece->{id}
+        };
+        $self->send($msg);
+    }
     delete $self->{board}->{$piece->{id}};
 }
 

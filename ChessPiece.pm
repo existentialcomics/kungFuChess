@@ -5,7 +5,7 @@ use Time::HiRes;
 use AnyEvent;
 use Data::Dumper;
 
-our $timer = 1;
+our $timer = 10;
 
 sub new {
 	my $class = shift;
@@ -22,7 +22,7 @@ sub new {
 
 sub _init {
 	my $self = shift;
-	my ($x, $y, $color, $type, $id, $game) = @_;
+	my ($x, $y, $color, $type, $id, $game, $gameSpeed) = @_;
 	$self->{x} = $x;
 	$self->{y} = $y;
 	$self->{color} = $color;
@@ -30,6 +30,10 @@ sub _init {
 	$self->{id} = $id;
     $self->{game} = $game;
     $self->{readyToMove} = time();
+
+    if ($gameSpeed){
+        $timer = $gameSpeed;
+    }
 
 	$self->{firstMove} = 1;
 	$self->{isMoving} = 0;

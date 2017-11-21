@@ -1,5 +1,8 @@
-var width  = 600;
-var height = 600;
+var width  = 520;
+var height = 520;
+
+var chatContent = $('#chatlog');
+var input = $('#chat-input');
 
 var boardLayer = new Konva.Layer();
 var pieceLayer = new Konva.Layer();
@@ -9,10 +12,9 @@ var pieces = {};
 var piecesByImageId = {};
 
 var globalIdCount = 1;
-var authId;
-var myColor = "";
 
-var timer = 1;
+var whitePlayer = {};
+var blackPlayer = {};
 
 console.log("connecting...");
 var conn = new WebSocket("ws://www1.existentialcomics.com:3000/ws");
@@ -29,10 +31,11 @@ var joinGame = function(){
 var playerJoinGame = function(){
 		var ret = {
 			'c' : 'playerjoin',
-            'gameId' : gameId
+            'gameId' : gameId,
 		};
         gameId = gameId;
         sendMsg(ret);
+        $('#join').attr('disabled', 'disabled');
 }
 
 var resetGamePieces = function(){
@@ -53,8 +56,20 @@ conn.onopen = function(evt) {
 sendMsg = function(msg) {
     msg.gameId = gameId;
     msg.auth = authId;
+    console.log("game id: " + gameId + " authid: " + authId);
     conn.send(JSON.stringify(msg));
 }
+
+displayPlayers = function(color) {
+    if (whitePlayer.screenname !== undefined){
+        $('#whitePlayer').text(whitePlayer.screenname + " " + whitePlayer.rating);
+    }
+    if (blackPlayer.screenname !== undefined){
+        $('#blackPlayer').text(blackPlayer.screenname + " " + blackPlayer.rating);
+    }
+}
+
+displayPlayers();
 
 conn.onmessage = function(evt) {
     console.log("msg: " + evt.data);
@@ -75,14 +90,9 @@ conn.onmessage = function(evt) {
 		newQueen.image.draggable(pieces[msg.id].image.draggable());
 		pieceLayer.draw();
 	} else if (msg.c == 'readyToJoin'){
-		var ret = {
-			'c' : 'join',
-            'gameId' : msg.gameId
-		};
-        gameId = msg.gameId;
-        sendMsg(ret);
+		console.log('readyToJoin');
+        $('#join').removeAttr('disabled'); // let the user write another message
     } else if (msg.c == 'joined'){
-        authId = msg.p_auth;
         myColor = msg.color;
 		console.log('joined ' + authId + ", ", myColor);
 		// TODO mark all color pieces as draggabble
@@ -91,6 +101,7 @@ conn.onmessage = function(evt) {
 				pieces[id].image.draggable(true);
 			}
 		}
+        console.debug(msg);
 		console.log('begin reset');
 		resetGamePieces();
 		console.log('end reset');
@@ -111,10 +122,12 @@ conn.onmessage = function(evt) {
             piece = getPawn(msg.x, msg.y, msg.color);
         } 
         piece.id = msg.id;
-        console.log('adding piece ' + msg.type);
 		if (! (msg.id in pieces)){
 			pieceLayer.add(piece.image);
 			pieces[msg.id] = piece;
+			if (pieces.color == myColor){
+				pieces[id].image.draggable(true);
+			}
 			pieceLayer.draw();
 		}
     } else if (msg.c == 'kill'){
@@ -125,8 +138,36 @@ conn.onmessage = function(evt) {
         }
         delete pieces[msg.id];
         pieceLayer.draw();
+    } else if (msg.c == 'playersit'){
+        if (msg.color == 'white'){
+            whitePlayer = msg.user;
+        } else if (msg.color == 'black'){
+            blackPlayer = msg.user;
+        }
+        displayPlayers();
     } else if (msg.c == 'gameover'){
 
+    } else if (msg.c == 'chat') { // it's a single message
+        console.log("chat recieved");
+        input.removeAttr('disabled'); // let the user write another message
+        var dt = new Date();
+        addMessage(
+            "<author>",
+            msg.message,
+            "green",
+            dt
+        );
+    } else if (msg.c == 'playerlost') { // it's a single message
+        var dt = new Date();
+        addMessage(
+            "<system>",
+            msg.color + " has lost.",
+            "red",
+            dt
+        );
+    } else {
+        console.log("unknown msg recieved");
+        console.debug(msg);
     }
 };
 
@@ -323,7 +364,12 @@ var getPiece = function(x, y, color, image){
             this.isMoving = true;
             piece.firstMove = false;
 			// TODO 1000 is speed
-            piece.anim_length = Math.sqrt( Math.pow(Math.abs(this.start_x - this.x), 2) + Math.pow(Math.abs(this.start_y - this.y), 2)) * timer * 100;
+            //piece.anim_length = Math.sqrt( Math.pow(Math.abs(this.start_x - this.x), 2) + Math.pow(Math.abs(this.start_y - this.y), 2)) * timer * 100;
+            // diagonal pieces move just as fast forward as straight pieces
+            var x_dist = Math.abs(this.start_x - this.x);
+            var y_dist = Math.abs(this.start_y - this.y);
+            var longer_dist = (x_dist > y_dist ? x_dist : y_dist);
+            piece.anim_length =  longer_dist * timer * 100;
             piece.anim = new Konva.Animation(function(frame) {
                 var new_x = (piece.start_x * width / 8) + ((piece.x - piece.start_x) * (frame.time / piece.anim_length) * width / 8);
                 var new_y = (piece.start_y * width / 8) + ((piece.y - piece.start_y) * (frame.time / piece.anim_length) * width / 8);
@@ -473,3 +519,43 @@ stage.on("drop", function(e){
     //}, pieceLayer);
     pieceLayer.draw();
 });
+
+// ------------- CHAT
+
+
+/**
+ * Send mesage when user presses Enter key
+ */
+input.keydown(function(e) {
+    if (e.keyCode === 13) {
+        var message = $(this).val();
+        if (! message ){
+            return;
+        }
+
+        var msg = {
+            'c' : 'chat',
+            'message' : message,
+        };
+        // send the message as an ordinary text
+        sendMsg(msg);
+        $(this).val('');
+        // disable the input field to make the user wait until server
+        // sends back response
+        input.attr('disabled', 'disabled');
+    }
+});
+
+/**
+ * Add message to the chat window
+ */
+function addMessage(author, message, color, dt) {
+    console.log(author + ", " + message);
+    console.debug(chatContent);
+    console.debug(dt);
+    chatContent.append('<p><span style="color:' + color + '">' + author + '</span> @ ' +
+            + (dt.getHours() < 10 ? '0' + dt.getHours() : dt.getHours()) + ':'
+            + (dt.getMinutes() < 10 ? '0' + dt.getMinutes() : dt.getMinutes())
+            + ': ' + message + '</p>');
+    chatContent.scrollTop = chatContent.scrollHeight;
+}
