@@ -1,0 +1,10 @@
+<form method='POST' action='/login'>
+    <label>username</label>
+    <input type='text'     name='username' value=''>
+    <br />
+    <label>password</label>
+    <input type='password' name="password" value=''>
+    <input type='submit' value="Submit"/>
+</form>
+
+Don't have an account? <a href="/register">Register here</a>

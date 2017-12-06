@@ -1,16 +1,3 @@
-<!DOCTYPE html>
-<html>
-<head>
-</head>
-<body>
-
-<form method='POST' action='/login'>
-    <label>username</label>
-    <input type='text'     name='username' value=''>
-    <br />
-    <label>password</label>
-    <input type='password' name="password" value=''>
-    <input type='submit' value="Submit"/>
-</form>
-</body>
-</html>
+%= include 'header'
+%= include 'loginForm'
+%= include 'footer'

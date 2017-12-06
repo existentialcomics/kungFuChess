@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Kungfu chess</title>
+<link rel="stylesheet" type="text/css" href="/kungfuchess.css">
+</head>
+<body>
+<div id="navbar">
+<ul>
+    <li>
+    <a href="/">Home</a>
+    </li>
+    <li>
+    <% if ($user){ %>
+        Welcome, <%= $user->{screenname} %><br />
+        %= include 'logout'
+    <% } else { %>
+        <a href="/login">Login</a>
+    <% } %>
+    </li>
+</ul>
+</div>

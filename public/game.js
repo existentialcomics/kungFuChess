@@ -13,9 +13,6 @@ var piecesByImageId = {};
 
 var globalIdCount = 1;
 
-var whitePlayer = {};
-var blackPlayer = {};
-
 console.log("connecting...");
 var conn = new WebSocket("ws://www1.existentialcomics.com:3000/ws");
 
@@ -50,6 +47,13 @@ conn.onopen = function(evt) {
 	// finished connecting.
 	// maybe query for ready to join
 	console.log("connected!");
+    pingServer = setInterval(function() {
+        console.log('ping');
+        heartbeat_msg = {
+            "c" : "ping"
+        };
+        conn.send(JSON.stringify(heartbeat_msg));
+    }, 2000); 
 	joinGame();
 }
 
@@ -61,6 +65,9 @@ sendMsg = function(msg) {
 }
 
 displayPlayers = function(color) {
+    console.log("display players...");
+    console.debug(whitePlayer);
+    console.debug(whitePlayer.screenname);
     if (whitePlayer.screenname !== undefined){
         $('#whitePlayer').text(whitePlayer.screenname + " " + whitePlayer.rating);
     }
@@ -93,10 +100,11 @@ conn.onmessage = function(evt) {
 		console.log('readyToJoin');
         $('#join').removeAttr('disabled'); // let the user write another message
     } else if (msg.c == 'joined'){
-        myColor = msg.color;
+        console.debug(msg);
 		console.log('joined ' + authId + ", ", myColor);
 		// TODO mark all color pieces as draggabble
 		for(id in pieces){
+            console.log(myColor);
 			if (pieces[id].color == myColor){
 				pieces[id].image.draggable(true);
 			}
@@ -125,8 +133,9 @@ conn.onmessage = function(evt) {
 		if (! (msg.id in pieces)){
 			pieceLayer.add(piece.image);
 			pieces[msg.id] = piece;
-			if (pieces.color == myColor){
-				pieces[id].image.draggable(true);
+            console.log(myColor);
+			if (piece.color == myColor){
+				pieces[msg.id].image.draggable(true);
 			}
 			pieceLayer.draw();
 		}
@@ -210,7 +219,7 @@ var getPieceImage = function(x, y, image){
     var pieceImage = new Konva.Image({
         image: image,
         x: x * width / 8,
-        y: y * height / 8,
+        y: getY(y * height / 8),
         width: width / 8,
         height: height / 8,
         draggable: false

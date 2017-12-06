@@ -1,71 +1,39 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <script src="https://cdn.rawgit.com/konvajs/konva/1.6.5/konva.min.js"></script>
-    <script src="/jquery-3.2.min.js"></script>
-    <meta charset="utf-8">
-    <title>Konva Drop Events Demo</title>
-    <style>
-        body {
-            margin: 0;
-            padding: 0;
-            overflow: hidden;
-            background-color: #F0F0F0;
-        }
-        #chatlog { padding:5px; background:#ddd; border-radius:5px; overflow-y: scroll;
-            border:1px solid #CCC; margin-top:10px; height: 160px; }
-        #chat-input {
-            border-radius:2px;
-            border:1px solid #ccc;
-            margin-top:10px;
-            padding:5px;
-            width:400px;
-        }
-        #status { width:88px; display:block; float:left; margin-top:15px; }
-        #container {
-            height:520px;
-            width:520px;
-        }
-        #sidebar {
-            height:520px;
-            width:200px;
-        }
-    </style>
-</head>
-<body>
-<center>
-    <div id="gameContainer">
-        <div id="container" style="height:520px;width:520px">
-        <!-- javascript puts pieces here -->
-        </div>
-        <div id="sidebar">
-            <span id="whitePlayer">(white player empty)</span><br />
-            <button disabled="true" id="join" onclick="playerJoinGame()">Join</button><br />
-            <span id="blackPlayer">(black player empty)</span>
-        </div>
+%= include 'header'
+
+<script src="https://cdn.rawgit.com/konvajs/konva/1.6.5/konva.min.js"></script>
+<script src="/jquery-3.2.min.js"></script>
+
+<div id="gameContainer">
+    <div id="container" style="height:520px;width:520px">
+    <!-- javascript puts pieces here -->
     </div>
-</center>
+    <div id="sidebar">
+        <span id="whitePlayer">(white player empty)</span><span id=rating></span><br />
+        <button disabled="true" id="start" onclick="readyToStart()">Ready To Start</button><br />
+        <button disabled="true" id="start" onclick="resign()">Resign</button><br />
+        <button disabled="true" id="start" onclick="draw()">Draw</button><br />
+        <span id="blackPlayer">(black player empty)</span><span id=rating></span><br />
+        <br />
+        <div id="chatlog" disabled="true"></div>
+        <input type="text" id="chat-input"></input><br/>
+        <span id="status">Connecting...</span><br>
+    </div>
+</div>
 
-<div id="chatlog" disabled="true"></div>
-<br />
-<input type="text" id="chat-input"></input>
-<span id="status">Connecting...</span><br>
-
-whitePlayer:"<%== $whitePlayer %>" <br /> 
-blackPlayer:"<%== $blackPlayer %>" <br /> 
 
 <script>
     var whitePlayer = JSON.parse('<%== $whitePlayer %>');
     var blackPlayer = JSON.parse('<%== $blackPlayer %>');
+    console.debug(whitePlayer);
+    console.debug(blackPlayer);
 	var gameId   = "<%= $gameId %>";
     var myColor  = "<%= $color %>";
 	var authId   = "<%= $authId %>";
 	var timer    = "<%= $timer %>";
-	var autojoin = "<%= $autojoin %>";
+    var gameBegan = false;
 </script>
 
 <script src="/pieces/pieces.js"></script>
 <script src="/game.js"></script>
 
-</body>
-</html>
+%= include 'footer'

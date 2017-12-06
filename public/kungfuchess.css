@@ -1,0 +1,77 @@
+body {
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    background-color: #F0F0F0;
+}
+ul {
+    list-style-type: none;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    background-color: #333;
+}
+li {
+    float: left;
+}
+
+li a {
+    display: block;
+    color: white;
+    text-align: center;
+    padding: 14px 16px;
+    text-decoration: none;
+}
+
+/* Change the link color to #111 (black) on hover */
+li a:hover {
+    background-color: #111;
+}
+
+#chatlog {
+    padding:5px;
+    background:#ddd;
+    border-radius:5px;
+    overflow-y: scroll;
+    border:1px solid #CCC;
+    margin-top:5px;
+    height: 360px;
+    width:300px;
+}
+#chat-input {
+    border-radius:2px;
+    border:1px solid #ccc;
+    margin-top:3px;
+    padding:5px;
+    width:300px;
+}
+#status {
+    width:88px;
+    display:block;
+    float:left;
+    margin-top:15px;
+}
+#gameContainer {
+    margin: auto;
+    width:880px;
+    height:540px;
+    background-color:white;
+    padding:20px;
+}
+#container {
+    height:520px;
+    width:520px;
+    float:left;
+    margin: auto;
+}
+#sidebar {
+    padding:20px;
+    height:480px;
+    width:300px;
+    border-radius:2px;
+    border:1px solid #ccc;
+    background-color:lightgrey;
+    float:left;
+}
+
+

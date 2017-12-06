@@ -8,6 +8,8 @@ use ChessPiece;
 use JSON::XS;
 use Data::Dumper;
 
+$| = 1;
+
 sub new {
 	my $class = shift;
 
@@ -91,7 +93,10 @@ sub _init {
 		cb => sub {
 			return;
 			print "timer: " . time . "\n";
-			$self->{conn}->send('ping');
+            my $msg = {
+                'c' => 'serverping',
+            };
+			$self->{conn}->send($msg);
 		}
 	);
 	AnyEvent->condvar->recv;
@@ -276,7 +281,6 @@ sub handleMessage {
 			$self->send($msg);
 		}
 	}
-
 }
 
 sub sendAllGamePieces {
@@ -364,8 +368,6 @@ sub send {
 
 	$msg->{auth} = $self->{authkey};
 	$msg->{gameId} = $self->{gamekey};
-    print Dumper($self->{pieces});
-
 	return $self->{conn}->send(encode_json $msg);
 }
 

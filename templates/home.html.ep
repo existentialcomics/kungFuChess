@@ -1,31 +1,14 @@
-<!DOCTYPE html>
-<html>
-<head>
-</head>
-<body>
-
-<% if ($user){ %>
-
-Welcome, <%= $user->{screenname} %><br />
-<%# Welcome, <%= $user->{screenname} %><br />
-<a href="/logout">Logout</a><br />
-
-<% } else { %>
-Log in:<br />
-<form method='POST' action='/login'>
-    <label>username</label>
-    <input type='text'     name='username' value=''>
-    <br />
-    <label>password</label>
-    <input type='password' name="password" value=''>
-    <input type='submit' value="Submit"/>
-</form>
-<% } %>
+%= include 'header'
 
 <% foreach my $game (keys %$games){ %>
+    <% if ($user){ %>
     <a href="/game/<%= $game %>">Join</a><br />
+    <% } else { %>
+    <a href="/game/<%= $game %>/watch">Watch</a><br />
+    <% } %>
 <% } %>
 
 <a href="/create">Create new game</a>
+%= include 'footer'
 </body>
 </html>
