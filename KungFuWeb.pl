@@ -10,6 +10,7 @@ use ChessPiece;
 use ChessGame;
 use JSON::XS;
 use Config::Simple;
+use HTML::Escape qw/escape_html/;
 # via the Digest module (recommended)
 use Digest;
 
@@ -17,14 +18,25 @@ my $cfg = new Config::Simple('kungFuChess.cnf');
 
 ### current running games
 my %games   = ();
+
+### current ChessGame.pm objects running
 my %currentGames = ();
+
+## hash of connections to gameIds 
+my %gamesByServerConn = ();
+
+## hash of game id by connections and which players are in
+my %playerGamesByServerConn = ();
 
 app->log->debug('connecting to db...');
 app->plugin('database', { 
 	dsn      => 'dbi:mysql:dbname=' . $cfg->param('database') .';host=' . $cfg->param('dbhost'),
 	username => $cfg->param('dbuser'),
 	password => $cfg->param('dbpassword'),
-	options  => { 'pg_enable_utf8' => 1, RaiseError => 1 },
+	options  => {
+        'pg_enable_utf8' => 1,
+        'RaiseError' => 1
+    },
 	helper   => 'db',
 });
 
@@ -36,14 +48,14 @@ app->plugin('authentication' => {
     'load_user' =>
         sub { 
             my ($app, $uid) = @_;
-            my @rows = $app->db()->selectall_array('SELECT player_id, screenname, rating FROM players WHERE player_id = ?', {}, $uid);
+            my @rows = $app->db()->selectall_array('SELECT player_id, screenname, rating, auth_token FROM players WHERE player_id = ?', {}, $uid);
 
             foreach my $row (@rows){
                 my $user = {
                     'id'         => $row->[0],
                     'screenname' => $row->[1],
                     'rating'     => $row->[2],
-                    'auth'       =>  create_uuid_as_string(),
+                    'auth'       => $row->[3],
                 };
                 return $user;
             }
@@ -57,7 +69,11 @@ app->plugin('authentication' => {
             my @rows = $app->db()->selectall_array('SELECT player_id FROM players WHERE screenname = ? AND password = ?', {}, $username, $password);
             print Dumper(@rows);
             if (@rows){
-                print "Validated $rows[0]->[0]!\n";
+                my $id = $rows[0]->[0];
+                print "Validated !\n";
+                my $auth = create_uuid_as_string();
+                app->db()->do('UPDATE players SET last_login = NOW(), auth_token = ? WHERE player_id = ?', {}, $auth, $id);
+                app->log->debug("updated auth in db to: $auth");
                 return $rows[0]->[0];
             }
             return undef;
@@ -75,7 +91,8 @@ get '/' => sub {
 
     my $user = $c->current_user();
     $c->stash('user' => $user);
-    $c->stash('games' => \%games);
+    my $games = getActiveGames();
+    $c->stash('games' => $games);
 	$c->render('template' => 'home', format => 'html', handler => 'ep');
 };
 
@@ -110,8 +127,12 @@ get '/game/:gameId' => sub {
 	app->log->debug( "Entering game" );
 
     my $gameId = $c->stash('gameId');
-
     my $game = $currentGames{$gameId};
+    if (!$game){
+	    $c->render('template' => 'gameEnded', format => 'html', handler => 'ep');
+        return;
+    }
+
     $game->addPlayer($user);
 
     print "auth: $user->{auth}\n";
@@ -225,7 +246,6 @@ get '/login' => sub {
     my $user = $c->current_user();
     $c->stash('user' => $user);
 
-
 	$c->render('template' => 'login', format => 'html', handler => 'ep');
 };
 
@@ -251,12 +271,31 @@ websocket '/ws' => sub {
 	my $self = shift;
 
 	app->log->debug(sprintf 'Client connected: %s', $self->tx);
-	my $id = sprintf "%s", $self->tx;
+	my $connId = sprintf "%s", $self->tx;
 	$self->inactivity_timeout(300);
 
 	$self->on(finish => sub {
 		## delete player
-		app->log->debug("connection closed for $id");
+		app->log->debug("connection closed for $connId");
+        if (exists $gamesByServerConn{$connId}){
+            my $gameId = $gamesByServerConn{$connId};
+            endGame($gameId, 'server disconnect');
+            delete $currentGames{$gameId};
+            delete $gamesByServerConn{$connId};
+		    app->log->debug("game connection closed $connId");
+        } elsif (exists $playerGamesByServerConn{$connId}){
+            my $gameId = $playerGamesByServerConn{$connId};
+            my $game = $currentGames{$gameId};
+            if (!$game){
+		        app->log->debug("game $gameId not found for $connId");
+            } else {
+                $game->removeConnection($connId);
+                delete $playerGamesByServerConn{$connId};
+                app->log->debug("game connection closed $connId");
+            }
+        } else {
+            app->log->debug("conneciton $connId closing, but not found!");
+        }
 	});
 
 	my $gameId = "";
@@ -281,24 +320,43 @@ websocket '/ws' => sub {
 			my $ret = {
 				'c' => 'joined',
 			};
-            $game->addConnection($id, $self);
+            $game->addConnection($connId, $self);
+            $playerGamesByServerConn{$connId} = $msg->{gameId};
+            print "playerGamesByServerConn:\n";
+            print Dumper(%playerGamesByServerConn);
 
 			$self->send(encode_json $ret);
 
 			$game->serverBroadcast($msg);
 			app->log->debug('player joined');
 		} elsif ($msg->{'c'} eq 'chat'){
+            my $player = getPlayerByAuth($msg->{auth});
+            $msg->{'message'} = escape_html($msg->{'message'});
+            $msg->{'author'}  = escape_html( ($player ? $player->{screenname} : "anonymous") );
+
             app->log->debug("chat msg recieved");
             $game->playerBroadcast($msg);
+		} elsif ($msg->{'c'} eq 'readyToBegin'){
+            my $return = $game->playerReady($msg);
+            app->log->debug("ready to begin msg");
+            if ($return > 0){
+                #$self->playerBroadcast({
+                    #'c' => 'readyToPlay',
+                    #'begin' => $return
+                #});
+            }
+		} elsif ($msg->{'c'} eq 'serverping'){
+
 		} elsif ($msg->{'c'} eq 'ping'){
 
 		} elsif ($msg->{'c'} eq 'move'){
             app->log->debug('moving, ready to auth');
+            return 0 if (!$game->gameBegan());
             my $color = $game->authMove($msg);
+            print "auth color: $color\n";
             return 0 if (!$color);
 
             $msg->{color} = $color;
-            
 
 			# pass the move request to the server
 			# TODO pass the player's color to the server
@@ -313,7 +371,7 @@ websocket '/ws' => sub {
 		} elsif ($msg->{'c'} eq 'spawn'){
             if (! gameauth($msg) ){ return 0; }
 
-			print "broadcast spawn...\n";
+			#print "broadcast spawn...\n";
 			$game->playerBroadcast($msg);
 
 		} elsif ($msg->{'c'} eq 'playerlost'){
@@ -321,6 +379,13 @@ websocket '/ws' => sub {
 			$game->playerBroadcast($msg);
             # end game here
             updateRatings($msg->{gameId}, $msg->{color});
+            my $result = '';
+            if ($msg->{color} eq 'black'){
+                $result = 'white wins';
+            } elsif ($msg->{color} eq 'white'){
+                $result = 'black wins';
+            }
+            endGame($msg->{gameId}, $result);
 		} elsif ($msg->{'c'} eq 'authkill'){
             if (! gameauth($msg) ){ return 0; }
 
@@ -334,6 +399,7 @@ websocket '/ws' => sub {
             if (! gameauth($msg) ){ return 0; }
 
             $game->setServerConnection($self->tx);
+            $gamesByServerConn{$connId} = $game->{id};
 		} else {
 			print "bad message: $msg\n";
 			print Dumper($msg);
@@ -351,15 +417,15 @@ sub gameauth {
     return 1;
 }
 
-sub playerBroadcast {
-	my ($gameId, $msg) = @_;
-	print "player broadcast $gameId\n";
-	delete $msg->{auth};
-	foreach my $player (values %{ $games{$gameId}->{players}}){
-		print "broadcasting to player $msg->{c}\n";
-		$player->{conn}->send(encode_json $msg);
-	}
-}
+#sub playerBroadcast {
+	#my ($gameId, $msg) = @_;
+	##print "player broadcast $gameId\n";
+	#delete $msg->{auth};
+	#foreach my $player (values %{ $games{$gameId}->{players}}){
+		##print "broadcasting to player $msg->{c}\n";
+		#$player->{conn}->send(encode_json $msg);
+	#}
+#}
 
 sub serverBroadcast {
 	my ($gameId, $msg) = @_;
@@ -411,6 +477,21 @@ sub updateRatings {
     savePlayer($black);
 }
 
+sub endGame {
+    my $gameId = shift;
+    my $result = shift;
+
+    app->log->debug('ending game: ' . $gameId . ' to ' . $result);
+
+    app->db()->do(
+        'UPDATE games SET `status` = "finished", result = ?, time_ended = NOW() WHERE game_id = ?',
+        {},
+        $result,
+        $gameId,
+    );
+    delete $games{$gameId};
+}
+
 sub getPlayers {
     my $gameId = shift;
 
@@ -423,11 +504,66 @@ sub getPlayers {
     my %black;
     @black{@rows} = @black;
 
-    print "get players:\n";
-    print Dumper(%white);
-    print Dumper(%black);
-
     return (\%white, \%black);
+}
+
+sub getActiveGames {
+    my @rows = qw(game_id time_created white_id white_rating white_screenname black_id black_rating black_screenname);
+    my $games = app->db()->selectall_arrayref('
+        SELECT 
+            g.game_id,
+            g.time_created,
+            w.player_id,
+            w.rating,
+            w.screenname,
+            b.player_id,
+            b.rating,
+            b.screenname
+        FROM games g
+        LEFT JOIN players w ON g.white_player = w.player_id
+        LEFT JOIN players b ON g.black_player = b.player_id
+        WHERE status = "active"
+    ');
+
+    my @gameHashes = ();
+    foreach my $game (@{$games}) {
+        my %gameH = ();
+        my $id = $game->[0];
+        # not in the pool
+        if (!$currentGames{$id}){
+            endGame($id, 'server disconnect');
+        }
+
+        @gameH{@rows} = @{$game};
+        push @gameHashes, \%gameH;
+    }
+
+    print Dumper(@gameHashes);
+
+    return \@gameHashes;
+}
+
+sub getPlayerByAuth {
+    my $auth = shift;
+
+    app->log->debug('getPlayerByAuth: ' . $auth);
+    my @rows = qw(screenname id rating is_provisional);
+    my $sql = 'SELECT screenname, player_id, rating, is_provisional FROM players WHERE auth_token = "'. $auth . '"';
+    app->log->debug($sql);
+    my @playerRow = app->db()->selectrow_array(
+        #'SELECT screenname, player_id, rating, is_provisional FROM players WHERE auth_token = ?',
+        $sql,
+        {}
+        #$auth
+    );
+    print "results:\n\n";
+    print Dumper(@playerRow);
+    print "\n\n";
+    if (!@playerRow){ return undef; }
+    my %player;
+    @player{@rows} = @playerRow;
+
+    return \%player;
 }
 
 sub getPlayerById {
@@ -435,6 +571,7 @@ sub getPlayerById {
 
     my @rows = qw(screenname id rating is_provisional);
     my @playerRow = app->db()->selectrow_array('SELECT screenname, player_id, rating, is_provisional FROM players player_id = ?', {}, $playerId);
+    if (!@playerRow){ return undef; }
     my %player;
     @player{@rows} = @playerRow;
 

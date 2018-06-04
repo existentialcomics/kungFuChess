@@ -13,7 +13,9 @@ var piecesByImageId = {};
 
 var globalIdCount = 1;
 
-console.log("connecting...");
+var gameBegun = false;
+
+console.log("connecting..." + authId);
 var conn = new WebSocket("ws://www1.existentialcomics.com:3000/ws");
 
 var joinGame = function(){
@@ -66,17 +68,53 @@ sendMsg = function(msg) {
 
 displayPlayers = function(color) {
     console.log("display players...");
+    console.log("white:");
     console.debug(whitePlayer);
-    console.debug(whitePlayer.screenname);
-    if (whitePlayer.screenname !== undefined){
+    console.log("black");
+    console.debug(blackPlayer);
+    if (whitePlayer.screenname !== null){
         $('#whitePlayer').text(whitePlayer.screenname + " " + whitePlayer.rating);
     }
-    if (blackPlayer.screenname !== undefined){
+    if (blackPlayer.screenname !== null){
         $('#blackPlayer').text(blackPlayer.screenname + " " + blackPlayer.rating);
+    }
+    if (blackPlayer.screenname !== null && whitePlayer.screenname !== null){
+        console.log('enabling ready to start...');
+        $('#readyToStart').removeAttr('disabled'); 
     }
 }
 
 displayPlayers();
+
+readyToStart = function() {
+    $("#readyToStart").attr("disabled","disabled");
+    
+    var msg = {
+        "c" : "readyToBegin"
+    };
+    sendMsg(msg);
+}
+
+resign = function(){
+    var msg = {
+        "c" : "resign"
+    };
+    sendMsg(msg);
+}
+
+requestDraw = function() {
+    var msg = {
+        "c" : "requestDraw"
+    };
+    sendMsg(msg);
+}
+
+requestRematch = function() {
+    var msg = {
+        "c" : "requestRematch"
+    };
+    sendMsg(msg);
+}
 
 conn.onmessage = function(evt) {
     console.log("msg: " + evt.data);
@@ -147,13 +185,21 @@ conn.onmessage = function(evt) {
         }
         delete pieces[msg.id];
         pieceLayer.draw();
-    } else if (msg.c == 'playersit'){
-        if (msg.color == 'white'){
+    } else if (msg.c == 'playerjoined'){
+        if (msg.user.color == 'white'){
+            console.log("joined white");
             whitePlayer = msg.user;
-        } else if (msg.color == 'black'){
+        } else if (msg.user.color == 'black'){
+            console.log("joined black");
             blackPlayer = msg.user;
+        } else {
+            console.log("joined nocolor");
+            console.debug(msg.user.color);
         }
         displayPlayers();
+    } else if (msg.c == 'gameBegins'){
+        console.log('setting readyToStart timeout');
+        setTimeout(startGame, 3000)
     } else if (msg.c == 'gameover'){
 
     } else if (msg.c == 'chat') { // it's a single message
@@ -161,7 +207,7 @@ conn.onmessage = function(evt) {
         input.removeAttr('disabled'); // let the user write another message
         var dt = new Date();
         addMessage(
-            "<author>",
+            msg.author,
             msg.message,
             "green",
             dt
@@ -169,7 +215,7 @@ conn.onmessage = function(evt) {
     } else if (msg.c == 'playerlost') { // it's a single message
         var dt = new Date();
         addMessage(
-            "<system>",
+            "SYSTEM",
             msg.color + " has lost.",
             "red",
             dt
@@ -179,6 +225,12 @@ conn.onmessage = function(evt) {
         console.debug(msg);
     }
 };
+
+var startGame = function(){
+    console.log('starting game');
+    $('#resign').removeAttr('disabled');
+    $('#requestDraw').removeAttr('disabled');
+}
 
 var getBoardPos = function(pos){
     var bPos = {};

@@ -12,3 +12,4 @@ cpan AnyEvent::WebSocket::Client
 cpan Config::Simple
 cpan Mojolicious::Plugin::Authentication
 cpan Digest::Bcrypt
+cpan HTML::Escape

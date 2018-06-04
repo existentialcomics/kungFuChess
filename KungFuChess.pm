@@ -305,6 +305,7 @@ sub sendAllGamePieces {
 	}
 }
 
+# called by the piece that landed
 sub checkForKills {
     my $self = shift;
     my $piece = shift;

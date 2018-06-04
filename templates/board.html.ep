@@ -8,11 +8,11 @@
     <!-- javascript puts pieces here -->
     </div>
     <div id="sidebar">
-        <span id="whitePlayer">(white player empty)</span><span id=rating></span><br />
-        <button disabled="true" id="start" onclick="readyToStart()">Ready To Start</button><br />
-        <button disabled="true" id="start" onclick="resign()">Resign</button><br />
-        <button disabled="true" id="start" onclick="draw()">Draw</button><br />
         <span id="blackPlayer">(black player empty)</span><span id=rating></span><br />
+        <button disabled="true" id="readyToStart" onclick="readyToStart()">Ready To Start</button><br />
+        <button disabled="true" id="resign" onclick="resign()">Resign</button><br />
+        <button disabled="true" id="requestDraw" onclick="requestDraw()">Draw</button><br />
+        <span id="whitePlayer">(white player empty)</span><span id=rating></span><br />
         <br />
         <div id="chatlog" disabled="true"></div>
         <input type="text" id="chat-input"></input><br/>
@@ -24,8 +24,6 @@
 <script>
     var whitePlayer = JSON.parse('<%== $whitePlayer %>');
     var blackPlayer = JSON.parse('<%== $blackPlayer %>');
-    console.debug(whitePlayer);
-    console.debug(blackPlayer);
 	var gameId   = "<%= $gameId %>";
     var myColor  = "<%= $color %>";
 	var authId   = "<%= $authId %>";

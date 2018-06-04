@@ -12,11 +12,15 @@
     </li>
     <li>
     <% if ($user){ %>
-        Welcome, <%= $user->{screenname} %><br />
         %= include 'logout'
     <% } else { %>
         <a href="/login">Login</a>
     <% } %>
     </li>
+    <% if ($user){ %>
+    <li>
+    <a href="/profile">Welcome, <%= $user->{screenname} %></a>
+    </li>
+    <% } %>
 </ul>
 </div>
