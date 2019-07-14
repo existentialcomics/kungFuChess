@@ -1,34 +1,7 @@
 %= include 'header'
 
-<table>
-<tr>
-    <th>Player</td>
-    <th></td>
-</tr>
-<% foreach my $game (@{$games}){ %>
-    <tr>
-        <td>
-            <% if ($game->{white_screenname}) { %>
-                <%= $game->{white_screenname} %>
-                (<%= $game->{white_rating} %>)
-            <% } elsif ($game->{black_screenname}) { %>
-                <%= $game->{black_screenname} %>
-                (<%= $game->{white_rating} %>)
-            <% } %>
-        </td>
-        <td>
-            <% if ($user){ %>
-                <a href="/game/<%= $game->{game_id} %>">Join</a><br />
-            <% } %>
-        </td>
-        <td>
-        <a href="/game/<%= $game %>/watch">Watch</a><br />
-        </td>
-    </tr>
-<% } %>
-</table>
+<div id='gamesContent'>
+</div>
 
 <a href="/create">Create new game</a>
 %= include 'footer'
-</body>
-</html>

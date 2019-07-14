@@ -96,6 +96,31 @@ get '/' => sub {
 	$c->render('template' => 'home', format => 'html', handler => 'ep');
 };
 
+get '/ajax/games' => sub {
+    my $c = shift;
+
+    my $games = getActiveGames();
+	$c->render('json' => $games);
+};
+
+get '/profile' => sub {
+    my $c = shift;
+    my $user = $c->current_user();
+    $c->stash('user' => $user);
+
+	$c->render('template' => 'profile', format => 'html', handler => 'ep');
+};
+
+get '/games' => sub {
+    my $c = shift;
+    my $user = $c->current_user();
+    $c->stash('user' => $user);
+
+    my $games = getActiveGames();
+    $c->stash('games' => $games);
+	$c->render('template' => 'games', format => 'html', handler => 'ep');
+};
+
 get '/game/:gameId/watch' => sub {
 	my $c = shift;
     my $user = $c->current_user();
@@ -186,10 +211,26 @@ get '/create' => sub {
     my $user = $c->current_user();
     $c->stash('user' => $user);
 
+    my $gameId = createGame($c);
+
+	$c = $c->redirect_to("/game/$gameId");
+};
+
+
+sub createGame {
+    my $rematchOfGame = shift;
+
+    my $white = undef;
+    my $black = undef;
+    
+    if ($rematchOfGame) {
+        ($white, $black) = getPlayers($rematchOfGame);
+    }
+
 	my $auth   = create_uuid_as_string();
 
-    my $sth = $c->db()->prepare("INSERT INTO games (game_id) VALUES (NULL)");
-    $sth->execute();
+    my $sth = app->db()->prepare("INSERT INTO games (game_id, white_player, black_player) VALUES (NULL, ?, ?)",);
+    $sth->execute($white, $black);
 
     my $gameId = $sth->{mysql_insertid};
 
@@ -211,8 +252,8 @@ get '/create' => sub {
 	app->log->debug('/usr/bin/perl /home/corey/kungfuchess/kungFuChessGame.pl ' . $gameId . ' ' . $auth . ' > /home/corey/game.log 2>/home/corey/errors.log &');
 	system('/usr/bin/perl /home/corey/kungfuchess/kungFuChessGame.pl ' . $gameId . ' ' . $auth . ' > /home/corey/game.log 2>/home/corey/errors.log &');
 
-	$c = $c->redirect_to("/game/$gameId");
-};
+    return $gameId;
+}
 
 get '/register' => sub {
     my $c = shift;
@@ -280,7 +321,7 @@ websocket '/ws' => sub {
         if (exists $gamesByServerConn{$connId}){
             my $gameId = $gamesByServerConn{$connId};
             endGame($gameId, 'server disconnect');
-            delete $currentGames{$gameId};
+            #delete $currentGames{$gameId};
             delete $gamesByServerConn{$connId};
 		    app->log->debug("game connection closed $connId");
         } elsif (exists $playerGamesByServerConn{$connId}){
@@ -316,7 +357,6 @@ websocket '/ws' => sub {
         return 0 if (! $game);
 
 		if ($msg->{'c'} eq 'join'){
-
 			my $ret = {
 				'c' => 'joined',
 			};
@@ -336,14 +376,13 @@ websocket '/ws' => sub {
 
             app->log->debug("chat msg recieved");
             $game->playerBroadcast($msg);
+		} elsif ($msg->{'c'} eq 'readyToRematch'){
+            my $return = $game->playerRematchReady($msg);
+
 		} elsif ($msg->{'c'} eq 'readyToBegin'){
             my $return = $game->playerReady($msg);
             app->log->debug("ready to begin msg");
             if ($return > 0){
-                #$self->playerBroadcast({
-                    #'c' => 'readyToPlay',
-                    #'begin' => $return
-                #});
             }
 		} elsif ($msg->{'c'} eq 'serverping'){
 
@@ -362,7 +401,6 @@ websocket '/ws' => sub {
 			# TODO pass the player's color to the server
 			$game->serverBroadcast($msg);
 		} elsif ($msg->{'c'} eq 'authmove'){
-            print "AUTHMOVE\n";
             if (! gameauth($msg) ){ return 0; }
 
 			# pass the move request to the server
@@ -373,7 +411,46 @@ websocket '/ws' => sub {
 
 			#print "broadcast spawn...\n";
 			$game->playerBroadcast($msg);
+        } elsif ($msg->{'c'} eq 'requestDraw'){
+            if (! gameauth($msg) ){ return 0; }
+            my $color = $game->authMove($msg);
+            print "auth color: $color\n";
+            return 0 if (!$color);
 
+            my $drawConfirmed = $game->playerDraw($msg);
+            if ($drawConfirmed) {
+                endGame($msg->{gameId}, 'draw');
+
+                updateRatings($msg->{gameId}, 'draw');
+
+                my $drawnMsg = {
+                    'c' => 'gameDrawn'
+                };
+
+                $game->playerBroadcast($drawnMsg);
+            } else {
+                $game->playerBroadcast($msg);
+            }
+
+        } elsif ($msg->{'c'} eq 'resign'){
+            if (! gameauth($msg) ){ return 0; }
+            my $color = $game->authMove($msg);
+            print "auth color resign: $color\n";
+            return 0 if (!$color);
+
+            $msg->{'color'} = $color;
+			$game->playerBroadcast($msg);
+
+
+            updateRatings($msg->{gameId}, $color);
+            my $result = '';
+            if ($color eq 'black'){
+                $result = 'white wins';
+            } elsif ($color eq 'white'){
+                $result = 'black wins';
+            }
+            endGame($msg->{gameId}, $result);
+            print "done resign\n";
 		} elsif ($msg->{'c'} eq 'playerlost'){
             if (! gameauth($msg) ){ return 0; }
 			$game->playerBroadcast($msg);
@@ -391,6 +468,18 @@ websocket '/ws' => sub {
 
 			$msg->{'c'} = 'kill';
 			$game->playerBroadcast($msg);
+		} elsif ($msg->{'c'} eq 'rematch'){
+            if (! gameauth($msg) ){ return 0; }
+
+            my $rematchConfirmed = $game->playerRematch($msg);
+            if ($rematchConfirmed) {
+                my $gameId = createGame($game);
+                my $newGameMsg = {
+                    'c' => 'newgame',
+                    'gameId' => $gameId
+                };
+                $game->playerBroadcast($newGameMsg);
+            }
 		} elsif ($msg->{'c'} eq 'promote'){
             if (! gameauth($msg) ){ return 0; }
 
@@ -457,6 +546,7 @@ sub updateRatings {
     my $loser  = shift;
 
     my $result = ($loser eq 'black' ? 1 : 0);
+    if ($loser eq 'draw') { $result = 0.5; }
 
     my ($white, $black) = getPlayers($gameId);
 

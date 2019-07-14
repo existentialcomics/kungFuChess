@@ -1,0 +1,32 @@
+<table id='gamestable'>
+<tr>
+    <th>Player</td>
+    <th></td>
+</tr>
+<% foreach my $game (@{$games}){ %>
+    <tr>
+        <td>
+            <% if ($game->{white_screenname}) { %>
+                <%= $game->{white_screenname} %>
+                (<%= $game->{white_rating} %>)
+            <% } elsif ($game->{black_screenname}) { %>
+                <%= $game->{black_screenname} %>
+                (<%= $game->{black_rating} %>)
+            <% } %>
+        </td>
+        <td>
+            <% if ($user){ %>
+                <% if ($game->{white_screenname} && $game->{black_screenname}) { %>
+                    <%= $game->{black_screenname} %>
+                    (<%= $game->{black_rating} %>)
+                <% } else { %>
+                    <a href="/game/<%= $game->{game_id} %>">Join</a><br />
+                <% } %>
+            <% } %>
+        </td>
+        <td>
+        <a href="/game/<%= $game %>/watch">Watch</a><br />
+        </td>
+    </tr>
+<% } %>
+</table>

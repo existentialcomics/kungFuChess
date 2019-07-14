@@ -26,12 +26,17 @@ sub _init {
     $self->{playersByAuth} = {};
     $self->{playersConn}   = {};
     $self->{readyToPlay}   = 0;
-    $self->{whiteReady}    = 0;
-    $self->{blackReady}    = 0;
     $self->{auth}          = $auth;
     $self->{serverConn}    = 0;
     $self->{whitePlayer}   = undef;
     $self->{blackPlayer}   = undef;
+
+    $self->{whiteReady}    = 0;
+    $self->{blackReady}    = 0;
+    $self->{whiteRematchReady}  = 0;
+    $self->{blackRematchPlayer} = 0;
+    $self->{whiteDrawReady}  = 0;
+    $self->{blackDrawPlayer} = 0;
 
 	return 1;
 }
@@ -60,14 +65,30 @@ sub removeConnection {
 }
 
 ### returns positive number if all players are ready for how many seconds until game begins
+sub playerRematchReady {
+    my $self = shift;
+    my $msg = shift;
+
+    my $color = $self->authMove($msg);
+    if ($color){
+        if ($color eq 'white'){
+            $self->{whiteRematchReady} = time();
+        } elsif($color eq 'black'){
+            $self->{blackRematchReady} = time();
+        }
+        if ($self->{whiteRematchReady} && $self->{blackRematchReady}) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
+### returns positive number if all players are ready for how many seconds until game begins
 sub playerReady {
     my $self = shift;
     my $msg = shift;
 
     my $color = $self->authMove($msg);
-    print "color: $color\n";
-    print "whiteready $self->{whiteReady}\n";
-    print "blackready $self->{blackReady}\n";
     if ($color){
         if ($color eq 'white'){
             $self->{whiteReady} = time();
@@ -76,13 +97,52 @@ sub playerReady {
         }
         if ($self->{whiteReady} && $self->{blackReady}) {
             $self->{readyToPlay} = ($self->{whiteReady} > $self->{blackReady} ? $self->{whiteReady} : $self->{blackReady}) + 3;
+            my $msg = {
+                'c' => 'gameBegins',
+                'seconds' => 3
+            };
+            $self->playerBroadcast($msg);
             return 3;
         }
-        my $msg = {
-            'c' => 'gameBegins',
-            'seconds' => 3
-        };
-        $self->playerBroadcast($msg);
+    }
+    return 0;
+}
+
+### returns positive number if all players pressed draw
+sub playerDraw {
+    my $self = shift;
+    my $msg = shift;
+
+    print "draw attempt\n";
+    my $color = $self->authMove($msg);
+    if ($color){
+        if ($color eq 'white'){
+            $self->{whiteDraw} = time();
+        } elsif($color eq 'black'){
+            $self->{blackDraw} = time();
+        }
+        if ($self->{whiteDraw} && $self->{blackDraw}) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
+### returns positive number if all players pressed rematch
+sub playerRematch {
+    my $self = shift;
+    my $msg = shift;
+
+    my $color = $self->authMove($msg);
+    if ($color){
+        if ($color eq 'white'){
+            $self->{whiteRematch} = time();
+        } elsif($color eq 'black'){
+            $self->{blackRematch} = time();
+        }
+        if ($self->{whiteRematch} && $self->{blackRematch}) {
+            return 1;
+        }
     }
     return 0;
 }

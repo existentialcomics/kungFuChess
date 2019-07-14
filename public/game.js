@@ -199,10 +199,14 @@ conn.onmessage = function(evt) {
         displayPlayers();
     } else if (msg.c == 'gameBegins'){
         console.log('setting readyToStart timeout');
+		for(id in pieces){
+            console.log(myColor);
+            pieces[id].setDelayTimer(3);
+		}
         setTimeout(startGame, 3000)
     } else if (msg.c == 'gameover'){
 
-    } else if (msg.c == 'chat') { // it's a single message
+    } else if (msg.c == 'chat') {
         console.log("chat recieved");
         input.removeAttr('disabled'); // let the user write another message
         var dt = new Date();
@@ -212,11 +216,40 @@ conn.onmessage = function(evt) {
             "green",
             dt
         );
-    } else if (msg.c == 'playerlost') { // it's a single message
+    } else if (msg.c == 'newgame') { // both players agreed to rematch
+        console.log("new game" + msg.gameId);
+        window.location.replace('/game/' + msg.gameId);
+    } else if (msg.c == 'playerlost') {
         var dt = new Date();
+        endGame();
         addMessage(
             "SYSTEM",
             msg.color + " has lost.",
+            "red",
+            dt
+        );
+    } else if (msg.c == 'drawRequested') {
+        addMessage(
+            "SYSTEM",
+            msg.color + " as requested a draw.",
+            "red",
+            dt
+        );
+    } else if (msg.c == 'gameDrawn') {
+        var dt = new Date();
+        endGame();
+        addMessage(
+            "SYSTEM",
+            "The game has drawn.",
+            "red",
+            dt
+        );
+    } else if (msg.c == 'resign') {
+        var dt = new Date();
+        endGame();
+        addMessage(
+            "SYSTEM",
+            msg.color + " has resigned.",
             "red",
             dt
         );
@@ -230,6 +263,29 @@ var startGame = function(){
     console.log('starting game');
     $('#resign').removeAttr('disabled');
     $('#requestDraw').removeAttr('disabled');
+    $('#rematch').attr('disabled', true);
+}
+
+var endGame = function(){
+    console.log('ending');
+    $('#resign').attr('disabled', true);
+    $('#requestDraw').attr('disabled', true);
+    $('#rematch').removeAttr('disabled');
+    for(id in pieces){
+        console.log(myColor);
+        if (pieces[id].color == myColor){
+            pieces[id].image.draggable(false);
+        }
+    }
+}
+
+var rematch = function(){
+    console.log('rematch');
+    $('#rematch').attr('disabled', true);
+	var msg = {
+		'c'  : 'rematch',
+	}
+    sendMsg(msg);
 }
 
 var getBoardPos = function(pos){
@@ -436,35 +492,42 @@ var getPiece = function(x, y, color, image){
                 var new_y = (piece.start_y * width / 8) + ((piece.y - piece.start_y) * (frame.time / piece.anim_length) * width / 8);
                 piece.image.setX(getX(new_x));
                 piece.image.setY(getY(new_y));
+
                 if (frame.time > piece.anim_length){
                     this.stop();
                     piece.image.draggable = true;
                     piece.isMoving = false;
-                    var rect = new Konva.Rect({
-                      x: getX(piece.x * width / 8),
-                      y: getY(piece.y * width / 8),
-                      width: width / 8,
-                      height: height / 8,
-                      fill: '#888822',
-                      opacity: 0.5
-                    });
-                    delayLayer.add(rect);
 
-                    var tween = new Konva.Tween({
-                        node: rect,
-						// TIMER
-                        duration: timer,
-                        height: 0,
-                        y: (getY(piece.y * width / 8) + (width / 8)),
-                    });
-                    piece.delayRect = rect;
-                    tween.play();
-                    delayLayer.draw();
+                    piece.setDelayTimer(timer)
+
                     piece.setImagePos(piece.x, piece.y);
                 }
             }, pieceLayer);
             piece.anim.start();
         }
+    }
+
+    piece.setDelayTimer = function(timeToDelay) {
+        var rect = new Konva.Rect({
+            x: getX(piece.x * width / 8),
+            y: getY(piece.y * width / 8),
+            width: width / 8,
+            height: height / 8,
+            fill: '#888822',
+            opacity: 0.5
+        });
+        delayLayer.add(rect);
+
+        var tween = new Konva.Tween({
+            node: rect,
+            // TIMER
+            duration: timeToDelay,
+            height: 0,
+            y: (getY(piece.y * width / 8) + (width / 8)),
+        });
+        piece.delayRect = rect;
+        tween.play();
+        delayLayer.draw();
     }
 
     piece.legalMove = function(x, y){

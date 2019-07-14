@@ -3,6 +3,8 @@
 <head>
 <title>Kungfu chess</title>
 <link rel="stylesheet" type="text/css" href="/kungfuchess.css">
+<script src="/jquery-3.2.min.js"></script>
+<script src="/main.js"></script>
 </head>
 <body>
 <div id="navbar">

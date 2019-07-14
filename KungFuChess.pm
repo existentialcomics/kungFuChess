@@ -341,6 +341,14 @@ sub pieceAt {
     return undef;
 }
 
+sub playerResigned {
+    exit;
+}
+
+sub gameDrawn {
+    exit;
+}
+
 sub killPiece {
     my $self = shift;
     my $piece = shift;

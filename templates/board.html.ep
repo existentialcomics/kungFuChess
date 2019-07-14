@@ -1,6 +1,6 @@
 %= include 'header'
 
-<script src="https://cdn.rawgit.com/konvajs/konva/1.6.5/konva.min.js"></script>
+<script src="/konva.min.js"></script>
 <script src="/jquery-3.2.min.js"></script>
 
 <div id="gameContainer">
@@ -12,6 +12,7 @@
         <button disabled="true" id="readyToStart" onclick="readyToStart()">Ready To Start</button><br />
         <button disabled="true" id="resign" onclick="resign()">Resign</button><br />
         <button disabled="true" id="requestDraw" onclick="requestDraw()">Draw</button><br />
+        <button disabled="true" id="rematch" onclick="rematch()">Rematch</button><br />
         <span id="whitePlayer">(white player empty)</span><span id=rating></span><br />
         <br />
         <div id="chatlog" disabled="true"></div>
