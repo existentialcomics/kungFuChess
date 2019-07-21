@@ -54,6 +54,10 @@ sub isLegalMove {
 	my $desty = shift;
 	my $board = shift;
 
+    if ($self->isBlocked($destx, $desty, $board)) {
+        return 0;
+    }
+
 	print "checking piece legal move...\n";
 	my $x = ($self->{x} - $destx);
 	my $y = ($self->{y} - $desty);
@@ -65,6 +69,35 @@ sub isLegalMove {
 		if (abs($x) <= 1 && abs($y) <= 1){
 			return 1;
 		}
+        if ($y == 0 && $x == 2 && $self->{firstMove}) {
+            foreach my $piece (@{$board}) {
+                if ($piece->{type} eq 'rook'
+                    && $piece->{color} eq $self->{color}
+                    && $piece->{firstMove}
+                    && $piece->{x} == 0
+                ) {
+                    $piece->move($destx + 1, $piece->{y});
+                    return 1;
+                }
+            }
+            return 0;
+        }
+        if ($y == 0 && $x == -2 && $self->{firstMove}) {
+            foreach my $piece (@{$board}) {
+                if ($piece->{type} eq 'rook'
+                    && $piece->{color} eq $self->{color}
+                    && $piece->{firstMove}
+                    && $piece->{x} == 7
+                ) {
+                    $piece->move($destx - 1, $piece->{y});
+                    return 1;
+                }
+            }
+            return 0;
+        }
+        if ($y == 0 && $x == -2 && $self->{firstMove}) {
+            return 1;
+        }
 	} elsif ($self->{type} eq 'queen'){
 		if (abs($x) == abs($y)) { return 1; }
 		if ($x == 0 || $y == 0){ return 1; }
@@ -105,6 +138,8 @@ sub move {
 	my $self = shift;
 	my ($x, $y) = @_;
 
+    $self->{firstMove} = 0;
+
 	$self->{moving_x} = $x;
 	$self->{moving_y} = $y;
 	$self->{isMoving} = 1;
@@ -137,6 +172,16 @@ sub move {
 
 	$self->{xI} = $xI;
 	$self->{yI} = $yI;
+
+    my $msg = {
+        'c' => 'authmove',
+        'color' => $self->{color},
+        'x' => $x,
+        'y' => $y,
+        'id' => $self->{id}
+    };
+    print "sending inside\n";
+    $self->{game}->send($msg);
 
 	$self->setMovingInterval();
 }

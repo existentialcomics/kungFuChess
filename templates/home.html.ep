@@ -1,7 +1,8 @@
 %= include 'header'
 
+<a href="/createGame">Create new game</a>
+
 <div id='gamesContent'>
 </div>
 
-<a href="/create">Create new game</a>
 %= include 'footer'

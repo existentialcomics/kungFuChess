@@ -274,11 +274,11 @@ sub handleMessage {
 	} elsif ($msg->{c} eq 'move'){
 		print "moving piece $msg->{id}\n";
 		my $piece = $self->getPiece($msg->{id});
-		return if ($msg->{color} ne $piece->{color});
+		return 0 if ($msg->{color} ne $piece->{color});
 		if ($self->isLegalMove($piece, $msg->{x}, $msg->{y})){
-			# change the category from move to authmove and reflect it back
-			$msg->{c} = 'authmove';
-			$self->send($msg);
+            # the piece now sends the msg itself
+            #$msg->{c} = 'authmove';
+            #$self->send($msg);
 		}
 	}
 }
@@ -393,13 +393,8 @@ sub isLegalMove {
         print "pieces after ret: $#pieces\n";
         print ref @pieces . "\n";
     }
-	my $blocked = $piece->isBlocked($x, $y, \@pieces);
 
-	my $canMove = (
-		$piece->isLegalMove($x, $y, \@pieces) &&
-		! $piece->isBlocked($x, $y, \@pieces)
-	);
-	if ($canMove){
+	if ($piece->isLegalMove($x, $y, \@pieces)){
 		$piece->move($x, $y);
 		return 1;
 	}

@@ -274,7 +274,7 @@ var endGame = function(){
     for(id in pieces){
         console.log(myColor);
         if (pieces[id].color == myColor){
-            pieces[id].image.draggable(false);
+            pieces[id].image.draggable = false;
         }
     }
 }
