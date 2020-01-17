@@ -1,8 +1,24 @@
-var width  = 520;
-var height = 520;
+var width  = 320;
+var height = 320;
 
+var boardContent = $("#boardContainer");
 var chatContent = $('#chatlog');
 var input = $('#chat-input');
+
+width = boardContent.width();
+height = $("#boardContainer").width();
+
+$(window).resize(function(){
+    width = boardContent.width();
+    height = $("#boardContainer").width();
+});
+
+//if (width < height){
+    //height = width;
+//}
+//if (height < width){
+    //width = height;
+//}
 
 var boardLayer = new Konva.Layer();
 var pieceLayer = new Konva.Layer();
@@ -264,6 +280,7 @@ var startGame = function(){
     $('#resign').removeAttr('disabled');
     $('#requestDraw').removeAttr('disabled');
     $('#rematch').attr('disabled', true);
+    $('#enter-pool').attr('disabled', true);
 }
 
 var endGame = function(){
@@ -271,6 +288,7 @@ var endGame = function(){
     $('#resign').attr('disabled', true);
     $('#requestDraw').attr('disabled', true);
     $('#rematch').removeAttr('disabled');
+    $('#enter-pool').removeAttr('disabled');
     for(id in pieces){
         console.log(myColor);
         if (pieces[id].color == myColor){

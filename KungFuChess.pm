@@ -1,6 +1,8 @@
 #!/usr/bin/perl
 use strict; use warnings;
 
+# this is the server that manages the pieces and connect to KungFuWeb.pl
+
 package KungFuChess;
 use AnyEvent::WebSocket::Client;
 use AnyEvent;
@@ -67,7 +69,6 @@ sub _init {
 			my $msg = $message->body;
 			print "message: $msg\n";
 			my $msgJSON = decode_json($msg);
-			print "desoded: $msgJSON\n";
 			$self->handleMessage($msgJSON, $connection);
 		});
 
@@ -280,6 +281,10 @@ sub handleMessage {
             #$msg->{c} = 'authmove';
             #$self->send($msg);
 		}
+	} elsif ($msg->{c} eq 'gameDrawn'){
+        $self->gameDrawn();
+	} elsif ($msg->{c} eq 'resign'){
+        $self->playerResigned();
 	}
 }
 

@@ -1,8 +1,14 @@
 %= include 'header'
 
-<a href="/createGame">Create new game</a>
-
-<div id='gamesContent'>
+<div class="container" id='homeContent'>
+    <a class="btn btn-primary" href="/createGame" role="button">Create Custom Game</a>
+    <a class="btn btn-primary" id="enter-pool" role="button">
+    Enter pool
+    </a>
+    <div id='gamesContent' class='card shadow-m'>
+    </div>
+    <div id='playersContent' class='card shadow-m'>
+    </div>
 </div>
 
 %= include 'footer'

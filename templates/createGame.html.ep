@@ -1,18 +1,27 @@
 %= include 'header'
 
-<form method="POST" action="/createGame">
-    <div class="form-group">
-
-        <div class="form-check">
-            <input type="checkbox" class="form-check-input" id="open" checked>
-            <label class="form-check-label" for="openToPublic">Open to public</label>
-        </div>
-        <div class="form-check">
-            <input type="checkbox" class="form-check-input" id="rated" checked>
-            <label class="form-check-label" for="ratedGame">Rated</label>
-        </div>
+<div id="createGameContainer" class="container">
+<div class="card" style="width: 18rem;">
+    <div class="card-header">
+    Create a game
     </div>
-    <button type="submit" class="btn btn-primary">Create Game</button>
-</form>
+    <div class="card-body">
+        <form method="POST" action="/createGame">
+            <div class="form-group">
+
+                <div class="form-check">
+                    <input type="checkbox" class="form-check-input" name="open" checked>
+                    <label class="form-check-label" for="openToPublic">Open to public</label>
+                </div>
+                <div class="form-check">
+                    <input type="checkbox" class="form-check-input" name="rated" checked>
+                    <label class="form-check-label" for="ratedGame">Rated</label>
+                </div>
+            </div>
+            <button type="submit" class="btn btn-primary">Create Game</button>
+        </form>
+    </div>
+</div>
+</div>
 
 %= include 'footer'

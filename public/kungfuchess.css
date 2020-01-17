@@ -49,14 +49,12 @@ li a:hover {
     border:1px solid #CCC;
     margin-top:5px;
     height: 360px;
-    width:300px;
 }
 #chat-input {
     border-radius:2px;
     border:1px solid #ccc;
     margin-top:3px;
     padding:5px;
-    width:300px;
 }
 #status {
     width:88px;
@@ -71,9 +69,7 @@ li a:hover {
     background-color:white;
     padding:20px;
 }
-#container {
-    height:520px;
-    width:520px;
+#boardContainer {
     float:left;
     margin: auto;
 }
@@ -87,4 +83,7 @@ li a:hover {
     float:left;
 }
 
+.btn.btn-primary[disabled] {
+    background-color: #333333;
+}
 

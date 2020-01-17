@@ -1,8 +1,12 @@
-<table id='gamestable'>
-<tr>
+<table id='gamestable' class='table'>
+<tr class=''>
     <th>Player</td>
     <th></td>
 </tr>
+
+<% if ($#{$games} == -1 ){ %>
+no games
+<% } %>
 <% foreach my $game (@{$games}){ %>
     <tr>
         <td>
@@ -15,7 +19,7 @@
             <% } %>
         </td>
         <td>
-            <% if ($user){ %>
+            <% if ($user || 1 == 1){ %>
                 <% if ($game->{white_screenname} && $game->{black_screenname}) { %>
                     <%= $game->{black_screenname} %>
                     (<%= $game->{black_rating} %>)

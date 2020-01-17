@@ -3,21 +3,27 @@
 <script src="/konva.min.js"></script>
 <script src="/jquery-3.2.min.js"></script>
 
-<div id="gameContainer">
-    <div id="container" style="height:520px;width:520px">
-    <!-- javascript puts pieces here -->
-    </div>
-    <div id="sidebar">
-        <span id="blackPlayer">(black player empty)</span><span id=rating></span><br />
-        <button disabled="true" id="readyToStart" onclick="readyToStart()">Ready To Start</button><br />
-        <button disabled="true" id="resign" onclick="resign()">Resign</button><br />
-        <button disabled="true" id="requestDraw" onclick="requestDraw()">Draw</button><br />
-        <button disabled="true" id="rematch" onclick="rematch()">Rematch</button><br />
-        <span id="whitePlayer">(white player empty)</span><span id=rating></span><br />
-        <br />
-        <div id="chatlog" disabled="true"></div>
-        <input type="text" id="chat-input"></input><br/>
-        <span id="status">Connecting...</span><br>
+<div class="container-fluid" style="background-color: grey">
+    <div class="row">
+        <div class="col">
+            <div id="chatlog" disabled="true"></div>
+            <input type="text" id="chat-input"></input><br/>
+            <span id="status">Connecting...</span><br>
+        </div>
+        <div id="boardContainer" class="col-6" style="background-color: coral">
+            <div id="container">
+            <!-- javascript puts pieces here -->
+            </div>
+        </div>
+        <div class="col">
+            <span id="blackPlayer">(black player empty)</span><span id=rating></span><br />
+            <button type="button" class="btn btn-primary btn-block" disabled="true" id="readyToStart" onclick="readyToStart()">Ready To Start</button>
+            <button type="button" class="btn btn-primary btn-block" disabled="true" id="resign" onclick="resign()">Resign</button>
+            <button type="button" class="btn btn-primary btn-block" disabled="true" id="requestDraw" onclick="requestDraw()">Draw</button>
+            <button type="button" class="btn btn-primary btn-block" disabled="true" id="rematch" onclick="rematch()">Rematch</button>
+            <button type="button" class="btn btn-primary btn-block" disabled="true" id="enter-pool" onclick="rematch()">Enter Pool</button>
+            <span id="whitePlayer">(white player empty)</span><span id=rating></span>
+        </div>
     </div>
 </div>
 
@@ -34,5 +40,6 @@
 
 <script src="/pieces/pieces.js"></script>
 <script src="/game.js"></script>
+<script src="/main.js"></script>
 
 %= include 'footer'
