@@ -3,7 +3,11 @@
 <head>
 <title>Kungfu chess</title>
 <link rel="stylesheet" type="text/css" href="/kungfuchess.css">
-<link rel="stylesheet" type="text/css" href="/css/bootstrap.min.css">
+<% if ($user){ %>
+<link rel="stylesheet" type="text/css" href="/css/<%= $user->getBelt() %>.css">
+<% } else { %>
+<link rel="stylesheet" type="text/css" href="/css/basic.css">
+<% } %>
 <script src="/jquery-3.2.min.js"></script>
 <script src="/main.js"></script>
 </head>
@@ -22,8 +26,20 @@
     </li>
     <% if ($user){ %>
     <li>
-    <a href="/profile">Welcome, <%= $user->{screenname} %></a>
+    <a href="/profile/<%= $user->{screenname} %>">Welcome, <%= $user->{screenname} %></a>
     </li>
     <% } %>
+    <li>
+        <a href="/about">About</a>
+    </li>
 </ul>
+<script>
+    <% if ($user){ %>
+        var userAuthToken = "<%= $user->{auth_token} %>";
+        var screenname    = "<%= $user->{screenname} %>";
+    <% } else { %>
+        var userAuthToken = null;
+        var screenname    = "anonymous";
+    <% } %>
+</script>
 </div>

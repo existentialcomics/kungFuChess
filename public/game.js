@@ -8,6 +8,13 @@ var input = $('#chat-input');
 width = boardContent.width();
 height = $("#boardContainer").width();
 
+if (width > 600){
+    width=600;
+}
+if (height > 600){
+    height=600;
+}
+
 $(window).resize(function(){
     width = boardContent.width();
     height = $("#boardContainer").width();
@@ -28,8 +35,6 @@ var pieces = {};
 var piecesByImageId = {};
 
 var globalIdCount = 1;
-
-var gameBegun = false;
 
 console.log("connecting..." + authId);
 var conn = new WebSocket("ws://www1.existentialcomics.com:3000/ws");
@@ -66,7 +71,7 @@ conn.onopen = function(evt) {
 	// maybe query for ready to join
 	console.log("connected!");
     pingServer = setInterval(function() {
-        console.log('ping');
+        console.log("ping");
         heartbeat_msg = {
             "c" : "ping"
         };
@@ -75,10 +80,18 @@ conn.onopen = function(evt) {
 	joinGame();
 }
 
+conn.onerror = function(e) {
+    console.log('Error!');
+};
+
+conn.onclose = function(e) {
+    console.log('Disconnected!');
+};
+
 sendMsg = function(msg) {
+    console.log(msg);
     msg.gameId = gameId;
     msg.auth = authId;
-    console.log("game id: " + gameId + " authid: " + authId);
     conn.send(JSON.stringify(msg));
 }
 
@@ -88,15 +101,22 @@ displayPlayers = function(color) {
     console.debug(whitePlayer);
     console.log("black");
     console.debug(blackPlayer);
-    if (whitePlayer.screenname !== null){
-        $('#whitePlayer').text(whitePlayer.screenname + " " + whitePlayer.rating);
-    }
-    if (blackPlayer.screenname !== null){
-        $('#blackPlayer').text(blackPlayer.screenname + " " + blackPlayer.rating);
-    }
+    //if (whitePlayer.screenname !== null){
+        //$('#whitePlayer').text(whitePlayer.screenname + " " + whitePlayer.rating_standard);
+    //}
+    //if (blackPlayer.screenname !== null){
+        //$('#blackPlayer').text(blackPlayer.screenname + " " + blackPlayer.rating_standard);
+    //}
     if (blackPlayer.screenname !== null && whitePlayer.screenname !== null){
-        console.log('enabling ready to start...');
-        $('#readyToStart').removeAttr('disabled'); 
+        if ( gameBegan) {
+            $('#resign').removeAttr('disabled');
+            $('#requestDraw').removeAttr('disabled');
+            $('#rematch').attr('disabled', true);
+            $('#enter-pool').attr('disabled', true);
+        } else {
+            console.log('enabling ready to start...');
+            $('#readyToStart').removeAttr('disabled'); 
+        }
     }
 }
 

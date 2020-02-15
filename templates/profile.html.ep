@@ -1,5 +1,82 @@
 %= include 'header'
 
+<div class="container bg-light card" id='homeContent'>
+<h2><%= $player->{screenname} %></h2>
+
+    <div class="row">
+        <div class="col">
+            <h4>Standard</h4><hr>
+            <h5>Rating: <div id="<%= $player->getBelt('standard') %>belt"></div><%= $player->getRating('standard') %></h5>
+            <table class="table">
+            <tr>
+                <th>Games Played</th>
+              <td>
+                <%= $player->getGamesPlayed('standard') %>
+              </td>
+            </tr>
+            <tr>
+              <th>Wins</th>
+              <td>
+                <%= $player->getGamesWon('standard') %>
+              </td>
+            </tr>
+            <tr>
+              <th>Draws</th>
+              <td>
+                <%= $player->getGamesDrawn('standard') %>
+              </td>
+            </tr>
+            <tr>
+              <th>Losses</th>
+              <td>
+                <%= $player->getGamesLost('standard') %>
+              </td>
+            </tr>
+            </table>
+
+            <h5>Greatest Victory: <%= $player->getBestVictory('standard') %></h5><br />
+            <h5>Highest Rating: <%= $player->getHighestRating('standard') %></h5><br />
+            <h5>Worst Defeat: <%= $player->getWorstDefeat('standard') %></h5><br />
+            <h5>Lowest Rating: <%= $player->getLowestRating('standard') %></h5><br />
+        </div>
+        <div class="col">
+            <h4>Lightning</h4><hr>
+            <h5>Rating: <div id="<%= $player->getBelt('lightning') %>belt"></div><%= $player->getRating('lightning') %></h5>
+            <table class="table">
+            <tr>
+                <th>Games Played</th>
+              <td>
+                <%= $player->getGamesPlayed('lightning') %>
+              </td>
+            </tr>
+            <tr>
+              <th>Wins</th>
+              <td>
+                <%= $player->getGamesWon('lightning') %>
+              </td>
+            </tr>
+            <tr>
+              <th>Draws</th>
+              <td>
+                <%= $player->getGamesDrawn('lightning') %>
+              </td>
+            </tr>
+            <tr>
+              <th>Losses</th>
+              <td>
+                <%= $player->getGamesLost('lightning') %>
+              </td>
+            </tr>
+            </table>
+
+            <h5>Greatest Victory: <%= $player->getBestVictory('lightning') %></h5><br />
+            <h5>Highest Rating: <%= $player->getHighestRating('lightning') %></h5><br />
+            <h5>Worst Defeat: <%= $player->getWorstDefeat('lightning') %></h5><br />
+            <h5>Lowest Rating: <%= $player->getLowestRating('lightning') %></h5><br />
+        </div>
+    </div>
+
+</div>
 
 
 %= include 'footer'

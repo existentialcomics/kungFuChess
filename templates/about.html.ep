@@ -1,0 +1,15 @@
+%= include 'header'
+
+<div class="container bg-light card" id='homeContent'>
+    KungFuChess is a real time chess varient where you can move every piece at the same time, but you must wait for them te recharge before moving them again. It is based on the original Shizmoo game in the early 2000s on kungfuchess.com.<br />
+    <br />
+    Rules:<br />
+       Pieces all move at the same time. A cooldown is applied after a piece moves before it can move again. The length of the cooldown and how fast the pieces move vary on game speed.<br />
+       All the normal rules of chess apply, but there is no such thing as checkmate, you must kill the King to win.<br />
+       If two pieces collide while they are both moving the piece that moved first kills the other piece. Knights can't collide.<br />
+<br />
+
+    Source code for this site can be found here, under the GLPv3 license.<br />
+</div>
+
+%= include 'footer'

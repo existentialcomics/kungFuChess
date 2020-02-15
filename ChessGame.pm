@@ -1,7 +1,7 @@
 package ChessGame;
 use strict;
 use warnings;
-use Time::HiRes;
+use Time::HiRes qw(time);
 use JSON::XS;
 use Data::Dumper;
 
@@ -20,9 +20,19 @@ sub new {
 
 sub _init {
 	my $self = shift;
-    my ($id, $auth) = @_;
+    my ($id, $speed, $auth) = @_;
 	$self->{id} = $id;
 
+    if ($speed eq 'standard') {
+        $self->{pieceSpeed} = 10;
+        $self->{pieceRecharge} = 10;
+    } elsif ($speed eq 'lightning') {
+        $self->{pieceSpeed} = 2;
+        $self->{pieceRecharge} = 2;
+    } else {
+        warn "unknown game speed $speed\n";
+    }
+    $self->{speed} = $speed;
     $self->{playersByAuth} = {};
     $self->{playersConn}   = {};
     $self->{readyToPlay}   = 0;
@@ -35,8 +45,11 @@ sub _init {
     $self->{blackReady}    = 0;
     $self->{whiteRematchReady}  = 0;
     $self->{blackRematchPlayer} = 0;
-    $self->{whiteDrawReady}  = 0;
-    $self->{blackDrawPlayer} = 0;
+    $self->{whiteDraw}  = 0;
+    $self->{blackDraw} = 0;
+
+    $self->{gameLog} = [];
+    $self->{gameStartTime} = time();
 
 	return 1;
 }
@@ -109,11 +122,26 @@ sub playerReady {
 }
 
 ### returns positive number if all players pressed draw
+sub playerRevokeDraw {
+    my $self = shift;
+    my $msg = shift;
+
+    my $color = $self->authMove($msg);
+    if ($color){
+        if ($color eq 'white'){
+            $self->{whiteDraw} = 0;
+        } elsif($color eq 'black'){
+            $self->{blackDraw} = 0;
+        }
+    }
+    return 0;
+}
+
+### returns positive number if all players pressed draw
 sub playerDraw {
     my $self = shift;
     my $msg = shift;
 
-    print "draw attempt\n";
     my $color = $self->authMove($msg);
     if ($color){
         if ($color eq 'white'){
@@ -169,6 +197,18 @@ sub serverBroadcast {
 	$self->{serverConn}->send(encode_json $msg);
 }
 
+# no need to save these to the log in interest of space
+my %excludeFromLog = (
+    'chat' => 1,
+    'readyToRematch' => 1,
+    'readyToBegin' => 1,
+    'ping' => 1,
+    'serverping' => 1,
+    'playerjoined' => 1,
+    'requestDraw' => 1,
+    'revokeDraw' => 1,
+);
+
 sub playerBroadcast {
     my $self = shift;
     my $msg = shift;
@@ -180,6 +220,11 @@ sub playerBroadcast {
 		#print "broadcasting to player $msg->{c}\n";
 		$player->send(encode_json $msg);
 	}
+
+    if (! $excludeFromLog{$msg->{c}}) {
+        $msg->{'time'} = time() - $self->{'gameStartTime'};
+        push (@{$self->{gameLog}}, $msg);
+    }
 }
 
 sub addPlayer {
@@ -194,7 +239,7 @@ sub addPlayer {
         $self->{blackPlayer} = $user;
     }
 
-    $self->{playersByAuth}->{$user->{auth}} = $user;
+    $self->{playersByAuth}->{$user->{auth_token}} = $user;
     $self->playerBroadcast({
         'c' => 'playerjoined',
         'user' => {

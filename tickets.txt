@@ -1,12 +1,7 @@
 different game speeds
-resize window
 unrated games
-make sure game ends on draw / other ending
-seperate into open games / non-open
 minimum rating for game
-game log
-profile/settings
-global chat
 invite to play / challenge
 draw conditions (no pawns have moved for x minutes)
 revoke draw
+auto-reconnected when losing websockets connection

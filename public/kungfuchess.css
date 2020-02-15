@@ -69,6 +69,70 @@ li a:hover {
     background-color:white;
     padding:20px;
 }
+
+#blackbelt {
+    width:20px;
+    height:20px;
+    background-color:black;
+    display:inline-block;
+    padding:2px;
+    border: 1px solid black ;
+}
+
+#doubleblackbelt {
+    width:20px;
+    height:20px;
+    background-color:black;
+    display:inline-block;
+    padding:1px;
+    border: 2px solid gold ;
+}
+
+#brownbelt {
+    width:20px;
+    height:20px;
+    background-color:brown;
+    display:inline-block;
+    padding:2px;
+    border: 1px solid red ;
+}
+
+#redbelt {
+    width:20px;
+    height:20px;
+    background-color:red;
+    display:inline-block;
+    padding:2px;
+    border: 1px solid orange ;
+}
+
+#orangebelt {
+    width:20px;
+    height:20px;
+    background-color:orange;
+    display:inline-block;
+    padding:2px;
+    border: 1px solid yellow ;
+}
+
+#yellowbelt {
+    width:20px;
+    height:20px;
+    background-color:yellow;
+    display:inline-block;
+    padding:2px;
+    border: 1px solid green ;
+}
+
+#greenbelt {
+    width:20px;
+    height:20px;
+    background-color:green;
+    display:inline-block;
+    padding:2px;
+    border: 1px solid white ;
+}
+
 #boardContainer {
     float:left;
     margin: auto;

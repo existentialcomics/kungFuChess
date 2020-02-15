@@ -8,7 +8,6 @@
         <div class="col">
             <div id="chatlog" disabled="true"></div>
             <input type="text" id="chat-input"></input><br/>
-            <span id="status">Connecting...</span><br>
         </div>
         <div id="boardContainer" class="col-6" style="background-color: coral">
             <div id="container">
@@ -16,26 +15,39 @@
             </div>
         </div>
         <div class="col">
-            <span id="blackPlayer">(black player empty)</span><span id=rating></span><br />
+            <% if ($color eq 'black') { %>
+                <span id="bottomPlayer"><%= $whitePlayer->{screenname} %></span>
+                <span id=rating><%= $whitePlayer->{rating_standard} %></span>
+            <% } else { %>
+                <span id="bottomPlayer"><%= $blackPlayer->{screenname} %></span>
+                <span id=rating><%= $blackPlayer->{rating_standard} %></span>
+            <% } %>
             <button type="button" class="btn btn-primary btn-block" disabled="true" id="readyToStart" onclick="readyToStart()">Ready To Start</button>
             <button type="button" class="btn btn-primary btn-block" disabled="true" id="resign" onclick="resign()">Resign</button>
             <button type="button" class="btn btn-primary btn-block" disabled="true" id="requestDraw" onclick="requestDraw()">Draw</button>
             <button type="button" class="btn btn-primary btn-block" disabled="true" id="rematch" onclick="rematch()">Rematch</button>
             <button type="button" class="btn btn-primary btn-block" disabled="true" id="enter-pool" onclick="rematch()">Enter Pool</button>
-            <span id="whitePlayer">(white player empty)</span><span id=rating></span>
+            <% if ($color eq 'black') { %>
+                <span id="bottomPlayer"><%= $blackPlayer->{screenname} %></span>
+                <span id=rating><%= $blackPlayer->{rating_standard} %></span>
+            <% } else { %>
+                <span id="bottomPlayer"><%= $whitePlayer->{screenname} %></span>
+                <span id=rating><%= $whitePlayer->{rating_standard} %></span>
+            <% } %>
+
         </div>
     </div>
 </div>
 
 
 <script>
-    var whitePlayer = JSON.parse('<%== $whitePlayer %>');
-    var blackPlayer = JSON.parse('<%== $blackPlayer %>');
+    var whitePlayer = JSON.parse('<%== $whitePlayer->getJsonMsg() %>');
+    var blackPlayer = JSON.parse('<%== $blackPlayer->getJsonMsg() %>');
 	var gameId   = "<%= $gameId %>";
     var myColor  = "<%= $color %>";
 	var authId   = "<%= $authId %>";
 	var timer    = "<%= $timer %>";
-    var gameBegan = false;
+    var gameBegan = <%= $gameBegan %>;
 </script>
 
 <script src="/pieces/pieces.js"></script>

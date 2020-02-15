@@ -1,13 +1,17 @@
 <table id='playerstable' class='table'>
 <tr class=''>
-    <th>Player</td>
-    <th></td>
+    <th>Belt</th>
+    <th>Rating</th>
+    <th>Player</th>
 </tr>
 
 <% foreach my $player (@{$players}){ %>
     <tr>
         <td>
-            <%= $player->{rating} %>
+             <div id="<%= $player->getBelt($ratingType) %>belt"></div>
+        </td>
+        <td>
+            <%= $player->getRating($ratingType) %>
         </td>
         <td>
             <%= $player->{screenname} %>

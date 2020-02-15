@@ -39,7 +39,6 @@ sub _init {
 	my $client = AnyEvent::WebSocket::Client->new;
 
 	$client->connect("ws://localhost:3000/ws")->cb(sub {
-		print "begin connection callback...\n";
 		# make $connection an our variable rather than
 		# my so that it will stick around.  Once the
 		# connection falls out of scope any callbacks
@@ -56,7 +55,6 @@ sub _init {
 		my $msg = {
 		   'c' => 'authjoin',
 		};
-		print "sending authjoin\n";
 		$self->send($msg);
 
 		$self->setupInitialBoard();
@@ -67,7 +65,6 @@ sub _init {
 			# $message isa AnyEvent::WebSocket::Message
 			my($connection, $message) = @_;
 			my $msg = $message->body;
-			print "message: $msg\n";
 			my $msgJSON = decode_json($msg);
 			$self->handleMessage($msgJSON, $connection);
 		});
@@ -76,7 +73,6 @@ sub _init {
 		$connection->on(finish => sub {
 			# $connection is the same connection object
 			my($connection) = @_;
-			print "finish\n";
 			AnyEvent->condvar->send;
 			exit;
 		});
@@ -93,7 +89,7 @@ sub _init {
 		interval => 1.2,
 		cb => sub {
 			return;
-			print "timer: " . time . "\n";
+            ### TODO get rid of server ping?
             my $msg = {
                 'c' => 'serverping',
             };
@@ -266,14 +262,11 @@ sub handleMessage {
 	my $self = shift;
 	my ($msg, $conn) = @_;
 
-	print "msg: $msg->{c}\n";
-
 	if ($msg->{c} eq 'join'){
 		$self->sendAllGamePieces();
 	} elsif ($msg->{c} eq 'playerjoin'){
 		$self->sendAllGamePieces();
 	} elsif ($msg->{c} eq 'move'){
-		print "moving piece $msg->{id}\n";
 		my $piece = $self->getPiece($msg->{id});
 		return 0 if ($msg->{color} ne $piece->{color});
 		if ($self->isLegalMove($piece, $msg->{x}, $msg->{y})){
@@ -292,11 +285,9 @@ sub sendAllGamePieces {
 	my $self = shift;
 	my $conn = $self->{conn};
 
-	print "sending all game pieces...\n";
-
 	foreach my $id (keys %{ $self->{board} }){
 		my $piece = $self->{board}->{$id};
-		print "id: $id\n";
+
 		my $msg = {
 			'c' => 'spawn',
 			'type'  => $piece->{type},
@@ -358,6 +349,7 @@ sub killPiece {
     my $self = shift;
     my $piece = shift;
 
+    print "**** killing piece $piece->{type} $piece->{color}\n";
     if ($piece->{type} eq 'king'){
         my $msg = {
             'c' => 'playerlost',
@@ -393,11 +385,6 @@ sub isLegalMove {
     if ($piece->{readyToMove} > time()){ return 0; }
 
 	my @pieces = $self->getPieces();
-	print "checking piece legal/blocked move $x, $y, $piece->{id}\n";
-    if (@pieces){
-        print "pieces after ret: $#pieces\n";
-        print ref @pieces . "\n";
-    }
 
 	if ($piece->isLegalMove($x, $y, \@pieces)){
 		$piece->move($x, $y);
@@ -417,10 +404,6 @@ sub getPieces {
 	my $self = shift;
 	my @pieces = values $self->{board};
 
-    print "getPieces:\n";
-    print "-- $#pieces\n";
-
     return @pieces;
-	return wantarray ? @pieces : \@pieces;
 }
 1;

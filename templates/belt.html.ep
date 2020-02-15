@@ -1,0 +1,22 @@
+<% my $rating = ($ratingType eq 'lightning' ? $player->{rating_lightning} : $player->{rating_standard}); %>
+<% my $provisional = (
+    $ratingType eq 'lightning' ?
+    $player->{'games_played_lightning'} < 10 :
+    $player->{'games_played_standard'} < 10);
+%>
+
+<% if ($provisional) { %>
+     <div id="greenbelt"></div>
+<% } else { %>
+    <% if ($rating >= 2000) { %>
+        <div id="blackbelt"></div>
+    <% } elsif ($rating >= 1800) { %>
+        <div id="brownbelt"></div>
+    <% } elsif ($rating >= 1600) { %>
+        <div id="redbelt"></div>
+    <% } elsif ($rating >= 1400) { %>
+        <div id="orangebelt"></div>
+    <% } else { %>
+        <div id="yellowbelt"></div>
+    <% } %>
+<% } %>
