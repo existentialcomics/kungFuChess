@@ -1,11 +1,9 @@
 package ChessPiece;
 use strict;
 use warnings;
-use Time::HiRes;
+use Time::HiRes qw(time);
 use AnyEvent;
 use Data::Dumper;
-
-our $timer = 10;
 
 sub new {
 	my $class = shift;
@@ -22,7 +20,7 @@ sub new {
 
 sub _init {
 	my $self = shift;
-	my ($x, $y, $color, $type, $id, $game, $gameSpeed) = @_;
+	my ($x, $y, $color, $type, $id, $game) = @_;
 	$self->{x} = $x;
 	$self->{y} = $y;
 	$self->{color} = $color;
@@ -30,10 +28,6 @@ sub _init {
 	$self->{id} = $id;
     $self->{game} = $game;
     $self->{readyToMove} = time();
-
-    if ($gameSpeed){
-        $timer = $gameSpeed;
-    }
 
 	$self->{firstMove} = 1;
 	$self->{isMoving} = 0;
@@ -46,6 +40,11 @@ sub _init {
     }
 
 	return 1;
+}
+
+sub readyToMove {
+    my $self = shift;
+    return $self->{readyToMove} < time();
 }
 
 sub isLegalMove {
@@ -159,15 +158,15 @@ sub move {
 	if ($y < $self->{y}) { $yI = -1 }
 	if ($y == $self->{y}){ $yI = 0  }
 
-	$self->{interval} = $timer / 10;
+	$self->{interval} = $self->{game}->{pieceSpeed} / 10;
 
-	print "ix, iy: $xI, $yI\n";
+	print time() . " - ix, iy: $xI, $yI\n";
 
 	if ($self->{type} eq 'knight'){
 		$xI = $diffX;
 		$yI = $diffY;
 
-		$self->{interval} = $timer / 5;
+		$self->{interval} = $self->{game}->{pieceSpeed} / 5;
 	}
 
 	$self->{xI} = $xI;
@@ -189,20 +188,17 @@ sub move {
 sub setMovingInterval {
 	my $self = shift;
 
-	print "setting timer ($self->{xI}, $self->{yI})\n";
 	$self->{w} = AnyEvent->timer(
 		after => $self->{interval},
 		cb => sub {
 			$self->{x} += $self->{xI};
 			$self->{y} += $self->{yI};
 
-			print "moved to $self->{x}, $self->{y}\n";
-
 			if ($self->{x} == $self->{moving_x} && 
 				$self->{y} == $self->{moving_y}){
-				print "finished moving \n";
+				print time() . " - finished moving \n";
 				$self->{isMoving} = 0;
-                $self->{readyToMove} = time() + $timer;
+                $self->{readyToMove} = time() + $self->{game}->{pieceRecharge};
 			} else {
 				$self->setMovingInterval();
 			}

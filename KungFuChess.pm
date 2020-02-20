@@ -29,10 +29,21 @@ sub _init {
 	my $self = shift;
 	my $gameKey = shift;
 	my $authKey = shift;
+	my $speed = shift;
 
 	$self->{gamekey} = $gameKey;
 	$self->{authkey} = $authKey;
 	$self->{pieceIdCount} = 1;
+
+    if ($speed eq 'standard') {
+        $self->{pieceSpeed} = 10;
+        $self->{pieceRecharge} = 10;
+    } elsif ($speed eq 'lightning') {
+        $self->{pieceSpeed} = 2;
+        $self->{pieceRecharge} = 2;
+    } else {
+        die "unknown speed $speed\n";
+    }
 
 	$self->{board} = {};
 
@@ -349,7 +360,6 @@ sub killPiece {
     my $self = shift;
     my $piece = shift;
 
-    print "**** killing piece $piece->{type} $piece->{color}\n";
     if ($piece->{type} eq 'king'){
         my $msg = {
             'c' => 'playerlost',
@@ -382,7 +392,7 @@ sub isLegalMove {
 	my $piece = shift;
 	my ($x, $y) = @_;
 
-    if ($piece->{readyToMove} > time()){ return 0; }
+    if ( ! $piece->readyToMove() ) { return 0; }
 
 	my @pieces = $self->getPieces();
 

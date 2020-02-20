@@ -28,14 +28,6 @@ li a:hover {
     background-color: #111;
 }
 
-.button a {
-    display: block;
-    color: white;
-    text-align: center;
-    padding: 14px 16px;
-    text-decoration: none;
-}
-
 
 .button a:hover {
     background-color: #111;
@@ -137,6 +129,7 @@ li a:hover {
     float:left;
     margin: auto;
 }
+
 #sidebar {
     padding:20px;
     height:480px;
@@ -147,7 +140,15 @@ li a:hover {
     float:left;
 }
 
-.btn.btn-primary[disabled] {
-    background-color: #333333;
+.circle:before {
+    content: ' \25CF';
+    font-size: 20px;
 }
 
+.offline {
+    color:grey;
+}
+
+.online {
+    color:green;
+}

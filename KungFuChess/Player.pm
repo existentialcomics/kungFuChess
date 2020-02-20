@@ -3,6 +3,7 @@ use strict; use warnings;
 
 package KungFuChess::Player;
 use JSON::XS;
+use UUID::Tiny ':std';
 
 sub new {
 	my $class = shift;
@@ -21,6 +22,8 @@ sub _init {
     my $self = shift;
     my ($data, $dbh) = @_;
 
+    $self->{is_anon} = 0;
+
     $self->{dbh} = $dbh;
 
     if (defined($data->{userId})) { 
@@ -29,6 +32,8 @@ sub _init {
         return $self->_loadByScreenname($data->{screenname});
     } elsif (defined($data->{row})) { 
         return $self->_loadByRow($data->{row});
+    } elsif (defined($data->{anon})) { 
+        return $self->_loadAnonymousUser();
     } else {
         print "undef\n";
         return undef;
@@ -38,6 +43,8 @@ sub _init {
 sub getBelt {
     my $self = shift;
     my $gameType = shift;
+
+    if ($self->{is_anon}) { return 'green'; }
 
     if (!$gameType) { $gameType = 'standard'; }
 
@@ -262,6 +269,17 @@ sub _loadByRow {
     }
 
     return $self;
+}
+
+sub _loadAnonymousUser {
+    my $self = shift;
+
+    $self->{player_id} = -1;
+    $self->{screenname} = 'anonymous';
+    $self->{rating_standard} = '';
+    $self->{rating_lighting} = '';
+    $self->{is_anon} = 1;
+    $self->{'auth_token'} = create_uuid_as_string();
 }
 
 sub _loadById {

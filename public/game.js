@@ -8,24 +8,17 @@ var input = $('#chat-input');
 width = boardContent.width();
 height = $("#boardContainer").width();
 
-if (width > 600){
-    width=600;
-}
-if (height > 600){
-    height=600;
-}
-
 $(window).resize(function(){
     width = boardContent.width();
     height = $("#boardContainer").width();
 });
 
-//if (width < height){
-    //height = width;
-//}
-//if (height < width){
-    //width = height;
-//}
+var blackLastSeen = null;
+var whiteLastSeen = null;
+
+var myPing = null;
+var blackPing = null;
+var whitePing = null;
 
 var boardLayer = new Konva.Layer();
 var pieceLayer = new Konva.Layer();
@@ -39,6 +32,32 @@ var globalIdCount = 1;
 console.log("connecting..." + authId);
 var conn = new WebSocket("ws://www1.existentialcomics.com:3000/ws");
 
+var updateTimeStamps = function(){
+    var d = new Date();
+    var timestamp = d.getTime();
+    if (blackLastSeen == null || timestamp - blackLastSeen > 3000 ) {
+        $("#blackOnline").addClass('offline');
+        $("#blackOnline").removeClass('online');
+    } else {
+        $("#blackOnline").addClass('online');
+        if (blackPing) {
+            $("#blackOnline").attr("title", blackPing + " ms");
+        }
+        $("#blackOnline").removeClass('offline');
+    }
+
+    if (whiteLastSeen == null || timestamp - whiteLastSeen > 3000) {
+        $("#whiteOnline").addClass('offline');
+        $("#whiteOnline").removeClass('online');
+    } else {
+        $("#whiteOnline").addClass('online');
+        if (whitePing) {
+            $("#whiteOnline").attr("title", whitePing + " ms");
+        }
+        $("#whiteOnline").removeClass('offline');
+    }
+};
+
 var joinGame = function(){
 		var ret = {
 			'c' : 'join',
@@ -46,7 +65,7 @@ var joinGame = function(){
 		};
         gameId = gameId;
         sendMsg(ret);
-}
+};
 
 var playerJoinGame = function(){
 		var ret = {
@@ -56,7 +75,7 @@ var playerJoinGame = function(){
         gameId = gameId;
         sendMsg(ret);
         $('#join').attr('disabled', 'disabled');
-}
+};
 
 var resetGamePieces = function(){
     for(id in pieces){
@@ -71,14 +90,18 @@ conn.onopen = function(evt) {
 	// maybe query for ready to join
 	console.log("connected!");
     pingServer = setInterval(function() {
+        var d = new Date();
+        var timestamp = d.getTime();
         console.log("ping");
         heartbeat_msg = {
-            "c" : "ping"
+            "c" : "ping",
+            'timestamp' : timestamp,
+            'ping' : myPing
         };
-        conn.send(JSON.stringify(heartbeat_msg));
+        sendMsg(heartbeat_msg);
     }, 2000); 
 	joinGame();
-}
+};
 
 conn.onerror = function(e) {
     console.log('Error!');
@@ -93,7 +116,7 @@ sendMsg = function(msg) {
     msg.gameId = gameId;
     msg.auth = authId;
     conn.send(JSON.stringify(msg));
-}
+};
 
 displayPlayers = function(color) {
     console.log("display players...");
@@ -213,6 +236,26 @@ conn.onmessage = function(evt) {
 			}
 			pieceLayer.draw();
 		}
+    } else if (msg.c == 'pong'){
+        var d = new Date();
+        var timestamp = d.getTime();
+        if (msg.color == 'black') {
+            blackPing = msg.ping;
+            blackLastSeen = timestamp;
+            updateTimeStamps();
+            // i sent this message so the ping timestamp is mine
+            if (myColor == 'black') {
+                myPing = timestamp - msg.timestamp;
+            }
+        } else if (msg.color = 'white') {
+            whitePing = msg.ping;
+            whiteLastSeen = timestamp;
+            updateTimeStamps();
+            // i sent this message so the ping timestamp is mine
+            if (myColor == 'white') {
+                myPing = timestamp - msg.timestamp;
+            }
+        }
     } else if (msg.c == 'kill'){
         console.log('killing ' + msg.id);
         pieces[msg.id].image.destroy();
@@ -254,7 +297,11 @@ conn.onmessage = function(evt) {
         );
     } else if (msg.c == 'newgame') { // both players agreed to rematch
         console.log("new game" + msg.gameId);
-        window.location.replace('/game/' + msg.gameId);
+        if (anonKey) {
+            window.location.replace('/game/' + msg.gameId + "?anonKey=" + anonKey);
+        } else {
+            window.location.replace('/game/' + msg.gameId);
+        }
     } else if (msg.c == 'playerlost') {
         var dt = new Date();
         endGame();
@@ -518,13 +565,12 @@ var getPiece = function(x, y, color, image){
             this.image.draggable = false;
             this.isMoving = true;
             piece.firstMove = false;
-			// TODO 1000 is speed
             //piece.anim_length = Math.sqrt( Math.pow(Math.abs(this.start_x - this.x), 2) + Math.pow(Math.abs(this.start_y - this.y), 2)) * timer * 100;
             // diagonal pieces move just as fast forward as straight pieces
             var x_dist = Math.abs(this.start_x - this.x);
             var y_dist = Math.abs(this.start_y - this.y);
             var longer_dist = (x_dist > y_dist ? x_dist : y_dist);
-            piece.anim_length =  longer_dist * timer * 100;
+            piece.anim_length =  (longer_dist * timerSpeed / 10) * 1000;
             piece.anim = new Konva.Animation(function(frame) {
                 var new_x = (piece.start_x * width / 8) + ((piece.x - piece.start_x) * (frame.time / piece.anim_length) * width / 8);
                 var new_y = (piece.start_y * width / 8) + ((piece.y - piece.start_y) * (frame.time / piece.anim_length) * width / 8);
@@ -536,7 +582,7 @@ var getPiece = function(x, y, color, image){
                     piece.image.draggable = true;
                     piece.isMoving = false;
 
-                    piece.setDelayTimer(timer)
+                    piece.setDelayTimer(timerRecharge)
 
                     piece.setImagePos(piece.x, piece.y);
                 }

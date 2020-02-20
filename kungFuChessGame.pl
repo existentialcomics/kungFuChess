@@ -5,6 +5,7 @@ use KungFuChess;
 
 my $gameKey = shift;
 my $authKey = shift;
+my $speed = shift;
 
 print "init game..\n";
-my $kfc = KungFuChess->new($gameKey, $authKey);
+my $kfc = KungFuChess->new($gameKey, $authKey, $speed);

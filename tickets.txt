@@ -1,7 +1,8 @@
-different game speeds
-unrated games
 minimum rating for game
 invite to play / challenge
 draw conditions (no pawns have moved for x minutes)
 revoke draw
-auto-reconnected when losing websockets connection
+auto-reconnected when losing websockets connection / show conneciton status
+settings:
+    show custom themes
+    limit games to rating.

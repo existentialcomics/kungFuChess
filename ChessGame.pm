@@ -20,7 +20,7 @@ sub new {
 
 sub _init {
 	my $self = shift;
-    my ($id, $speed, $auth) = @_;
+    my ($id, $speed, $auth, $whiteAnonKey, $blackAnonKey) = @_;
 	$self->{id} = $id;
 
     if ($speed eq 'standard') {
@@ -33,6 +33,8 @@ sub _init {
         warn "unknown game speed $speed\n";
     }
     $self->{speed} = $speed;
+    $self->{whiteAnonKey} = $whiteAnonKey;
+    $self->{blackAnonKey} = $blackAnonKey;
     $self->{playersByAuth} = {};
     $self->{playersConn}   = {};
     $self->{readyToPlay}   = 0;
