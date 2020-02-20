@@ -1,0 +1,35 @@
+<div id="createGameContainer" class="container">
+<div class="card" style="width: 18rem;">
+    <div class="card-header">
+    Create a game
+    </div>
+    <div class="card-body">
+        <form method="POST" action="/createGame" id="createGameForm">
+            <div class="form-group">
+
+                <div class="form-check">
+                    <input class="form-check-input" type="radio" name="gameSpeed" id="standardRatingRadio" value="standard" checked>
+                    <label class="form-check-label" for="standardRatingRadio">
+                        Standard
+                    </label>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="radio" name="gameSpeed" id="lightningRatingRadio" value="lightning">
+                    <label class="form-check-label" for="lightningRatingRadio">
+                        Lightning
+                    </label>
+                </div>
+                <div class="form-check">
+                    <input type="checkbox" class="form-check-input" name="open" checked>
+                    <label class="form-check-label" for="openToPublic">Open to public</label>
+                </div>
+                <div class="form-check">
+                    <input type="checkbox" class="form-check-input" name="rated" <%= ($user ? 'checked' : 'disabled') %>>
+                    <label class="form-check-label" for="ratedGame">Rated</label>
+                </div>
+            </div>
+            <button type="submit" class="btn btn-primary" id='createGameSubmit'>Create Game</button>
+        </form>
+    </div>
+</div>
+</div>

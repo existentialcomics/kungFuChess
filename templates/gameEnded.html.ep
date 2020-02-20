@@ -1,0 +1,55 @@
+%= include 'header'
+
+<script src="/konva.min.js"></script>
+<script src="/jquery-3.2.min.js"></script>
+
+<div class="container bg-light card">
+    <div class="row">
+        <div class="col-3">
+            <div id="chatlog" disabled="true"></div>
+            <input type="text" id="chat-input"></input><br/>
+        </div>
+        <div id="boardContainer" class="col-6">
+            <div id="container">
+            <!-- javascript puts pieces here -->
+            </div>
+        </div>
+        <div class="col-3">
+            <% if ($color eq 'black' || $color eq 'watch') { %>
+                <span id="topPlayer"><div class="circle" id="whiteOnline"><%= $whitePlayer->{screenname} %></span>
+                <span id=rating><%= $whitePlayer->{rating_standard} %></span>
+            <% } else { %>
+                <span id="topPlayer"><div class="circle" id="blackOnline"></div><%= $blackPlayer->{screenname} %></span>
+                <span id=rating><%= $blackPlayer->{rating_standard} %></span>
+            <% } %>
+            Game has ended.
+            <% if ($color eq 'black') { %>
+                <span id="bottomPlayer"><div class="circle" id="blackOnline"></div><%= $blackPlayer->{screenname} %></span>
+                <span id=rating><%= $blackPlayer->{rating_standard} %></span>
+            <% } else { %>
+                <span id="bottomPlayer"><div class="circle" id="whiteOnline"><%= $whitePlayer->{screenname} %></span>
+                <span id=rating><%= $whitePlayer->{rating_standard} %></span>
+            <% } %>
+
+        </div>
+    </div>
+</div>
+
+
+<script>
+    var whitePlayer = JSON.parse('<%== $whitePlayer->getJsonMsg() %>');
+    var blackPlayer = JSON.parse('<%== $blackPlayer->getJsonMsg() %>');
+	var gameId   = "<%= $gameId %>";
+    var myColor  = "<%= $color %>";
+	var authId   = "<%= $authId %>";
+	var anonKey   = "<%= $anonKey %>";
+	var timerSpeed    = "<%= $timerSpeed %>";
+	var timerRecharge = "<%= $timerRecharge %>";
+    var gameBegan = <%= $gameBegan %>;
+</script>
+
+<script src="/pieces/pieces.js"></script>
+<script src="/game.js"></script>
+<script src="/main.js"></script>
+
+%= include 'footer'

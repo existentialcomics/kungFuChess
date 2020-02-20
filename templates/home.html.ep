@@ -25,16 +25,22 @@
                   </button>
                   <div class="collapse navbar-collapse" id="navbarNavAltMarkup">
                     <div class="navbar-nav">
-                      <a class="nav-item nav-link active" href="#">Matching Pools</a>
-                      <a class="nav-item nav-link" href="#">Open Games</a>
+                      <a class="nav-item nav-link active" id="showPool" href="#">Matching Pools</a>
+                      <a class="nav-item nav-link" id="showOpenGames" href="#">Open Games</a>
                     </div>
                   </div>
              </nav>
+            <div id='openGamesContent' class='card shadow-m' style="display:none;">
+
+            </div>
+            <div id='createGameFormDiv' class='card shadow-m' style="display:none;">
+                %= include 'createGameForm'
+            </div>
             <div id='pool-matching'>
-                <a class="btn input-block-level btn-primary" id="enter-pool" role="button">
+                <a class="btn input-block-level btn-primary" id="enter-pool-standard" role="button">
                     Enter Standard Pool
                 </a>
-                <a class="btn input-block-level btn-primary disabled" id="enter-pool-lightning" role="button">
+                <a class="btn input-block-level btn-primary" id="enter-pool-lightning" role="button">
                     Enter Lightning Pool
                 </a>
             </div>

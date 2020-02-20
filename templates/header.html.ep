@@ -24,7 +24,7 @@
         <a href="/login">Login</a>
     <% } %>
     </li>
-    <% if ($user){ %>
+    <% if ($user && $user->{screenname} ne 'anonymous'){ %>
     <li>
     <a href="/profile/<%= $user->{screenname} %>">Welcome, <%= $user->{screenname} %></a>
     </li>

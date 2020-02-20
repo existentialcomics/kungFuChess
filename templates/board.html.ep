@@ -3,36 +3,40 @@
 <script src="/konva.min.js"></script>
 <script src="/jquery-3.2.min.js"></script>
 
-<div class="container-fluid" style="background-color: grey">
+<div class="container bg-light card">
     <div class="row">
-        <div class="col">
+        <div class="col-3">
             <div id="chatlog" disabled="true"></div>
             <input type="text" id="chat-input"></input><br/>
         </div>
-        <div id="boardContainer" class="col-6" style="background-color: coral">
+        <div id="boardContainer" class="col-6">
             <div id="container">
             <!-- javascript puts pieces here -->
             </div>
         </div>
-        <div class="col">
-            <% if ($color eq 'black') { %>
-                <span id="bottomPlayer"><%= $whitePlayer->{screenname} %></span>
-                <span id=rating><%= $whitePlayer->{rating_standard} %></span>
+        <div class="col-3">
+            <% if ($color eq 'white' || $color eq 'watch') { %>
+                <span class="circle offline" id="blackOnline"></span>
+                <span id='blackPlayerName'><%= $blackPlayer->{screenname} %></span>
+                <span id='blackRating'><%= $blackPlayer->{rating_standard} %></span>
             <% } else { %>
-                <span id="bottomPlayer"><%= $blackPlayer->{screenname} %></span>
-                <span id=rating><%= $blackPlayer->{rating_standard} %></span>
+                <span class="circle offline" id="whiteOnline"></span>
+                <span id='whitePlayerName'><%= $whitePlayer->{screenname} %></span>
+                <span id='whiteRating'><%= $whitePlayer->{rating_standard} %></span>
             <% } %>
             <button type="button" class="btn btn-primary btn-block" disabled="true" id="readyToStart" onclick="readyToStart()">Ready To Start</button>
             <button type="button" class="btn btn-primary btn-block" disabled="true" id="resign" onclick="resign()">Resign</button>
             <button type="button" class="btn btn-primary btn-block" disabled="true" id="requestDraw" onclick="requestDraw()">Draw</button>
             <button type="button" class="btn btn-primary btn-block" disabled="true" id="rematch" onclick="rematch()">Rematch</button>
             <button type="button" class="btn btn-primary btn-block" disabled="true" id="enter-pool" onclick="rematch()">Enter Pool</button>
-            <% if ($color eq 'black') { %>
-                <span id="bottomPlayer"><%= $blackPlayer->{screenname} %></span>
-                <span id=rating><%= $blackPlayer->{rating_standard} %></span>
+            <% if ($color eq 'white' || $color eq 'watch') { %>
+                <span class="circle offline" id="whiteOnline"></span>
+                <span id='whitePlayerName'><%= $whitePlayer->{screenname} %></span>
+                <span id='whiteRating'><%= $whitePlayer->{rating_standard} %></span>
             <% } else { %>
-                <span id="bottomPlayer"><%= $whitePlayer->{screenname} %></span>
-                <span id=rating><%= $whitePlayer->{rating_standard} %></span>
+                <span class="circle offline" id="blackOnline"></span>
+                <span id='blackPlayerName'><%= $blackPlayer->{screenname} %></span>
+                <span id='blackRating'><%= $blackPlayer->{rating_standard} %></span>
             <% } %>
 
         </div>
@@ -46,7 +50,9 @@
 	var gameId   = "<%= $gameId %>";
     var myColor  = "<%= $color %>";
 	var authId   = "<%= $authId %>";
-	var timer    = "<%= $timer %>";
+	var anonKey   = "<%= $anonKey %>";
+	var timerSpeed    = "<%= $timerSpeed %>";
+	var timerRecharge = "<%= $timerRecharge %>";
     var gameBegan = <%= $gameBegan %>;
 </script>
 
