@@ -33,7 +33,17 @@ li a:hover {
     background-color: #111;
 }
 
-#chatlog {
+#game-chat-log {
+    padding:5px;
+    background:#ddd;
+    border-radius:5px;
+    overflow-y: scroll;
+    border:1px solid #CCC;
+    margin-top:5px;
+    height: 360px;
+}
+
+#global-chat-log {
     padding:5px;
     background:#ddd;
     border-radius:5px;
@@ -70,6 +80,9 @@ li a:hover {
     padding:2px;
     border: 1px solid black ;
 }
+.doubleblackbeltColor {
+    color:black;
+}
 
 #doubleblackbelt {
     width:20px;
@@ -78,6 +91,9 @@ li a:hover {
     display:inline-block;
     padding:1px;
     border: 2px solid gold ;
+}
+.blackbeltColor {
+    color:black;
 }
 
 #brownbelt {
@@ -88,6 +104,9 @@ li a:hover {
     padding:2px;
     border: 1px solid red ;
 }
+.brownbeltColor {
+    color:brown;
+}
 
 #redbelt {
     width:20px;
@@ -96,6 +115,9 @@ li a:hover {
     display:inline-block;
     padding:2px;
     border: 1px solid orange ;
+}
+.redbeltColor {
+    color:red;
 }
 
 #orangebelt {
@@ -106,6 +128,9 @@ li a:hover {
     padding:2px;
     border: 1px solid yellow ;
 }
+.orangebeltColor {
+    color:orange;
+}
 
 #yellowbelt {
     width:20px;
@@ -115,6 +140,9 @@ li a:hover {
     padding:2px;
     border: 1px solid green ;
 }
+.yellowbeltColor {
+    color: yellow;
+}
 
 #greenbelt {
     width:20px;
@@ -123,6 +151,10 @@ li a:hover {
     display:inline-block;
     padding:2px;
     border: 1px solid white ;
+}
+
+.greenbeltColor {
+    color:green;
 }
 
 #boardContainer {

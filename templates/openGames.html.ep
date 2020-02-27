@@ -2,10 +2,26 @@
     <a class="btn input-block-level btn-primary" id="createGameBtn" role="button">
         Create Game
     </a>
+<% } else { %>
+    <div class="mx-auto" style="width: auto;">Your game (click to cancel)</div>
+    <table id='my-games-table' class='table table-hover'>
+    <tr class='cancel-game-row' style='cursor: pointer;' data-href='/ajax/cancelGame/<%= $myGame->{private_game_key} %>'>
+        <td>
+            <%= $myGame->{in_matching_pool} ? "Public" : "Private" %>
+        </td>
+        <td>
+            <%= $myGame->{game_speed} %>
+        </td>
+        <td>
+            <%= ($myGame->{rated} ? 'rated' : 'unrated') %>
+        </td>
+    </tr>
+    </table>
+    <center>Invite:</center>
 <% } %>
-<br />
+<br /><br />
 <% if ($#{$openGames} == -1 ){ %>
-    no open games
+    <div class="mx-auto" style="width: auto;">No open games</div>
 <% } else { %>
     <table id='open-games-table' class='table table-hover'>
         <thead>
@@ -16,22 +32,6 @@
         </thead>
 
         <tbody>
-    <% if (($myGame)) { %>
-        <tr class='cancel-game-row' style='cursor: pointer;' data-href='/ajax/cancelGame/<%= $myGame->{private_game_key} %>'>
-            <td>
-                <%= $myGame->{screenname} %>
-            </td>
-            <td>
-                <%= $myGame->{ 'rating_' . $myGame->{'game_speed'}} %>
-            </td>
-            <td>
-                <%= $myGame->{game_speed} %>
-            </td>
-            <td>
-                <%= ($myGame->{rated} ? 'rated' : 'unrated') %>
-            </td>
-        </tr>
-    <% } %>
     <% foreach my $game (@{$openGames}){ %>
         <% if (! (($user) && $game->{player_id} == $user->{player_id})
               && ! (($uid) && $game->{private_game_key} eq $uid) ) { %>

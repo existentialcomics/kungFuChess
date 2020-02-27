@@ -2,8 +2,8 @@ var width  = 320;
 var height = 320;
 
 var boardContent = $("#boardContainer");
-var chatContent = $('#chatlog');
-var input = $('#chat-input');
+var game_chatContent = $('#game-chat-log');
+var input = $('#game-chat-input');
 
 width = boardContent.width();
 height = $("#boardContainer").width();
@@ -28,6 +28,7 @@ var pieces = {};
 var piecesByImageId = {};
 
 var globalIdCount = 1;
+var replayMode = false;
 
 console.log("connecting..." + authId);
 var conn = new WebSocket("ws://www1.existentialcomics.com:3000/ws");
@@ -92,15 +93,17 @@ conn.onopen = function(evt) {
     pingServer = setInterval(function() {
         var d = new Date();
         var timestamp = d.getTime();
-        console.log("ping");
         heartbeat_msg = {
             "c" : "ping",
             'timestamp' : timestamp,
             'ping' : myPing
         };
         sendMsg(heartbeat_msg);
-    }, 2000); 
+    }, 3000); 
 	joinGame();
+    initialMessages.forEach(function (item, index) {
+        handleMessage(item);
+    });
 };
 
 conn.onerror = function(e) {
@@ -112,38 +115,13 @@ conn.onclose = function(e) {
 };
 
 sendMsg = function(msg) {
-    console.log(msg);
+    if (msg.c != 'pong') {
+        console.log(msg);
+    }
     msg.gameId = gameId;
     msg.auth = authId;
     conn.send(JSON.stringify(msg));
 };
-
-displayPlayers = function(color) {
-    console.log("display players...");
-    console.log("white:");
-    console.debug(whitePlayer);
-    console.log("black");
-    console.debug(blackPlayer);
-    //if (whitePlayer.screenname !== null){
-        //$('#whitePlayer').text(whitePlayer.screenname + " " + whitePlayer.rating_standard);
-    //}
-    //if (blackPlayer.screenname !== null){
-        //$('#blackPlayer').text(blackPlayer.screenname + " " + blackPlayer.rating_standard);
-    //}
-    if (blackPlayer.screenname !== null && whitePlayer.screenname !== null){
-        if ( gameBegan) {
-            $('#resign').removeAttr('disabled');
-            $('#requestDraw').removeAttr('disabled');
-            $('#rematch').attr('disabled', true);
-            $('#enter-pool').attr('disabled', true);
-        } else {
-            console.log('enabling ready to start...');
-            $('#readyToStart').removeAttr('disabled'); 
-        }
-    }
-}
-
-displayPlayers();
 
 readyToStart = function() {
     $("#readyToStart").attr("disabled","disabled");
@@ -161,11 +139,24 @@ resign = function(){
     sendMsg(msg);
 }
 
+// TODO have the logic flip on confirmation not send
+var drawRequested = false;
 requestDraw = function() {
-    var msg = {
-        "c" : "requestDraw"
-    };
-    sendMsg(msg);
+    if (drawRequested) {
+        drawRequested = false;
+        var msg = {
+            "c" : "revokeDraw"
+        };
+        $('#requestDraw').html('Request Draw');
+        sendMsg(msg);
+    } else {
+        drawRequested = true;
+        var msg = {
+            "c" : "requestDraw"
+        };
+        $('#requestDraw').html('Revoke Draw');
+        sendMsg(msg);
+    }
 }
 
 requestRematch = function() {
@@ -175,17 +166,10 @@ requestRematch = function() {
     sendMsg(msg);
 }
 
-conn.onmessage = function(evt) {
-    console.log("msg: " + evt.data);
-
-	var msg = JSON.parse(evt.data);
-
-    // move:<piece_id>,<x>,<y>
-    // Example: move:123,1,4
+var handleMessage = function(msg) {
     if (msg.c == 'move'){
         pieces[msg.id].move(msg.x, msg.y);
     } else if (msg.c == 'promote'){
-		console.log('promoting ' + msg.id);
 		pieces[msg.id].image.destroy();
 		var newQueen = getQueen(pieces[msg.id].x, pieces[msg.id].y, pieces[msg.id].color);
 		newQueen.id = msg.id;
@@ -193,9 +177,6 @@ conn.onmessage = function(evt) {
 		pieces[msg.id] = newQueen;
 		newQueen.image.draggable(pieces[msg.id].image.draggable());
 		pieceLayer.draw();
-	} else if (msg.c == 'readyToJoin'){
-		console.log('readyToJoin');
-        $('#join').removeAttr('disabled'); // let the user write another message
     } else if (msg.c == 'joined'){
         console.debug(msg);
 		console.log('joined ' + authId + ", ", myColor);
@@ -207,9 +188,7 @@ conn.onmessage = function(evt) {
 			}
 		}
         console.debug(msg);
-		console.log('begin reset');
 		resetGamePieces();
-		console.log('end reset');
 		pieceLayer.draw();
     } else if (msg.c == 'spawn'){
         var piece;
@@ -230,7 +209,6 @@ conn.onmessage = function(evt) {
 		if (! (msg.id in pieces)){
 			pieceLayer.add(piece.image);
 			pieces[msg.id] = piece;
-            console.log(myColor);
 			if (piece.color == myColor){
 				pieces[msg.id].image.draggable(true);
 			}
@@ -264,18 +242,6 @@ conn.onmessage = function(evt) {
         }
         delete pieces[msg.id];
         pieceLayer.draw();
-    } else if (msg.c == 'playerjoined'){
-        if (msg.user.color == 'white'){
-            console.log("joined white");
-            whitePlayer = msg.user;
-        } else if (msg.user.color == 'black'){
-            console.log("joined black");
-            blackPlayer = msg.user;
-        } else {
-            console.log("joined nocolor");
-            console.debug(msg.user.color);
-        }
-        displayPlayers();
     } else if (msg.c == 'gameBegins'){
         console.log('setting readyToStart timeout');
 		for(id in pieces){
@@ -283,16 +249,15 @@ conn.onmessage = function(evt) {
             pieces[id].setDelayTimer(3);
 		}
         setTimeout(startGame, 3000)
-    } else if (msg.c == 'gameover'){
-
     } else if (msg.c == 'chat') {
         console.log("chat recieved");
         input.removeAttr('disabled'); // let the user write another message
         var dt = new Date();
-        addMessage(
+        addGameMessage(
             msg.author,
             msg.message,
             "green",
+            'black',
             dt
         );
     } else if (msg.c == 'newgame') { // both players agreed to rematch
@@ -305,61 +270,89 @@ conn.onmessage = function(evt) {
     } else if (msg.c == 'playerlost') {
         var dt = new Date();
         endGame();
-        addMessage(
+        addGameMessage(
             "SYSTEM",
             msg.color + " has lost.",
             "red",
+            'black',
             dt
         );
-    } else if (msg.c == 'drawRequested') {
-        addMessage(
+    } else if (msg.c == 'requestDraw') {
+        if (msg.color == myColor) {
+
+        }
+        addGameMessage(
             "SYSTEM",
             msg.color + " as requested a draw.",
             "red",
+            'black',
             dt
         );
     } else if (msg.c == 'gameDrawn') {
         var dt = new Date();
         endGame();
-        addMessage(
+        addGameMessage(
             "SYSTEM",
             "The game has drawn.",
             "red",
+            'black',
             dt
         );
     } else if (msg.c == 'resign') {
         var dt = new Date();
         endGame();
-        addMessage(
+        addGameMessage(
             "SYSTEM",
             msg.color + " has resigned.",
             "red",
+            'black',
             dt
         );
     } else {
         console.log("unknown msg recieved");
         console.debug(msg);
     }
+
+}
+
+var clearBoard = function() {
+    for(id in pieces){
+		pieces[id].image.destroy();
+    }
+    pieces = [];
+    pieceLayer.draw();
+}
+
+conn.onmessage = function(evt) {
+
+	var msg = JSON.parse(evt.data);
+    if (msg.c != 'pong') {
+        console.log("msg: " + evt.data);
+    }
+    handleMessage(msg);
 };
 
 var startGame = function(){
-    console.log('starting game');
-    $('#resign').removeAttr('disabled');
-    $('#requestDraw').removeAttr('disabled');
-    $('#rematch').attr('disabled', true);
-    $('#enter-pool').attr('disabled', true);
+    if (! replayMode) {
+        console.log('starting game');
+        $('#gameStatusWaitingToStart').hide();
+        $('#gameStatusActive').show();
+        $('#gameStatusWaitingToEnded').hide();
+    }
 }
 
 var endGame = function(){
-    console.log('ending');
-    $('#resign').attr('disabled', true);
-    $('#requestDraw').attr('disabled', true);
-    $('#rematch').removeAttr('disabled');
-    $('#enter-pool').removeAttr('disabled');
-    for(id in pieces){
-        console.log(myColor);
-        if (pieces[id].color == myColor){
-            pieces[id].image.draggable = false;
+    if (! replayMode) {
+        console.log('ending');
+        $('#gameStatusWaitingToStart').hide();
+        $('#gameStatusActive').hide();
+        $('#gameStatusEnded').show();
+
+        for(id in pieces){
+            console.log(myColor);
+            if (pieces[id].color == myColor){
+                pieces[id].image.draggable = false;
+            }
         }
     }
 }
@@ -549,7 +542,6 @@ var getPiece = function(x, y, color, image){
         if (x > 7){ return false };
         if (y > 7){ return false };
 
-        console.log("x: " + x + ", y: " + y);
         isLegal = this.legalMove(this.x - x, this.y - y);
         if (!isLegal){
             return false;
@@ -757,13 +749,50 @@ input.keydown(function(e) {
 /**
  * Add message to the chat window
  */
-function addMessage(author, message, color, dt) {
-    console.log(author + ", " + message);
-    console.debug(chatContent);
-    console.debug(dt);
-    chatContent.append('<p><span style="color:' + color + '">' + author + '</span> @ ' +
+function addGameMessage(author, message, color, textcolor, dt) {
+    game_chatContent.append('<p><span style="color:' + color + '">' + author + '</span><span style="font-size: 12px;color:grey"> ' +
             + (dt.getHours() < 10 ? '0' + dt.getHours() : dt.getHours()) + ':'
             + (dt.getMinutes() < 10 ? '0' + dt.getMinutes() : dt.getMinutes())
-            + ': ' + message + '</p>');
-    chatContent.scrollTop = chatContent.scrollHeight;
+            + '</span> ' + escapeHtml(message) + '</p>');
+    game_chatContent.scrollTop = game_chatContent.scrollHeight;
 }
+
+//$(document).ready(function () {
+$(function () {
+    $("#replayGame").click(function() {
+        replayMode = true;
+        console.log("replaying game");
+        clearBoard();
+        console.log(gameLog);
+
+        // clears all active timeouts
+        var id = window.setTimeout(function() {}, 0);
+        while (id--) {
+            window.clearTimeout(id); // will do nothing if no timeout with id is present
+        }
+
+        var startTime = 0;
+        var gameStart = false;
+        gameLog.forEach(function (logMsg) {
+            console.log(logMsg.time);
+            console.log(logMsg.msg.c);
+            if (logMsg.msg.c == 'gameBegins') {
+                startTime = logMsg.time + 3;
+                gameStart = true;
+                console.log("start time: " + startTime);
+                console.log(logMsg);
+            } else {
+                var msgTimeout = 0;
+                if (gameStart) {
+                    msgTimeout = (logMsg.time - startTime) * 1000;
+                }
+                setTimeout(
+                    function() {
+                        handleMessage(logMsg.msg);
+                    },
+                    msgTimeout
+                );
+            }
+        });
+    });
+});

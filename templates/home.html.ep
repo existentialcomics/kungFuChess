@@ -4,10 +4,10 @@
     <div class="row">
         <div class="col-sm">
             <nav class="navbar navbar-expand-lg navbar-light bg-light">
-                  <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNavAltMarkup" aria-controls="navbarNavAltMarkup" aria-expanded="false" aria-label="Toggle navigation">
+                  <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navBarPlayers" aria-controls="navBarPlayers" aria-expanded="false" aria-label="Toggle navigation">
                   <span class="navbar-toggler-icon"></span>
                   </button>
-                  <div class="collapse navbar-collapse" id="navbarNavAltMarkup">
+                  <div class="collapse navbar-collapse" id="navBarPlayers">
                     <div class="navbar-nav">
                       <a class="nav-item nav-link active" id="showStandardRating" href="#">Standard</a>
                       <a class="nav-item nav-link" id="showLightningRating" href="#">Lightning</a>
@@ -20,45 +20,53 @@
 
         <div class="col-sm">
             <nav class="navbar navbar-expand-lg navbar-light bg-light">
-                  <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNavAltMarkup" aria-controls="navbarNavAltMarkup" aria-expanded="false" aria-label="Toggle navigation">
+                  <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navBarGames" aria-controls="navBarGames" aria-expanded="false" aria-label="Toggle navigation">
                   <span class="navbar-toggler-icon"></span>
                   </button>
-                  <div class="collapse navbar-collapse" id="navbarNavAltMarkup">
+                  <div class="collapse navbar-collapse" id="navBarGames">
                     <div class="navbar-nav">
                       <a class="nav-item nav-link active" id="showPool" href="#">Matching Pools</a>
                       <a class="nav-item nav-link" id="showOpenGames" href="#">Open Games</a>
+                      <a class="nav-item nav-link" id="showActiveGames" href="#">Watch</a>
                     </div>
                   </div>
              </nav>
             <div id='openGamesContent' class='card shadow-m' style="display:none;">
-
+            </div>
+            <div id='activeGamesContent' class='card shadow-m' style="display:none;">
             </div>
             <div id='createGameFormDiv' class='card shadow-m' style="display:none;">
                 %= include 'createGameForm'
             </div>
             <div id='pool-matching'>
-                <a class="btn input-block-level btn-primary" id="enter-pool-standard" role="button">
-                    Enter Standard Pool
+                <% if ($user && $user->{player_id} != -1) { %>
+                <a class="btn-block btn btn-primary p-4" id="enter-pool-standard" role="button">
+                    Standard Pool
                 </a>
-                <a class="btn input-block-level btn-primary" id="enter-pool-lightning" role="button">
-                    Enter Lightning Pool
+                <a class="btn-block btn btn-primary p-4" id="enter-pool-lightning" role="button">
+                    Lightning Pool
                 </a>
+                <% } else { %>
+                You must be logged in to enter the quick matching pools. You can still create games from the "Open Games" tab.
+                %= include 'loginForm'
+                <% } %>
             </div>
         </div>
         <div class="col-sm">
             <nav class="navbar navbar-expand-lg navbar-light bg-light">
-                  <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNavAltMarkup" aria-controls="navbarNavAltMarkup" aria-expanded="false" aria-label="Toggle navigation">
+                  <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarChat" aria-controls="navbarChat" aria-expanded="false" aria-label="Toggle navigation">
                   <span class="navbar-toggler-icon"></span>
                   </button>
-                  <div class="collapse navbar-collapse" id="navbarNavAltMarkup">
+                  <div class="collapse navbar-collapse" id="navbarChat">
                     <div class="navbar-nav active">
                       <a class="nav-item nav-link" href="#">Global Chat</a>
                     </div>
                   </div>
              </nav>
             <div id='global-chat'>
-                <div id="chatlog" disabled="true"></div>
-                <input type="text" id="global-chat-input"></input><br/>
+                <div id="global-chat-log" disabled="true"></div>
+                <input type="text" id="global-chat-input"></input>
+                <div id = "connectionStatus" style='float:right;'></div>
             </div>
         </div>
     </div>

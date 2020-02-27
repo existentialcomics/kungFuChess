@@ -147,10 +147,6 @@ sub move {
 	my $diffX = $x - $self->{x};
 	my $diffY = $y - $self->{y};
 
-    print "checking for kills\n";
-
-	print "$self->{x}, $self->{y} => $x, $y\n";
-
 	my $xI = 1;
 	my $yI = 1;
 	if ($x < $self->{x}) { $xI = -1 }
@@ -159,8 +155,7 @@ sub move {
 	if ($y == $self->{y}){ $yI = 0  }
 
 	$self->{interval} = $self->{game}->{pieceSpeed} / 10;
-
-	print time() . " - ix, iy: $xI, $yI\n";
+    print "piece interval: $self->{interval}\n";
 
 	if ($self->{type} eq 'knight'){
 		$xI = $diffX;
@@ -179,7 +174,7 @@ sub move {
         'y' => $y,
         'id' => $self->{id}
     };
-    print "sending inside\n";
+
     $self->{game}->send($msg);
 
 	$self->setMovingInterval();
@@ -196,7 +191,6 @@ sub setMovingInterval {
 
 			if ($self->{x} == $self->{moving_x} && 
 				$self->{y} == $self->{moving_y}){
-				print time() . " - finished moving \n";
 				$self->{isMoving} = 0;
                 $self->{readyToMove} = time() + $self->{game}->{pieceRecharge};
 			} else {

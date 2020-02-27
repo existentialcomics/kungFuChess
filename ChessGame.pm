@@ -67,9 +67,7 @@ sub addConnection {
     my $self = shift;
     my ($connId, $conn) = @_;
 
-    print "$connId, $conn\n";
     $self->{playersConn}->{$connId} = $conn;
-    print Dumper($self->{playersByConn});
 }
 
 sub removeConnection {
@@ -116,6 +114,7 @@ sub playerReady {
                 'c' => 'gameBegins',
                 'seconds' => 3
             };
+            $self->serverBroadcast($msg);
             $self->playerBroadcast($msg);
             return 3;
         }
@@ -195,7 +194,6 @@ sub authMove {
 sub serverBroadcast {
     my $self = shift;
     my $msg = shift;
-	#print "server broadcast for game: $self->{id}\n";
 	$self->{serverConn}->send(encode_json $msg);
 }
 
@@ -205,6 +203,7 @@ my %excludeFromLog = (
     'readyToRematch' => 1,
     'readyToBegin' => 1,
     'ping' => 1,
+    'pong' => 1,
     'serverping' => 1,
     'playerjoined' => 1,
     'requestDraw' => 1,
@@ -224,8 +223,12 @@ sub playerBroadcast {
 	}
 
     if (! $excludeFromLog{$msg->{c}}) {
-        $msg->{'time'} = time() - $self->{'gameStartTime'};
-        push (@{$self->{gameLog}}, $msg);
+        print "adding msg $msg->{c} to game log (" . time() . " - $self->\n";
+        push (@{$self->{gameLog}}, 
+        {
+            'time' => time() - $self->{gameStartTime},
+            'msg' => $msg
+        });
     }
 }
 

@@ -4,6 +4,7 @@ use strict; use warnings;
 # this is the server that manages the pieces and connect to KungFuWeb.pl
 
 package KungFuChess;
+
 use AnyEvent::WebSocket::Client;
 use AnyEvent;
 use ChessPiece;
@@ -35,6 +36,7 @@ sub _init {
 	$self->{authkey} = $authKey;
 	$self->{pieceIdCount} = 1;
 
+    ### needed for ChessPieces 
     if ($speed eq 'standard') {
         $self->{pieceSpeed} = 10;
         $self->{pieceRecharge} = 10;
@@ -42,7 +44,7 @@ sub _init {
         $self->{pieceSpeed} = 2;
         $self->{pieceRecharge} = 2;
     } else {
-        die "unknown speed $speed\n";
+        warn "unknown game speed $speed\n";
     }
 
 	$self->{board} = {};
@@ -280,22 +282,48 @@ sub handleMessage {
 	} elsif ($msg->{c} eq 'move'){
 		my $piece = $self->getPiece($msg->{id});
 		return 0 if ($msg->{color} ne $piece->{color});
-		if ($self->isLegalMove($piece, $msg->{x}, $msg->{y})){
-            # the piece now sends the msg itself
-            #$msg->{c} = 'authmove';
-            #$self->send($msg);
-		}
+		$self->moveIfLegal($piece, $msg->{x}, $msg->{y});
+	} elsif ($msg->{c} eq 'gameBegins'){
+        print "game begins\n";
+        # to prevent autodraw from coming up right away
+        foreach my $piece ($self->getPieces()) {
+            $piece->{readyToMove} = time();
+        }
+	} elsif ($msg->{c} eq 'requestDraw'){
+        if ($self->checkForForceDraw) {
+            my $drawMsg = {
+                'c' => 'forceDraw'
+            };
+            $self->send($drawMsg);
+        }
 	} elsif ($msg->{c} eq 'gameDrawn'){
-        $self->gameDrawn();
+        $self->endGame();
 	} elsif ($msg->{c} eq 'resign'){
-        $self->playerResigned();
+        $self->endGame();
 	}
+}
+
+sub checkForForceDraw {
+    my $self = shift;
+    my @pieces = $self->getPieces();
+    my $shortestPawnMove = 999999999999999;
+    foreach my $piece (@pieces) {
+        if ($piece->{type} eq 'pawn') {
+            if (time - $piece->{readyToMove} < $shortestPawnMove) {
+                $shortestPawnMove = time - $piece->{readyToMove};
+            }
+        }
+    }
+    if ($shortestPawnMove > 25) { return 1; }
+    return 0;
 }
 
 sub sendAllGamePieces {
 	my $self = shift;
+    my $returnOnly = shift;
 	my $conn = $self->{conn};
 
+    my @msgs = ();
 	foreach my $id (keys %{ $self->{board} }){
 		my $piece = $self->{board}->{$id};
 
@@ -308,8 +336,13 @@ sub sendAllGamePieces {
 			'y'     => $piece->{y},
 		};
 
-		$self->send($msg);
+        if ($returnOnly) {
+            push @msgs, $msg;
+        } else {
+            $self->send($msg);
+        }
 	}
+    return @msgs;
 }
 
 # called by the piece that landed
@@ -332,7 +365,6 @@ sub checkForKills {
                  $self->killPiece($p);
              }
          }
-
     }
 }
 
@@ -348,11 +380,16 @@ sub pieceAt {
     return undef;
 }
 
-sub playerResigned {
-    exit;
-}
+sub endGame {
+    my $self = shift;
 
-sub gameDrawn {
+    print "game ending...\n";
+    my @msgs = $self->sendAllGamePieces(1);
+    my $msg = {
+        'c' => 'gamePositionMsgs',
+        'msgs' => encode_json(\@msgs) ### double encoded because want to store the json not use it
+    };
+    $self->send($msg);
     exit;
 }
 
@@ -366,8 +403,7 @@ sub killPiece {
             'color' => $piece->{color}
         };
         $self->send($msg);
-        # game over
-        exit;
+        $self->endGame(); ### TODO in 4way the game won't end here!
     } else {
         my $msg = {
             'c' => 'authkill',
@@ -382,16 +418,19 @@ sub send {
 	my $self = shift;
 	my $msg  = shift;
 
+    print "sending msgs $msg->{c}\n";
+
 	$msg->{auth} = $self->{authkey};
 	$msg->{gameId} = $self->{gamekey};
 	return $self->{conn}->send(encode_json $msg);
 }
 
-sub isLegalMove {
+sub moveIfLegal {
 	my $self = shift;
 	my $piece = shift;
 	my ($x, $y) = @_;
 
+    ### TODO premove
     if ( ! $piece->readyToMove() ) { return 0; }
 
 	my @pieces = $self->getPieces();

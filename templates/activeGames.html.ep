@@ -1,22 +1,21 @@
 <% if ($#{$games} == -1 ){ %>
-    No Active Games
+    <div class="mx-auto" style="width: auto;">No active games</div>
 <% } else { %>
-    <table id='open-games-table' class='table table-hover'>
+    <table id='watch-games-table' class='table table-hover'>
         <thead>
-            <th>Black</th>
-            <th>White</th>
+            <th>Players</th>
             <th>Speed</th>
-            <th>Type</th>
+            <th>Rated</th>
         </thead>
 
         <tbody>
     <% foreach my $game (@{$games}){ %>
-        <tr class='watch-game-row' style='cursor: pointer;' data-href='/ajax/matchGame/<%= $game->{private_game_key} %>'>
+        <tr class='watch-game-row' style='cursor: pointer;' data-href='/game/<%= $game->{game_id} %>'>
             <td>
-                <%= $game->{screenname} %>
-            </td>
-            <td>
-                <%= $game->{ 'rating_' . $game->{'game_speed'}} %>
+                <%= $game->{white_screenname} %> - 
+                <%= $game->{white_rating} %><br>
+                <%= $game->{black_screenname} %> - 
+                <%= $game->{black_rating} %>
             </td>
             <td>
                 <%= $game->{game_speed} %>

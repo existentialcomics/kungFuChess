@@ -6,8 +6,8 @@
 <div class="container bg-light card">
     <div class="row">
         <div class="col-3">
-            <div id="chatlog" disabled="true"></div>
-            <input type="text" id="chat-input"></input><br/>
+            <div id="game-chat-log" disabled="true"></div>
+            <input type="text" id="game-chat-input"></input><br/>
         </div>
         <div id="boardContainer" class="col-6">
             <div id="container">
@@ -24,11 +24,22 @@
                 <span id='whitePlayerName'><%= $whitePlayer->{screenname} %></span>
                 <span id='whiteRating'><%= $whitePlayer->{rating_standard} %></span>
             <% } %>
-            <button type="button" class="btn btn-primary btn-block" disabled="true" id="readyToStart" onclick="readyToStart()">Ready To Start</button>
-            <button type="button" class="btn btn-primary btn-block" disabled="true" id="resign" onclick="resign()">Resign</button>
-            <button type="button" class="btn btn-primary btn-block" disabled="true" id="requestDraw" onclick="requestDraw()">Draw</button>
-            <button type="button" class="btn btn-primary btn-block" disabled="true" id="rematch" onclick="rematch()">Rematch</button>
-            <button type="button" class="btn btn-primary btn-block" disabled="true" id="enter-pool" onclick="rematch()">Enter Pool</button>
+            <div id="gameStatusWaitingToStart" <%== $gameStatus eq 'waiting to begin' ? '' : 'style="display:none;"' %>>
+                <button type="button" class="btn btn-primary btn-block" id="readyToStart" onclick="readyToStart()">Ready To Start</button>
+                <button type="button" class="btn btn-primary btn-block" id="abortGame" onclick="abort()">Abort</button>
+            </div>
+            <div id="gameStatusActive" <%== $gameStatus eq 'active' ? '' : 'style="display:none;"' %>>
+                <button type="button" class="btn btn-primary btn-block" id="resign" onclick="resign()">Resign</button>
+                <button type="button" class="btn btn-primary btn-block" id="requestDraw" onclick="requestDraw()">Request Draw</button>
+            </div>
+            <! –– this is immedately after the game has finish, will never be shown on load -->
+            <div id="gameStatusEnded" style="display:none;">
+                <button type="button" class="btn btn-primary btn-block" id="rematch" onclick="rematch()">Rematch</button>
+                <button type="button" class="btn btn-primary btn-block" id="enter-pool" onclick="rematch()">Enter Pool</button>
+            </div>
+            <div id="gameStatusComplete" <%== $gameStatus eq 'finished' ? '' : 'style="display:none;"' %>>
+                <button type="button" class="btn btn-primary btn-block" id="replayGame" >Replay Game</button>
+            </div>
             <% if ($color eq 'white' || $color eq 'watch') { %>
                 <span class="circle offline" id="whiteOnline"></span>
                 <span id='whitePlayerName'><%= $whitePlayer->{screenname} %></span>
@@ -38,7 +49,9 @@
                 <span id='blackPlayerName'><%= $blackPlayer->{screenname} %></span>
                 <span id='blackRating'><%= $blackPlayer->{rating_standard} %></span>
             <% } %>
-
+        </div>
+        <div>
+            <%= $gameStatus %>
         </div>
     </div>
 </div>
@@ -53,7 +66,8 @@
 	var anonKey   = "<%= $anonKey %>";
 	var timerSpeed    = "<%= $timerSpeed %>";
 	var timerRecharge = "<%= $timerRecharge %>";
-    var gameBegan = <%= $gameBegan %>;
+    var initialMessages = JSON.parse('<%== $positionGameMsgs %>');
+    var gameLog = JSON.parse('<%== $gameLog %>');
 </script>
 
 <script src="/pieces/pieces.js"></script>
