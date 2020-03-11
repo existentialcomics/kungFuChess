@@ -3,14 +3,14 @@
 @import "bootstrap/scss/_variables";
 
 // Changing the theme colors
-$primary: black;  // light green
-$secondary: #666666; // gold
+$primary: #111111;
+$secondary: #555555; // gold
 /*$success: #65ff9f;*/
 /*$info: #7164ff;*/
 /*$warning: #ff9f65;*/
 /*$danger: #ff457b;*/
 $light: #444444;  // very light green
-$dark: black;   // dark green
+$dark: #111111;   // dark green
 
 /*// Your variable overrides*/
 $body-bg: $dark;
@@ -29,4 +29,5 @@ $theme-colors: (
     'dark':          $dark
 );
 
+@import "global";
 @import "bootstrap/scss/bootstrap";

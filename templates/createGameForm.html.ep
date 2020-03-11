@@ -6,26 +6,49 @@
     <div class="card-body">
         <form method="POST" action="/createGame" id="createGameForm">
             <div class="form-group">
-
-                <div class="form-check">
-                    <input class="form-check-input" type="radio" name="gameSpeed" id="standardRatingRadio" value="standard" checked>
-                    <label class="form-check-label" for="standardRatingRadio">
+                <label for="colFormLabelLg" class="col col-form-label col-form-label-lg">Game Speed</label>
+                <div class="form-radio">
+                    <input class="form-radio-input" type="radio" name="gameSpeed" id="standardRatingRadio" value="standard" checked>
+                    <label class="form-radio-label" for="standardRatingRadio">
                         Standard
                     </label>
                 </div>
-                <div class="form-check">
-                    <input class="form-check-input" type="radio" name="gameSpeed" id="lightningRatingRadio" value="lightning">
-                    <label class="form-check-label" for="lightningRatingRadio">
+                <div class="form-radio">
+                    <input class="form-radio-input" type="radio" name="gameSpeed" id="lightningRatingRadio" value="lightning">
+                    <label class="form-radio-label" for="lightningRatingRadio">
                         Lightning
                     </label>
                 </div>
-                <div class="form-check">
-                    <input type="checkbox" class="form-check-input" name="open" checked>
-                    <label class="form-check-label" for="openToPublic">Open to public</label>
+                <label for="colFormLabelLg" class="col col-form-label col-form-label-lg">Game Type</label>
+                <div class="form-radio">
+                    <input class="form-radio-input" type="radio" name="gameType" id="standardRatingRadio" value="rated" checked>
+                    <label class="form-radio-label" for="standardRatingRadio">
+                        Rated
+                    </label>
+                </div>
+                <div class="form-radio">
+                    <input class="form-radio-input" type="radio" name="gameType" id="lightningRatingRadio" value="unrated">
+                    <label class="form-radio-label" for="lightningRatingRadio">
+                        Unrated
+                    </label>
+                </div>
+                <div class="form-radio">
+                    <input class="form-radio-input" type="radio" name="gameType" id="lightningRatingRadio" value="practice">
+                    <label class="form-radio-label" for="lightningRatingRadio">
+                        Practice
+                    </label>
+                </div>
+                <div class="form-radio">
+                    <input class="form-radio-input" type="radio" name="gameType" id="lightningRatingRadio" value="ai">
+                    <label class="form-radio-label" for="lightningRatingRadio">
+                        Against AI
+                    </label>
                 </div>
                 <div class="form-check">
-                    <input type="checkbox" class="form-check-input" name="rated" <%= ($user ? 'checked' : 'disabled') %>>
-                    <label class="form-check-label" for="ratedGame">Rated</label>
+                    <input class="form-check-input" type="checkbox" checked name="open" id="lightningRatingRadio">
+                    <label class="form-check-label" for="openToPublic">
+                        Open to public
+                    </label>
                 </div>
             </div>
             <button type="submit" class="btn btn-primary" id='createGameSubmit'>Create Game</button>

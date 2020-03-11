@@ -313,6 +313,9 @@ $(function () {
                 if (jsonRes.hasOwnProperty('uid')) {
                     currentGameUid = jsonRes.uid;
                 }
+                if (jsonRes.hasOwnProperty('gameId')) {
+                    window.location.replace('/game/' + jsonRes.gameId);
+                }
                 $("#showOpenGames").addClass('active');
                 $("#showPool").removeClass('active');
                 $("#pool-matching").hide();
@@ -359,7 +362,6 @@ $(function () {
 });
 
 
-var reconnectInterval;
 var bindEvents = function(ws_conn) {
     main_conn.onopen = function(evt) {
         // finished main_connecting.
@@ -422,6 +424,7 @@ var bindEvents = function(ws_conn) {
 var main_conn = new WebSocket("ws://www1.existentialcomics.com:3000/ws");
 bindEvents(main_conn);
 
+var reconnectInterval;
 var reconnectMain = function() {
     if (isConnected == false) {
         $("#connectionStatus").html("Reconnecting...");

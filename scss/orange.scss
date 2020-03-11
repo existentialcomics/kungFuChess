@@ -29,4 +29,5 @@ $theme-colors: (
     'dark':          $dark
 );
 
+@import "global";
 @import "bootstrap/scss/bootstrap";

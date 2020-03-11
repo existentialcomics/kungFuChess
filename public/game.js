@@ -31,7 +31,6 @@ var globalIdCount = 1;
 var replayMode = false;
 
 console.log("connecting..." + authId);
-var conn = new WebSocket("ws://www1.existentialcomics.com:3000/ws");
 
 var updateTimeStamps = function(){
     var d = new Date();
@@ -86,33 +85,54 @@ var resetGamePieces = function(){
 	pieceLayer.draw();
 };
 
-conn.onopen = function(evt) {
-	// finished connecting.
-	// maybe query for ready to join
-	console.log("connected!");
-    pingServer = setInterval(function() {
-        var d = new Date();
-        var timestamp = d.getTime();
-        heartbeat_msg = {
-            "c" : "ping",
-            'timestamp' : timestamp,
-            'ping' : myPing
-        };
-        sendMsg(heartbeat_msg);
-    }, 3000); 
-	joinGame();
-    initialMessages.forEach(function (item, index) {
-        handleMessage(item);
-    });
-};
+var bindGameEvents = function(ws_conn) {
+    conn.onopen = function(evt) {
+        // finished connecting.
+        // maybe query for ready to join
+        console.log("connected!");
+        pingServer = setInterval(function() {
+            var d = new Date();
+            var timestamp = d.getTime();
+            heartbeat_msg = {
+                "c" : "ping",
+                'timestamp' : timestamp,
+                'ping' : myPing
+            };
+            sendMsg(heartbeat_msg);
+        }, 3000); 
+        joinGame();
+        initialMessages.forEach(function (item, index) {
+            handleMessage(item);
+        });
+    };
 
-conn.onerror = function(e) {
-    console.log('Error!');
-};
+    conn.onerror = function(e) {
+        console.log('Error!');
+    };
 
-conn.onclose = function(e) {
-    console.log('Disconnected!');
+    conn.onclose = function(e) {
+        console.log('Disconnected!');
+        game_reconnectInterval = setTimeout(
+            game_reconnectMain,
+            1000
+        );
+    };
 };
+var conn = new WebSocket("ws://www1.existentialcomics.com:3000/ws");
+bindGameEvents(conn);
+
+var game_reconnectInterval;
+var game_reconnectMain = function() {
+    if (isConnected == false) {
+        $("#connectionStatus").html("Reconnecting...");
+        conn = null;
+        conn = new WebSocket("ws://www1.existentialcomics.com:3000/ws");
+        bindGameEvents(main_conn);
+    } else {
+        reconnectInterval = null;
+    }
+}
+
 
 sendMsg = function(msg) {
     if (msg.c != 'pong') {
@@ -175,7 +195,9 @@ var handleMessage = function(msg) {
 		newQueen.id = msg.id;
 		pieceLayer.add(newQueen.image);
 		pieces[msg.id] = newQueen;
-		newQueen.image.draggable(pieces[msg.id].image.draggable());
+        if (pieces[msg.id].color == myColor || myColor == 'both'){
+            pieces[msg.id].image.draggable(true);
+        }
 		pieceLayer.draw();
     } else if (msg.c == 'joined'){
         console.debug(msg);
@@ -183,7 +205,7 @@ var handleMessage = function(msg) {
 		// TODO mark all color pieces as draggabble
 		for(id in pieces){
             console.log(myColor);
-			if (pieces[id].color == myColor){
+			if (pieces[id].color == myColor || myColor == 'both'){
 				pieces[id].image.draggable(true);
 			}
 		}
@@ -209,7 +231,7 @@ var handleMessage = function(msg) {
 		if (! (msg.id in pieces)){
 			pieceLayer.add(piece.image);
 			pieces[msg.id] = piece;
-			if (piece.color == myColor){
+			if (piece.color == myColor || myColor == 'both'){
 				pieces[msg.id].image.draggable(true);
 			}
 			pieceLayer.draw();
@@ -308,6 +330,16 @@ var handleMessage = function(msg) {
             'black',
             dt
         );
+    } else if (msg.c == 'abort') {
+        var dt = new Date();
+        endGame();
+        addGameMessage(
+            "SYSTEM",
+            "game has been aborted.",
+            "red",
+            'black',
+            dt
+        );
     } else {
         console.log("unknown msg recieved");
         console.debug(msg);
@@ -350,7 +382,7 @@ var endGame = function(){
 
         for(id in pieces){
             console.log(myColor);
-            if (pieces[id].color == myColor){
+            if (pieces[id].color == myColor || myColor == 'both'){
                 pieces[id].image.draggable = false;
             }
         }
@@ -759,6 +791,12 @@ function addGameMessage(author, message, color, textcolor, dt) {
 
 //$(document).ready(function () {
 $(function () {
+    $("#abortGame").click(function() {
+        var msg = {
+            "c" : "abort"
+        };
+        sendMsg(msg);
+    });
     $("#replayGame").click(function() {
         replayMode = true;
         console.log("replaying game");

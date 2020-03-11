@@ -6,22 +6,26 @@ use Mojolicious::Plugin::Database;
 use Mojolicious::Plugin::Authentication;
 use UUID::Tiny ':std';
 use Data::Dumper;
-use ChessPiece;
-use ChessGame;
 use JSON::XS;
 use Config::Simple;
 use HTML::Escape qw/escape_html/;
 # via the Digest module (recommended)
 use Digest;
 
+use KungFuChess::Game;
 use KungFuChess::Player;
+
+use constant {
+    ANON_USER => -1,
+    AI_USER => -2,
+};
 
 my $cfg = new Config::Simple('kungFuChess.cnf');
 
 ### current running games
 my %games   = ();
 
-### current ChessGame.pm objects running
+### current KungFuChess::Game.pm objects running
 my %currentGames = ();
 
 ## hash of connections to gameIds 
@@ -89,19 +93,11 @@ app->plugin('authentication' => {
         },
 });
 
-get '/debug/:debugVar' => sub {
-    my $c = shift;
-    my $debug = Dumper($c->stash('debugVar'));
-    $c->render('text' => "$debug");
-};
-
 get '/admin/clear-inactive-games' => sub {
     my $c = shift;
     my $games = app->db()->selectall_arrayref("SELECT game_id from games WHERE status = 'active'");
-    $c->render('text' => Dumper($games));
     foreach my $row (@$games) {
         my $gameId = $row->[0];
-        print "gameId: $gameId\n";
         if (! exists($currentGames{$gameId})){
             endGame($gameId, 'server disconnect');
             delete $currentGames{$gameId};
@@ -128,13 +124,31 @@ post '/ajax/createChallenge' => sub {
     my $user = $c->current_user();
     $c->stash('user' => $user);
 
-    my ($gameSpeed, $open, $rated) = ($c->req->param('gameSpeed'), $c->req->param('open'), $c->req->param('rated'));
+    my ($gameSpeed, $gameType, $open) = ($c->req->param('gameSpeed'), $c->req->param('gameType'), $c->req->param('open'));
 
+    my $rated = ($gameType eq 'rated' ? 1 : 0);
     app->log->debug( "open, rated: $open, $rated" );
 
-    my $uid = createChallenge(($user ? $user->{player_id} : -1), $gameSpeed, ($open ? 1 : 0), ($rated ? 1 : 0));
+    my $gameId = undef;
+    my $uid = undef;
+    if ($gameType eq 'practice') {
+                  # rematchOfGame, speed, open, rated, whiteId, blackId
+        $gameId = createGame(undef, $gameSpeed, 0, $user->{player_id}, $user->{player_id});
+    } elsif ($gameType eq 'ai') {
+        $gameId = createGame(undef, $gameSpeed, 0, $user->{player_id}, AI_USER);
+    } else {
+        $uid = createChallenge(($user ? $user->{player_id} : -1), $gameSpeed, ($open ? 1 : 0), $rated);
+    }
 
-    $c->render('json' => { 'uid' => $uid } );
+
+    my $return = {};
+    if ($uid){
+        $return->{uid} = $uid;
+    }
+    if ($gameId){
+        $return->{gameId} = $gameId;
+    }
+    $c->render('json' => $return );
 };
 
 post '/ajax/chat' => sub {
@@ -358,8 +372,9 @@ get '/game/:gameId' => sub {
     app->log->debug("---- Entering game ----" );
     my $gameId = $c->stash('gameId');
 
+    my $color = 'watch';
+
     my ($white, $black) = getPlayers($gameId);
-    $c->stash('color', 'watch');
     $c->stash('whitePlayer' => $white);
     $c->stash('blackPlayer' => $black);
     $c->stash('authId' => $user->{auth_token});
@@ -385,10 +400,7 @@ get '/game/:gameId' => sub {
         }
         if ($white->{player_id} == $user->{player_id} && $matchedKey){
             app->log->debug(" User is the white player $white->{player_id} vs $user->{player_id}" );
-            $c->stash('color', 'white');
-            if ($game) {
-                $game->addPlayer($user, 'white');
-            }
+            $color = 'white';
         }
     }
     if (defined($black->{player_id})){
@@ -401,12 +413,13 @@ get '/game/:gameId' => sub {
         }
         if ($black->{player_id} == $user->{player_id} && $matchedKey){
             app->log->debug(" User is the black player $black->{player_id} vs $user->{player_id}" );
-            $c->stash('color', 'black');
-            if ($game) {
-                $game->addPlayer($user, 'black');
-            }
+            $color = ($color eq 'white' ? 'both' : 'black');
         }
     }
+    if ($color ne 'watch' && $game) {
+        $game->addPlayer($user, $color);
+    }
+    $c->stash('color', $color);
 
     $c->render('template' => 'board', format => 'html', handler => 'ep');
     return;
@@ -474,19 +487,22 @@ sub createGame {
         'begun'      => 0,
     };
 
-    $currentGames{$gameId} = ChessGame->new(
+    my $isAiGame =  ($black == AI_USER ? 1 : 0);
+
+    $currentGames{$gameId} = KungFuChess::Game->new(
         $gameId,
         $speed,
         $auth,
         $whiteUid,
-        $blackUid
+        $blackUid,
+        $isAiGame
     );
 
     # spin up game server, wait for it to send authjoin
     app->log->debug( "starting game client $gameId, $auth" );
     # spin up game server, wait for it to send authjoin
     app->log->debug('/usr/bin/perl /home/corey/kungfuchess/kungFuChessGame.pl ' . $gameId . ' ' . $auth . ' ' . $speed . ' > /home/corey/game.log 2>/home/corey/errors.log &');
-    system('/usr/bin/perl /home/corey/kungfuchess/kungFuChessGame.pl ' . $gameId . ' ' . $auth . ' ' . $speed . ' > /home/corey/game.log 2>/home/corey/errors.log &');
+    system('/usr/bin/perl /home/corey/kungfuchess/kungFuChessGame.pl ' . $gameId . ' ' . $auth . ' ' . $speed . ' ' . $isAiGame . ' > /home/corey/game.log 2>/home/corey/errors.log &');
 
     return $gameId;
 }
@@ -587,7 +603,7 @@ websocket '/ws' => sub {
 
         if ($msg->{'c'} eq 'main_ping'){
             ### this is the global ping, not during the game
-            if (exists($msg->{userAuthToken})) {
+            if ($msg->{userAuthToken}) {
                 $globalConnectionsByAuth{$msg->{userAuthToken}} = $self;
                 app->db()->do('UPDATE players SET last_seen = NOW() WHERE auth_token = ?', {}, $msg->{userAuthToken});
             }
@@ -693,9 +709,16 @@ websocket '/ws' => sub {
                 $game->playerBroadcast($msg);
                 $game->serverBroadcast($msg);
             }
+        } elsif ($msg->{'c'} eq 'abort'){
+            my $color = $game->authMove($msg);
+            return 0 if (!$color);
+            return 0 if ($game->gameBegan());
+
+            $game->playerBroadcast($msg);
+            $game->serverBroadcast($msg);
+            endGame($msg->{gameId}, 'aborted');
         } elsif ($msg->{'c'} eq 'resign'){
             my $color = $game->authMove($msg);
-
             return 0 if (!$color);
 
             $msg->{'color'} = $color;
@@ -704,9 +727,9 @@ websocket '/ws' => sub {
 
             my $result = '';
             if ($color eq 'black'){
-                $result = 'white wins';
+                $result = 'black resigns';
             } elsif ($color eq 'white'){
-                $result = 'black wins';
+                $result = 'white resigns';
             }
             endGame($msg->{gameId}, $result);
         } elsif ($msg->{'c'} eq 'playerlost'){
@@ -826,20 +849,15 @@ sub encryptPassword {
 sub updateRatings {
     my $gameId = shift;
     my $gameSpeed = shift;
-    my $resultColor  = shift;
+    my $score  = shift;
 
-    app()->log->debug("updating ratings for $gameId, $resultColor");
+    app()->log->debug("updating ratings for $gameId, " . ($score ? 'score' : '(no score)'));
 
-    my $result = '';
-    if ($resultColor eq 'white wins') {
-        $result = 1;
-    } elsif ($resultColor eq 'black wins') {
-        $result = 0;
-    } elsif ($resultColor eq 'draw') {
-        $result = 0.5;
-    } else {
-        return (undef, undef);
+    if (!$score || $score !~ m/\d-\d/) {
+        app()->log->debug("invalid score.");
+        return;
     }
+    my ($result, $bresult) = split('-', $score);
 
     my ($white, $black) = getPlayers($gameId);
 
@@ -868,6 +886,16 @@ sub endGame {
     my $gameId = shift;
     my $result = shift;
 
+    my $score = undef;
+
+    if ($result eq 'black wins' || $result eq 'win resigns') {
+        $score = '0-1';
+    } elsif ($result eq 'white wins' || $result eq 'black resigns') {
+        $score = '1-0';
+    } elsif ($result eq 'draw' || $result eq 'forced draw') {
+        $score = '0.5-0.5';
+    }
+
     app->log->debug('ending game: ' . $gameId . ' to ' . $result);
 
     my @gameRow = app->db()->selectrow_array("SELECT status, game_speed, rated FROM games WHERE game_id = ?", {}, $gameId);
@@ -889,16 +917,15 @@ sub endGame {
     my $gameLog = "";
     if (exists($currentGames{$gameId})) {
         my $game = $currentGames{$gameId};
-        print "game log:\n";
-        print Dumper($game->{gameLog});
         $gameLog = encode_json($game->{gameLog});
     }
 
     ### set result
     app->db()->do(
-        'UPDATE games SET `status` = "finished", result = ?, time_ended = NOW(), game_log = ? WHERE game_id = ?',
+        'UPDATE games SET `status` = "finished", result = ?, score = ?, time_ended = NOW(), game_log = ? WHERE game_id = ?',
         {},
         $result,
+        $score,
         $gameLog,
         $gameId,
     );
@@ -907,7 +934,7 @@ sub endGame {
 
     my ($whiteEnd, $blackEnd) =($whiteStart, $blackStart);
     if ($rated) {
-        ($whiteEnd, $blackEnd) = updateRatings($gameId, $gameSpeed, $result);   
+        ($whiteEnd, $blackEnd) = updateRatings($gameId, $gameSpeed, $score);   
     }
 
     if ($result eq 'white wins' || $result eq 'black wins' || $result eq 'draw') {

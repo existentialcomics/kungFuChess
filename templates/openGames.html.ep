@@ -5,7 +5,7 @@
 <% } else { %>
     <div class="mx-auto" style="width: auto;">Your game (click to cancel)</div>
     <table id='my-games-table' class='table table-hover'>
-    <tr class='cancel-game-row' style='cursor: pointer;' data-href='/ajax/cancelGame/<%= $myGame->{private_game_key} %>'>
+    <tr class='cancel-game-row' id="my-game-row" style='cursor: pointer;' data-href='/ajax/cancelGame/<%= $myGame->{private_game_key} %>'>
         <td>
             <%= $myGame->{in_matching_pool} ? "Public" : "Private" %>
         </td>
@@ -17,7 +17,6 @@
         </td>
     </tr>
     </table>
-    <center>Invite:</center>
 <% } %>
 <br /><br />
 <% if ($#{$openGames} == -1 ){ %>

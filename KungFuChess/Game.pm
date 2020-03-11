@@ -1,4 +1,4 @@
-package ChessGame;
+package KungFuChess::Game;
 use strict;
 use warnings;
 use Time::HiRes qw(time);
@@ -20,7 +20,7 @@ sub new {
 
 sub _init {
 	my $self = shift;
-    my ($id, $speed, $auth, $whiteAnonKey, $blackAnonKey) = @_;
+    my ($id, $speed, $auth, $whiteAnonKey, $blackAnonKey, $isAiGame) = @_;
 	$self->{id} = $id;
 
     if ($speed eq 'standard') {
@@ -37,6 +37,7 @@ sub _init {
     $self->{blackAnonKey} = $blackAnonKey;
     $self->{playersByAuth} = {};
     $self->{playersConn}   = {};
+    $self->{isAiGame} = $isAiGame;
     $self->{readyToPlay}   = 0;
     $self->{auth}          = $auth;
     $self->{serverConn}    = 0;
@@ -103,9 +104,10 @@ sub playerReady {
 
     my $color = $self->authMove($msg);
     if ($color){
-        if ($color eq 'white'){
+        if ($color eq 'white' || $color eq 'both' || $self->{isAiGame}){
             $self->{whiteReady} = time();
-        } elsif($color eq 'black'){
+        } 
+        if($color eq 'black' || $color eq 'both' || $self->{isAiGame}){
             $self->{blackReady} = time();
         }
         if ($self->{whiteReady} && $self->{blackReady}) {
@@ -145,9 +147,9 @@ sub playerDraw {
 
     my $color = $self->authMove($msg);
     if ($color){
-        if ($color eq 'white'){
+        if ($color eq 'white' || $color eq 'both'){
             $self->{whiteDraw} = time();
-        } elsif($color eq 'black'){
+        } elsif($color eq 'black' || $color eq 'both'){
             $self->{blackDraw} = time();
         }
         if ($self->{whiteDraw} && $self->{blackDraw}) {
@@ -164,9 +166,10 @@ sub playerRematch {
 
     my $color = $self->authMove($msg);
     if ($color){
-        if ($color eq 'white'){
+        if ($color eq 'white' || $color eq 'both' || $self->{isAiGame}){
             $self->{whiteRematch} = time();
-        } elsif($color eq 'black'){
+        }
+        if ($color eq 'black' || $color eq 'both' || $self->{isAiGame}){
             $self->{blackRematch} = time();
         }
         if ($self->{whiteRematch} && $self->{blackRematch}) {
@@ -214,16 +217,13 @@ sub playerBroadcast {
     my $self = shift;
     my $msg = shift;
 
-	#print "player broadcast game $self->{id}\n";
 	delete $msg->{auth};
 
 	foreach my $player (values %{ $self->{playersConn}}){
-		#print "broadcasting to player $msg->{c}\n";
 		$player->send(encode_json $msg);
 	}
 
     if (! $excludeFromLog{$msg->{c}}) {
-        print "adding msg $msg->{c} to game log (" . time() . " - $self->\n";
         push (@{$self->{gameLog}}, 
         {
             'time' => time() - $self->{gameStartTime},

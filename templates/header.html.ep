@@ -5,7 +5,6 @@
     <script src="/jquery-3.2.min.js"></script>
     <script src="/js/bootstrap.min.js"></script>
     <script src="/main.js"></script>
-    <link rel="stylesheet" type="text/css" href="/kungfuchess.css">
     <% if ($user){ %>
     <link rel="stylesheet" type="text/css" href="/css/<%= $user->getBelt() %>.css">
     <% } else { %>

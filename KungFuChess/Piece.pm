@@ -1,4 +1,4 @@
-package ChessPiece;
+package KungFuChess::Piece;
 use strict;
 use warnings;
 use Time::HiRes qw(time);
@@ -27,7 +27,7 @@ sub _init {
 	$self->{type} = $type;
 	$self->{id} = $id;
     $self->{game} = $game;
-    $self->{readyToMove} = time();
+    $self->{readyToMove} = 999999999999999999;
 
 	$self->{firstMove} = 1;
 	$self->{isMoving} = 0;
@@ -39,12 +39,34 @@ sub _init {
         $self->{pawnDir} = -1;
     }
 
+    $game->{boardMap}->[$x]->[$y] = $self;
+
+	if ($type eq 'king'){
+        $self->{fenChar} = 'k';
+    } elsif ($type eq 'queen') {
+        $self->{fenChar} = 'q';
+    } elsif ($type eq 'rook') {
+        $self->{fenChar} = 'r';
+    } elsif ($type eq 'bishop') {
+        $self->{fenChar} = 'b';
+    } elsif ($type eq 'knight') {
+        $self->{fenChar} = 'n';
+    } elsif ($type eq 'pawn') {
+        $self->{fenChar} = 'p';
+    }
+    if ($color eq 'white') { $self->{fenChar} = uc($self->{fenChar}); }
+
 	return 1;
 }
 
 sub readyToMove {
     my $self = shift;
     return $self->{readyToMove} < time();
+}
+
+sub getFENchar {
+    my $self = shift;
+    return $self->{fenChar};
 }
 
 sub isLegalMove {
@@ -136,6 +158,9 @@ sub pieceOnSquare {
 sub move {
 	my $self = shift;
 	my ($x, $y) = @_;
+
+    delete $self->{game}->{boardMap}->[$self->{x}]->[$self->{y}];
+    $self->{game}->{boardMap}->[$x]->[$y] = $self;
 
     $self->{firstMove} = 0;
 

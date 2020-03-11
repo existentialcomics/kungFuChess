@@ -26,7 +26,7 @@
             <% } %>
             <div id="gameStatusWaitingToStart" <%== $gameStatus eq 'waiting to begin' ? '' : 'style="display:none;"' %>>
                 <button type="button" class="btn btn-primary btn-block" id="readyToStart" onclick="readyToStart()">Ready To Start</button>
-                <button type="button" class="btn btn-primary btn-block" id="abortGame" onclick="abort()">Abort</button>
+                <button type="button" class="btn btn-primary btn-block" id="abortGame">Abort</button>
             </div>
             <div id="gameStatusActive" <%== $gameStatus eq 'active' ? '' : 'style="display:none;"' %>>
                 <button type="button" class="btn btn-primary btn-block" id="resign" onclick="resign()">Resign</button>
@@ -66,7 +66,7 @@
 	var anonKey   = "<%= $anonKey %>";
 	var timerSpeed    = "<%= $timerSpeed %>";
 	var timerRecharge = "<%= $timerRecharge %>";
-    var initialMessages = JSON.parse('<%== $positionGameMsgs %>');
+    var initialMessages = JSON.parse('<%== ($positionGameMsgs ? $positionGameMsgs : '[]') %>');
     var gameLog = JSON.parse('<%== $gameLog %>');
 </script>
 

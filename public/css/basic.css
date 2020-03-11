@@ -4,6 +4,187 @@
 /*$warning: #ff9f65;*/
 /*$danger: #ff457b;*/
 /*// Your variable overrides*/
+body {
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  background-color: #F0F0F0; }
+
+ul {
+  list-style-type: none;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  background-color: #333; }
+
+li {
+  float: left; }
+
+li a {
+  display: block;
+  color: white;
+  text-align: center;
+  padding: 14px 16px;
+  text-decoration: none; }
+
+/* Change the link color to #111 (black) on hover */
+li a:hover {
+  background-color: #111; }
+
+.button a:hover {
+  background-color: #111; }
+
+#game-chat-log {
+  /*padding:5px;*/
+  background: #ddd;
+  border-radius: 5px;
+  overflow-y: scroll;
+  border: 1px solid #CCC;
+  margin-top: 5px;
+  height: 360px; }
+
+#global-chat-log {
+  padding: 5px;
+  background: #ddd;
+  border-radius: 5px;
+  overflow-y: scroll;
+  border: 1px solid #CCC;
+  margin-top: 5px;
+  height: 360px; }
+
+#chat-input {
+  border-radius: 2px;
+  border: 1px solid #ccc;
+  margin-top: 3px;
+  padding: 5px;
+  width: 100%; }
+
+#global-chat-input {
+  border-radius: 2px;
+  border: 1px solid #ccc;
+  margin-top: 3px;
+  padding: 5px;
+  width: 100%; }
+
+#status {
+  width: 88px;
+  display: block;
+  float: left;
+  margin-top: 15px; }
+
+#gameContainer {
+  margin: auto;
+  width: 880px;
+  height: 540px;
+  background-color: white;
+  padding: 20px; }
+
+#blackbelt {
+  width: 20px;
+  height: 20px;
+  background-color: #111111;
+  display: inline-block;
+  padding: 2px;
+  border: 1px solid black; }
+
+.doubleblackbeltColor {
+  color: #111111; }
+
+#doubleblackbelt {
+  width: 20px;
+  height: 20px;
+  background-color: #000000;
+  display: inline-block;
+  padding: 1px;
+  border: 2px solid gold; }
+
+.blackbeltColor {
+  color: #000000; }
+
+#brownbelt {
+  width: 20px;
+  height: 20px;
+  background-color: #a04e01;
+  display: inline-block;
+  padding: 2px;
+  border: 1px solid red; }
+
+.brownbeltColor {
+  color: #a04e01; }
+
+#redbelt {
+  width: 20px;
+  height: 20px;
+  background-color: #ff0000;
+  display: inline-block;
+  padding: 2px;
+  border: 1px solid orange; }
+
+.redbeltColor {
+  color: #ff0000; }
+
+#orangebelt {
+  width: 20px;
+  height: 20px;
+  background-color: #ff7c00;
+  display: inline-block;
+  padding: 2px;
+  border: 1px solid yellow; }
+
+.orangebeltColor {
+  color: #ff7c00; }
+
+#yellowbelt {
+  width: 20px;
+  height: 20px;
+  background-color: #ffc300;
+  display: inline-block;
+  padding: 2px;
+  border: 1px solid green; }
+
+.yellowbeltColor {
+  color: #ffc300; }
+
+#greenbelt {
+  width: 20px;
+  height: 20px;
+  background-color: #0000ff;
+  display: inline-block;
+  padding: 2px;
+  border: 1px solid white; }
+
+.greenbeltColor {
+  color: #0000ff; }
+
+#boardContainer {
+  float: left;
+  margin: auto; }
+
+#sidebar {
+  padding: 20px;
+  height: 480px;
+  width: 300px;
+  border-radius: 2px;
+  border: 1px solid #ccc;
+  background-color: lightgrey;
+  float: left; }
+
+.circle:before {
+  content: ' \25CF';
+  font-size: 20px; }
+
+.offline {
+  color: grey; }
+
+.online {
+  color: green; }
+
+#my-game-row {
+  background-color: green; }
+
+#my-game-row:hover {
+  background-color: #004d00; }
+
 /*!
  * Bootstrap v4.4.1 (https://getbootstrap.com/)
  * Copyright 2011-2019 The Bootstrap Authors

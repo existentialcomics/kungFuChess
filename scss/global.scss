@@ -1,3 +1,11 @@
+$greenBeltColor:  #0000ff;
+$yellowBeltColor: #ffc300 ;
+$orangeBeltColor: #ff7c00;
+$redBeltColor: #ff0000;
+$brownBeltColor: #a04e01;
+$blackBeltColor: #111111;
+$doubleBlackBeltColor: #000000;
+
 body {
     margin: 0;
     padding: 0;
@@ -27,7 +35,6 @@ li a {
 li a:hover {
     background-color: #111;
 }
-
 
 .button a:hover {
     background-color: #111;
@@ -86,86 +93,85 @@ li a:hover {
 #blackbelt {
     width:20px;
     height:20px;
-    background-color:black;
+    background-color:$blackBeltColor;
     display:inline-block;
     padding:2px;
     border: 1px solid black ;
 }
 .doubleblackbeltColor {
-    color:black;
+    color:$blackBeltColor;
 }
 
 #doubleblackbelt {
     width:20px;
     height:20px;
-    background-color:black;
+    background-color:$doubleBlackBeltColor;
     display:inline-block;
     padding:1px;
     border: 2px solid gold ;
 }
 .blackbeltColor {
-    color:black;
+    color:$doubleBlackBeltColor;
 }
 
 #brownbelt {
     width:20px;
     height:20px;
-    background-color:brown;
+    background-color:$brownBeltColor;
     display:inline-block;
     padding:2px;
     border: 1px solid red ;
 }
 .brownbeltColor {
-    color:brown;
+    color:$brownBeltColor;
 }
 
 #redbelt {
     width:20px;
     height:20px;
-    background-color:red;
+    background-color:$redBeltColor;
     display:inline-block;
     padding:2px;
     border: 1px solid orange ;
 }
 .redbeltColor {
-    color:red;
+    color:$redBeltColor;
 }
 
 #orangebelt {
     width:20px;
     height:20px;
-    background-color:orange;
+    background-color:$orangeBeltColor;
     display:inline-block;
     padding:2px;
     border: 1px solid yellow ;
 }
 .orangebeltColor {
-    color:orange;
+    color:$orangeBeltColor;
 }
 
 #yellowbelt {
     width:20px;
     height:20px;
-    background-color:yellow;
+    background-color:$yellowBeltColor;
     display:inline-block;
     padding:2px;
     border: 1px solid green ;
 }
 .yellowbeltColor {
-    color: yellow;
+    color: $yellowBeltColor;
 }
 
 #greenbelt {
     width:20px;
     height:20px;
-    background-color:green;
+    background-color:$greenBeltColor;
     display:inline-block;
     padding:2px;
     border: 1px solid white ;
 }
-
 .greenbeltColor {
-    color:green;
+    color:$greenBeltColor;
 }
 
 #boardContainer {
@@ -194,4 +200,12 @@ li a:hover {
 
 .online {
     color:green;
+}
+
+#my-game-row {
+    background-color: $primary
+}
+
+#my-game-row:hover {
+    background-color: darken($primary, 10%);
 }
