@@ -8,9 +8,75 @@ package KungFuChess::GameServer;
 use AnyEvent::WebSocket::Client;
 use AnyEvent;
 use KungFuChess::Piece;
+use KungFuChess::Bitboards;
 use JSON::XS;
 use Data::Dumper;
 use IPC::Open2;
+use Config::Simple;
+
+### taken from Chess::Rep
+### can't use the whole lib because of chess specific rules like check
+use constant ({
+    CASTLE_W_OO  => 1,
+    CASTLE_W_OOO => 2,
+    CASTLE_B_OO  => 4,
+    CASTLE_B_OOO => 8,
+    PIECE_TO_ID => {
+        p => 0x01,              # black pawn
+        n => 0x02,              # black knight
+        k => 0x04,              # black king
+        b => 0x08,              # black bishop
+        r => 0x10,              # black rook
+        q => 0x20,              # black queen
+        P => 0x81,              # white pawn
+        N => 0x82,              # white knight
+        K => 0x84,              # white king
+        B => 0x88,              # white bishop
+        R => 0x90,              # white rook
+        Q => 0xA0,              # white queen
+    },
+    ID_TO_PIECE => [
+        undef,                  # 0
+        'p',                    # 1
+        'n',                    # 2
+        undef,                  # 3
+        'k',                    # 4
+        undef,                  # 5
+        undef,                  # 6
+        undef,                  # 7
+        'b',                    # 8
+        undef,                  # 9
+        undef,                  # 10
+        undef,                  # 11
+        undef,                  # 12
+        undef,                  # 13
+        undef,                  # 14
+        undef,                  # 15
+        'r',                    # 16
+        undef,                  # 17
+        undef,                  # 18
+        undef,                  # 19
+        undef,                  # 20
+        undef,                  # 21
+        undef,                  # 22
+        undef,                  # 23
+        undef,                  # 24
+        undef,                  # 25
+        undef,                  # 26
+        undef,                  # 27
+        undef,                  # 28
+        undef,                  # 29
+        undef,                  # 30
+        undef,                  # 31
+        'q',                    # 32
+    ],
+    FEN_STANDARD => 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
+});
+
+my @MOVES_N = (31, 33, 14, 18, -18, -14, -33, -31);
+my @MOVES_B = (15, 17, -15, -17);
+my @MOVES_R = (1, 16, -16, -1);
+my @MOVES_K = (@MOVES_B, @MOVES_R);
 
 $| = 1;
 
@@ -111,6 +177,9 @@ sub _init {
 	my $authKey = shift;
 	my $speed = shift;
 	my $ai = shift;
+    
+    my $cfg = new Config::Simple('kungFuChess.cnf');
+    $self->{config} = $cfg;
 
 	$self->{gamekey} = $gameKey;
 	$self->{authkey} = $authKey;
@@ -121,7 +190,7 @@ sub _init {
     if ($ai) {
         print "initalizing stockfish...\n";
         my($cout, $cin);
-        my $pid = open2($cout, $cin, '/usr/local/bin/stockfish 2>&1 | tee /home/corey/stockfish_output');
+        my $pid = open2($cout, $cin, $cfg->param('path_to_stockfish') . ' 2>&1 | tee /var/log/stockfish.log');
         $cout->blocking(0);
         $self->{ai_out} = $cout;
         $self->{ai_in}  = $cin;
@@ -696,7 +765,7 @@ sub getPiece {
 
 sub getPieces {
 	my $self = shift;
-	my @pieces = values $self->{board};
+	my @pieces = values %{$self->{board}};
 
     return @pieces;
 }

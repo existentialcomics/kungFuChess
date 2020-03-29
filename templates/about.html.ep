@@ -1,15 +1,46 @@
 %= include 'header'
 
-<div class="container bg-light card" id='homeContent'>
-    KungFuChess is a real time chess varient where you can move every piece at the same time, but you must wait for them te recharge before moving them again. It is based on the original Shizmoo game in the early 2000s on kungfuchess.com.<br />
+<div class="container bg-light" id='homeContent'>
+    <div class="bg-light" style="height:300px; width: 550px; float:right">
+        <center>Original Shizmoo Game</center>
+        <img src="/originalShizmooGame.jpg" style="float:right; width:550px; padding:0px; margin:0px">
+    </div>
+    <div>
+        <p>KungFuChess is a real time chess varient where you can move every piece at the same time, but you must wait for them te recharge before moving them again. It is based on the original Shizmoo game in the early 2000s on kungfuchess.com.</p>
+        <br />
+        <b>Rules:</b><br />
+        <div style="margin-left:20px">
+        <ul class="bg-light">
+            <li>Pieces all move at the same time.</li>
+            <li>A cooldown is applied after a piece moves before it can move again.</li>
+            <li>The length of the cooldown and how fast the pieces move vary on game speed.</li>
+            <li>All the normal rules of chess apply, but there is no such thing as checkmate, you must kill the King to win.</li>
+            <li>If two pieces collide while they are both moving the piece that moved first kills the other piece. Knights can't collide.</li>
+        </ul>
+        </div>
+        <b>Belts:</b><br />
+        <div style="margin-left:20px">
+            <div id="greenbelt"></div>
+            <a class="beltText">Green Belt (provisional rating)</a><br />
+            <div id="yellowbelt"></div>
+            <a class="beltText">Yellow Belt (0-1400)</a><br />
+            <div id="orangebelt"></div>
+            <a class="beltText">Orange Belt (1400-1599)</a><br />
+            <div id="redbelt"></div>
+            <a class="beltText">Red Belt (1600-1799)</a><br />
+            <div id="brownbelt"></div>
+            <a class="beltText">Brown Belt (1800-1999)</a><br />
+            <div id="blackbelt"></div>
+            <a class="beltText">Black Belt (2000-2199)</a><br />
+            <div id="doubleblackbelt"></div>
+            <a class="beltText">Double Black Belt (2200+)</a><br />
+        </div>
     <br />
-    Rules:<br />
-       Pieces all move at the same time. A cooldown is applied after a piece moves before it can move again. The length of the cooldown and how fast the pieces move vary on game speed.<br />
-       All the normal rules of chess apply, but there is no such thing as checkmate, you must kill the King to win.<br />
-       If two pieces collide while they are both moving the piece that moved first kills the other piece. Knights can't collide.<br />
-<br />
 
-    Source code for this site can be found here, under the GLPv3 license.<br />
+    <p>
+    Source code for <a href="https://github.com/existentialcomics/kungFuChess">this site can be found here, under the GLPv3 license.</a><br />
+    </p>
+    </div>
 </div>
 
 %= include 'footer'

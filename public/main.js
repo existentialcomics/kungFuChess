@@ -314,7 +314,11 @@ $(function () {
                     currentGameUid = jsonRes.uid;
                 }
                 if (jsonRes.hasOwnProperty('gameId')) {
-                    window.location.replace('/game/' + jsonRes.gameId);
+                    if (jsonRes.hasOwnProperty('anonKey')) {
+                        window.location.replace('/game/' + jsonRes.gameId + "?anonKey=" + jsonRes.anonKey);
+                    } else {
+                        window.location.replace('/game/' + jsonRes.gameId);
+                    }
                 }
                 $("#showOpenGames").addClass('active');
                 $("#showPool").removeClass('active');
@@ -421,7 +425,7 @@ var bindEvents = function(ws_conn) {
     }
 }
 
-var main_conn = new WebSocket("ws://www1.existentialcomics.com:3000/ws");
+var main_conn = new WebSocket("ws://" + wsDomain + ":3000/ws");
 bindEvents(main_conn);
 
 var reconnectInterval;
@@ -429,7 +433,7 @@ var reconnectMain = function() {
     if (isConnected == false) {
         $("#connectionStatus").html("Reconnecting...");
         main_conn = null;
-        main_conn = new WebSocket("ws://www1.existentialcomics.com:3000/ws");
+        main_conn = new WebSocket("ws://" + wsDomain + ":3000/ws");
         bindEvents(main_conn);
     } else {
         reconnectInterval = null;

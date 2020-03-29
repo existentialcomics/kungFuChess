@@ -5,6 +5,9 @@ use Time::HiRes qw(time);
 use JSON::XS;
 use Data::Dumper;
 
+### this is a representation of the game states only, it doesn't know about any of the pieces, that is handled by GameServer.pm
+### possible this could go away and it could all be done in mysql
+
 sub new {
 	my $class = shift;
 

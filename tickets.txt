@@ -1,9 +1,4 @@
-auto-reconnected when losing websockets connection / show conneciton status
 game log in profile
 display revoke /request draw
 game info box
-practice game
 log of chat
-
-BUG: click twice on pool
-

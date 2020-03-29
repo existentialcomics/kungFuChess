@@ -148,13 +148,19 @@ li a:hover {
 #greenbelt {
   width: 20px;
   height: 20px;
-  background-color: #0000ff;
+  background-color: green;
   display: inline-block;
   padding: 2px;
   border: 1px solid white; }
 
 .greenbeltColor {
-  color: #0000ff; }
+  color: green; }
+
+.beltText {
+  display: inline-block;
+  height: 25px;
+  font-size: 20px;
+  padding: 2px; }
 
 #boardContainer {
   float: left;

@@ -4,6 +4,7 @@
     <title>Kungfu chess</title>
     <script src="/jquery-3.2.min.js"></script>
     <script src="/js/bootstrap.min.js"></script>
+    <script src="/config.js"></script>
     <script src="/main.js"></script>
     <% if ($user){ %>
     <link rel="stylesheet" type="text/css" href="/css/<%= $user->getBelt() %>.css">

@@ -1,4 +1,4 @@
-$greenBeltColor:  #0000ff;
+$greenBeltColor:  green;
 $yellowBeltColor: #ffc300 ;
 $orangeBeltColor: #ff7c00;
 $redBeltColor: #ff0000;
@@ -172,6 +172,12 @@ li a:hover {
 }
 .greenbeltColor {
     color:$greenBeltColor;
+}
+.beltText {
+    display: inline-block;
+    height: 25px;
+    font-size: 20px;
+    padding: 2px;
 }
 
 #boardContainer {

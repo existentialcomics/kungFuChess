@@ -12,6 +12,10 @@ use HTML::Escape qw/escape_html/;
 # via the Digest module (recommended)
 use Digest;
 
+use Cwd qw( abs_path );
+use File::Basename qw( dirname );
+use lib dirname(abs_path($0));
+
 use KungFuChess::Game;
 use KungFuChess::Player;
 
@@ -133,13 +137,15 @@ post '/ajax/createChallenge' => sub {
     my $uid = undef;
     if ($gameType eq 'practice') {
                   # rematchOfGame, speed, open, rated, whiteId, blackId
-        $gameId = createGame(undef, $gameSpeed, 0, $user->{player_id}, $user->{player_id});
+        $gameId = createGame(undef, $gameSpeed, 0, ($user ? $user->{player_id} : ANON_USER), ($user ? $user->{player_id} : -1));
+        if (! $user) {
+            app->db()->do("UPDATE games SET black_anon_key = white_anon_key WHERE game_id = ?", {}, $gameId);
+        }
     } elsif ($gameType eq 'ai') {
-        $gameId = createGame(undef, $gameSpeed, 0, $user->{player_id}, AI_USER);
+        $gameId = createGame(undef, $gameSpeed, 0, ($user ? $user->{player_id} : ANON_USER), AI_USER);
     } else {
         $uid = createChallenge(($user ? $user->{player_id} : -1), $gameSpeed, ($open ? 1 : 0), $rated);
     }
-
 
     my $return = {};
     if ($uid){
@@ -147,6 +153,10 @@ post '/ajax/createChallenge' => sub {
     }
     if ($gameId){
         $return->{gameId} = $gameId;
+        if (! $user) {
+            my $row = app->db()->selectrow_arrayref("SELECT white_anon_key FROM games WHERE game_id = ?", {}, $gameId);
+            $return->{anonKey} = $row->[0];
+        }
     }
     $c->render('json' => $return );
 };
@@ -463,8 +473,8 @@ sub getAnonymousUser {
 sub createGame {
     my ($rematchOfGame, $speed, $rated, $white, $black) = @_;
 
-    my $whiteUid = ($white == -1 ? create_uuid_as_string() : undef);
-    my $blackUid = ($black == -1 ? create_uuid_as_string() : undef);
+    my $whiteUid = ($white == ANON_USER ? create_uuid_as_string() : undef);
+    my $blackUid = ($black == ANON_USER ? create_uuid_as_string() : undef);
 
     if ($rematchOfGame) {
         my @row = app->db()->selectrow_array("SELECT game_speed, white_player, black_player, rated, white_anon_key, black_anon_key FROM games

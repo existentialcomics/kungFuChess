@@ -118,7 +118,7 @@ var bindGameEvents = function(ws_conn) {
         );
     };
 };
-var conn = new WebSocket("ws://www1.existentialcomics.com:3000/ws");
+var conn = new WebSocket("ws://" + wsDomain + ":3000/ws");
 bindGameEvents(conn);
 
 var game_reconnectInterval;
@@ -126,7 +126,7 @@ var game_reconnectMain = function() {
     if (isConnected == false) {
         $("#connectionStatus").html("Reconnecting...");
         conn = null;
-        conn = new WebSocket("ws://www1.existentialcomics.com:3000/ws");
+        conn = new WebSocket("ws://" + wsDomain + ":3000/ws");
         bindGameEvents(main_conn);
     } else {
         reconnectInterval = null;

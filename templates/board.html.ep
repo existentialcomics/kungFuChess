@@ -67,7 +67,12 @@
 	var timerSpeed    = "<%= $timerSpeed %>";
 	var timerRecharge = "<%= $timerRecharge %>";
     var initialMessages = JSON.parse('<%== ($positionGameMsgs ? $positionGameMsgs : '[]') %>');
-    var gameLog = JSON.parse('<%== $gameLog %>');
+    var gameLog = [];
+    try {
+        gameLog = JSON.parse('<%== $gameLog %>');
+    } catch (e) {
+        gameLog = [];
+    }
 </script>
 
 <script src="/pieces/pieces.js"></script>
