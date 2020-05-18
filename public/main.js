@@ -41,7 +41,7 @@ function getOpenGames(originalThread = false) {
                     }
                 } else {
                     $('#openGamesContent').html(jsonRes.body);
-                    console.log("no gameId in jsonRes");
+                    //console.log("no gameId in jsonRes");
                 }
                 if (setInterval == true) {
                     intervalOpenGames = setTimeout(
@@ -268,7 +268,7 @@ $(function () {
                         window.location.replace('/game/' + jsonRes.gameId);
                     }
                 } else {
-                    console.log("no gameId in jsonRes");
+                    //console.log("no gameId in jsonRes");
                 }
                 $("#showOpenGames").addClass('active');
                 $("#showPool").removeClass('active');
@@ -385,7 +385,7 @@ var bindEvents = function(ws_conn) {
     main_conn.onmessage = function(evt) {
         var msg = JSON.parse(evt.data);
         if (msg.c == 'globalchat'){
-            console.log(msg);
+            //console.log(msg);
             var dt = new Date();
             addChatMessage(
                 msg.author,

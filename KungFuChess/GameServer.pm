@@ -185,6 +185,12 @@ sub _init {
 	$self->{authkey} = $authKey;
 	$self->{pieceIdCount} = 1;
 
+    ### currently animating moves
+    $self->{activeMoves}    = {};
+    ### squares that are on hold before they can move again
+    $self->{timeoutSquares} = {};
+    $self->{timeoutCBs} = {};
+
     print "AI: $ai\n";
 
     if ($ai) {
@@ -196,16 +202,14 @@ sub _init {
         $self->{ai_in}  = $cin;
         $self->{stockfishPid} = $pid;
         $self->getStockfishMsgs();
-        print $cin "uci\n";
-        $self->getStockfishMsgs();
     }
 
     ### needed for KungFuChess::Pieces 
     if ($speed eq 'standard') {
-        $self->{pieceSpeed} = 10;
+        $self->{pieceSpeed} = 1;
         $self->{pieceRecharge} = 10;
     } elsif ($speed eq 'lightning') {
-        $self->{pieceSpeed} = 2;
+        $self->{pieceSpeed} = 0.2;
         $self->{pieceRecharge} = 2;
     } else {
         warn "unknown game speed $speed\n";
@@ -275,19 +279,19 @@ sub _init {
 	$self->{client} = $client;
 
     if ($ai) {
-        $self->{aiStates}->{uciok} = 0;
-        print "setting ai interval:\n";
-        $self->{aiInterval} = AnyEvent->timer(
-            after => 1,
-            interval => 1.0,
-            cb => sub {
-                $self->writeStockfishMsg('stop');
-                $self->writeStockfishMsg('position fen ' . $self->getFENstring());
-                $self->writeStockfishMsg('go');
-                print "stockfish interval\n";
-                $self->getStockfishMsgs();
-            }
-        );
+        #$self->{aiStates}->{uciok} = 0;
+        #print "setting ai interval:\n";
+        #$self->{aiInterval} = AnyEvent->timer(
+            #after => 1,
+            #interval => 1.0,
+            #cb => sub {
+                #$self->writeStockfishMsg('stop');
+                #$self->writeStockfishMsg('position fen ' . $self->getFENstring());
+                #$self->writeStockfishMsg('go');
+                #print "stockfish interval\n";
+                #$self->getStockfishMsgs();
+            #}
+        #);
     }
 	AnyEvent->condvar->recv;
 	print "GAME ENDING\n";
@@ -295,6 +299,7 @@ sub _init {
 
 sub setupInitialBoard {
 	my $self = shift;
+    KungFuChess::Bitboards::setupInitialPosition();
 	my $id = $self->{pieceIdCount}++;
 	# pawns
 	foreach my $x (0..7){
@@ -460,9 +465,7 @@ sub handleMessage {
 	} elsif ($msg->{c} eq 'playerjoin'){
 		$self->sendAllGamePieces();
 	} elsif ($msg->{c} eq 'move'){
-		my $piece = $self->getPiece($msg->{id});
-		return 0 if ($msg->{color} ne $piece->{color} && $msg->{color} ne 'both');
-		$self->moveIfLegal($piece, $msg->{x}, $msg->{y});
+		$self->moveIfLegal($msg->{color}, $msg->{move}, $msg->{x}, $msg->{y});
 	} elsif ($msg->{c} eq 'gameBegins'){
         print "game begins\n";
         # to prevent autodraw from coming up right away
@@ -499,66 +502,35 @@ sub checkForForceDraw {
     return 0;
 }
 
+### TODO possible to send the bitboards themselves and have js decode
 sub sendAllGamePieces {
 	my $self = shift;
     my $returnOnly = shift;
 	my $conn = $self->{conn};
 
+    print "sending all game pieces...\n";
+    print KungFuChess::Bitboards::pretty();
+    print "done pretty\n";
     my @msgs = ();
-	foreach my $id (keys %{ $self->{board} }){
-		my $piece = $self->{board}->{$id};
+    foreach my $r ( qw(8 7 6 5 4 3 2 1) ) {
+        foreach my $f ( 'a' .. 'h' ) {
+            my $chr = KungFuChess::Bitboards::_getPiece($f . $r);
+            if ($chr) {
+                my $msg = {
+                    'c' => 'spawn',
+                    'chr'    => $chr,
+                    'square' => $f . $r
+                };
 
-		my $msg = {
-			'c' => 'spawn',
-			'type'  => $piece->{type},
-			'id'    => $id,
-			'color' => $piece->{color},
-			'x'     => $piece->{x},
-			'y'     => $piece->{y},
-		};
-
-        if ($returnOnly) {
-            push @msgs, $msg;
-        } else {
-            $self->send($msg);
+                if ($returnOnly) {
+                    push @msgs, $msg;
+                } else {
+                    $self->send($msg);
+                }
+            }
         }
-	}
+    }
     return @msgs;
-}
-
-# called by the piece that landed
-sub checkForKills {
-    my $self = shift;
-    my $piece = shift;
-    my @pieces = $self->getPieces();
-
-    print "checking for kills\n";
-
-    foreach my $p (@pieces){
-        if ($p->{color} ne $piece->{color}
-             && $piece->{x} == $p->{x}
-             && $piece->{y} == $p->{y}){
-             if ($p->{isMoving} && $p->{beganMove} < $piece->{beganMove}){
-                 print "kill yourself piece\n";
-                 $self->killPiece($piece);
-             } else {
-                 print "kill piece $p->{id}\n";
-                 $self->killPiece($p);
-             }
-         }
-    }
-}
-
-sub pieceAt {
-    my $self = shift;
-    my ($x, $y) = @_;
-    my @pieces = $self->getPieces();
-    foreach my $p (@pieces){
-        if ($x == $p->{x} && $y == $p->{y}){
-            return $p;
-        }
-    }
-    return undef;
 }
 
 sub endGame {
@@ -575,32 +547,18 @@ sub endGame {
     exit;
 }
 
-sub killPiece {
-    my $self = shift;
-    my $piece = shift;
-
-    if ($piece->{type} eq 'king'){
-        my $msg = {
-            'c' => 'playerlost',
-            'color' => $piece->{color}
-        };
-        $self->send($msg);
-        $self->endGame(); ### TODO in 4way the game won't end here!
-    } else {
-        my $msg = {
-            'c' => 'authkill',
-            'id' => $piece->{id}
-        };
-        $self->send($msg);
-    }
-    delete $self->{board}->{$piece->{id}};
-}
-
 sub send {
 	my $self = shift;
 	my $msg  = shift;
 
     print "sending msgs $msg->{c}\n";
+
+    ### this ensures bitboards are sent as strings
+    #   some BB are too big for javascript and will
+    #   get rounded off by floating point storage!
+    if ($msg->{'bb'})    { $msg->{'bb'} = "$msg->{'bb'}";       }
+    if ($msg->{'fr_bb'}) { $msg->{'fr_bb'} = "$msg->{'fr_bb'}"; }
+    if ($msg->{'to_bb'}) { $msg->{'to_bb'} = "$msg->{'to_bb'}"; }
 
 	$msg->{auth} = $self->{authkey};
 	$msg->{gameId} = $self->{gamekey};
@@ -661,62 +619,273 @@ sub getPieceAt {
 
 ### looks for obvious kung fu problems with moves
 sub filterAiMove {
-	my $self = shift;
-	my $piece = shift;
-	my ($x, $y) = @_;
-
-    my $xDis = abs($piece->{x} - $x);
-    my $yDis = abs($piece->{y} - $y);
-
-    my $pieceAtDest = $self->getPieceAt($x, $y);
-
-    ### check for too long of a risky move
-    my $distance = ($xDis > $yDis ? $xDis : $yDis);
-
-    if ($distance > 4 && ! $pieceAtDest) {
-        print "  filter: too long no piece\n";
-        return 1;
-    }
-
-    ### check for nearby pawns that can move up
-    my $yDir = $piece->{pawnDir};
-    my $pawnLeft  = $self->getPieceAt($x - 1, $y + ($yDir * 2));
-    my $pawnRight = $self->getPieceAt($x - 1, $y + ($yDir * 2));
-
-    if ($pawnLeft)  {
-        print "  filter: dangerous pawn left\n";
-        return 1; 
-    }
-    if ($pawnRight) {
-        print "  filter: dangerous pawn right\n";
-        return 1;
-    }
-
-    ### check for piece capture that can dodge
-    if ($pieceAtDest &&  $pieceAtDest->readyToMove() && $distance > 2) {
-        print "  filter: dangerous dodge chance\n";
-        return 1;
-    }
-
     return 0;
 }
 
 sub moveIfLegal {
+    print "moveIfLegal\n";
 	my $self = shift;
-	my $piece = shift;
-	my ($x, $y) = @_;
+
+	my $color = shift;
+	my $move  = shift;
+
+    print KungFuChess::Bitboards::pretty();
 
     ### TODO premove
-    if ( ! $piece->readyToMove() ) { return 0; }
-    if ( $piece->{isMoving} )    { return 0; }
+    my ($colorbit, $moveType, $moveDir, $fr_bb, $to_bb) = KungFuChess::Bitboards::isLegalMove($move);
+    print "isLegal: $colorbit, $moveType, $moveDir\n";
+    if ($moveType == 0) {
+        return 0;
+    }
+    print "checking for timeout on $to_bb\n";
+    if (exists($self->{timeoutSquares}->{$fr_bb})) {
+        return 0;
+    }
+    print " no timeout found\n";
+    print "pass, check $color vs $colorbit\n";
+    if ($color ne 'both') {
+        if ($color eq 'white' && $colorbit != 1) {
+            return 0;
+        }
+        if ($color eq 'black' && $colorbit != 2) {
+            return 0;
+        }
+    }
 
-	my @pieces = $self->getPieces();
+    my $timer = undef;
+    my $timer2 = undef;
+    my $moveStep = sub {
+        my ($self, $func, $fr_bb, $to_bb, $dir, $startTime, $moveType, $piece) = @_;
 
-	if ($piece->isLegalMove($x, $y, \@pieces)){
-		$piece->move($x, $y);
-		return 1;
-	}
-	return 0;
+        my $next_fr_bb = 0;
+
+        delete $self->{activeMoves}->{$fr_bb};
+
+        my $done = 0;
+        my $nextMoveSpeed = $self->{pieceSpeed};
+        if ($moveType == KungFuChess::Bitboards::MOVE_NORMAL) {
+            my $moving_to_bb = 0;
+            ### for DIR_NONE it means we want to move directly there (King)
+            if ($dir == KungFuChess::Bitboards::DIR_NONE) {
+                $moving_to_bb = $to_bb;
+            } else {
+                $moving_to_bb = KungFuChess::Bitboards::shift_BB($fr_bb, $dir);
+            }
+
+            if (exists($self->{activeMoves}->{$moving_to_bb})) {
+                my $themStartTime = $self->{activeMoves}->{$moving_to_bb};
+                print "collision detected, me: $startTime vs $themStartTime\n"; 
+                if ($themStartTime < $startTime) {
+                    ### the place we are moving has a piece that started before
+                    ### so we get killed.
+                    print "collision detected we are getting killed\n";
+                    $self->killPieceBB($fr_bb);
+                    KungFuChess::Bitboards::_removePiece($fr_bb);
+
+                    return 1;
+                }
+            }
+
+            $self->killPieceBB($moving_to_bb);
+            KungFuChess::Bitboards::move($fr_bb, $moving_to_bb);
+            my $msgStep = {
+                'c' => 'authmovestep',
+                'color'  => $self->{color},
+                'fr_bb'  => $fr_bb,
+                'to_bb'  => $moving_to_bb
+            };
+            $self->send($msgStep);
+            print KungFuChess::Bitboards::pretty();
+            if ($moving_to_bb == $to_bb) {
+                print "done!\n";
+                $done = 1;
+            } else {
+                KungFuChess::Bitboards::setMoving($moving_to_bb);
+                $self->{activeMoves}->{$moving_to_bb} = $startTime;
+            }
+            $next_fr_bb = $moving_to_bb;
+        } elsif ($moveType == KungFuChess::Bitboards::MOVE_KNIGHT) {
+            ### we remove the piece then put it next turn
+            print "callback move_knight\n";
+            $piece = KungFuChess::Bitboards::_getPieceBB($fr_bb);
+            KungFuChess::Bitboards::_removePiece($fr_bb);
+            my $msgStep = {
+                'c' => 'authsuspend',
+                'fr_bb'  => $fr_bb,
+                'to_bb'  => $to_bb
+            };
+            $self->send($msgStep);
+            $moveType = KungFuChess::Bitboards::MOVE_PUT_PIECE;
+            $nextMoveSpeed = $self->{pieceSpeed} * 2;
+        } elsif ($moveType == KungFuChess::Bitboards::MOVE_PUT_PIECE) {
+            print "callback move_put_piece:$piece\n";
+            print KungFuChess::Bitboards::pretty();
+
+            $self->killPieceBB($to_bb);
+            KungFuChess::Bitboards::_removePiece($to_bb);
+
+            my $msgSpawn = {
+                'c' => 'authunsuspend',
+                'to_bb'  => $to_bb
+            };
+            $self->send($msgSpawn);
+
+            KungFuChess::Bitboards::_putPiece($piece, $to_bb);
+            print KungFuChess::Bitboards::pretty();
+            print "--- done move_put_piece:$piece\n";
+            $done = 1;
+        } elsif ($moveType == KungFuChess::Bitboards::MOVE_CASTLE_OO) {
+            $piece = KungFuChess::Bitboards::_getPieceBB($fr_bb);
+            my $pieceTo = KungFuChess::Bitboards::_getPieceBB($to_bb);
+            KungFuChess::Bitboards::_removePiece($fr_bb);
+            KungFuChess::Bitboards::_removePiece($to_bb);
+            $moveType = KungFuChess::Bitboards::MOVE_PUT_PIECE;
+
+            my $rook_moving_to = KungFuChess::Bitboards::shift_BB(
+                $fr_bb,
+                KungFuChess::Bitboards::EAST
+            );
+            my $king_moving_to = KungFuChess::Bitboards::shift_BB(
+                $to_bb,
+                KungFuChess::Bitboards::WEST
+            );
+            print "rook moving: \n";
+            print KungFuChess::Bitboards::prettyBoard($rook_moving_to);
+            my $msgSus1 = {
+                'c' => 'authsuspend',
+                'fr_bb'  => $fr_bb,
+                'to_bb'  => $king_moving_to
+            };
+            $self->send($msgSus1);
+            my $msgSus2 = {
+                'c' => 'authsuspend',
+                'fr_bb'  => $to_bb,
+                'to_bb'  => $rook_moving_to
+            };
+            $self->send($msgSus2);
+            $timer = AnyEvent->timer(
+                after => $self->{pieceSpeed} * 2,
+                cb => sub {
+                    print " callback for piece move king\n";
+                    $func->($self, $func, $fr_bb, $king_moving_to, $dir, $startTime, $moveType, $piece);
+                }
+            );
+            $timer2 = AnyEvent->timer(
+                after => $self->{pieceSpeed} * 2,
+                cb => sub {
+                    print " callback for piece move rook\n";
+                    $func->($self, $func, $fr_bb, $rook_moving_to, $dir, $startTime, $moveType, $pieceTo);
+                }
+            );
+            return ; ## return early because there is no more movement
+        } elsif ($moveType == KungFuChess::Bitboards::MOVE_CASTLE_OOO) {
+            $piece = KungFuChess::Bitboards::_getPieceBB($fr_bb);
+            my $pieceTo = KungFuChess::Bitboards::_getPieceBB($to_bb);
+            KungFuChess::Bitboards::_removePiece($fr_bb);
+            KungFuChess::Bitboards::_removePiece($to_bb);
+            $moveType = KungFuChess::Bitboards::MOVE_PUT_PIECE;
+
+            my $rook_moving_to = KungFuChess::Bitboards::shift_BB(
+                KungFuChess::Bitboards::shift_BB($fr_bb, KungFuChess::Bitboards::WEST),
+                KungFuChess::Bitboards::WEST
+            );
+            my $king_moving_to = KungFuChess::Bitboards::shift_BB($to_bb, KungFuChess::Bitboards::EAST);
+            my $msgSus1 = {
+                'c' => 'authsuspend',
+                'fr_bb'  => $fr_bb,
+                'to_bb'  => $king_moving_to
+            };
+            $self->send($msgSus1);
+            my $msgSus2 = {
+                'c' => 'authsuspend',
+                'fr_bb'  => $to_bb,
+                'to_bb'  => $rook_moving_to
+            };
+            $self->send($msgSus2);
+            $timer = AnyEvent->timer(
+                after => $self->{pieceSpeed} * 2,
+                cb => sub {
+                    print " callback for piece move king\n";
+                    $func->($self, $func, $fr_bb, $king_moving_to, $dir, $startTime, $moveType, $piece);
+                }
+            );
+            $timer2 = AnyEvent->timer(
+                after => $self->{pieceSpeed} * 2,
+                cb => sub {
+                    print " callback for piece move rook\n";
+                    $func->($self, $func, $fr_bb, $rook_moving_to, $dir, $startTime, $moveType, $pieceTo);
+                }
+            );
+            return ; ## return early because there is no more movement
+        } else {
+            warn "unknown movetype $moveType\n";
+        }
+
+        if (! $done) {
+            $timer = AnyEvent->timer(
+                after => $nextMoveSpeed,
+                cb => sub {
+                    print " callback for piece move\n";
+                    $func->($self, $func, $next_fr_bb, $to_bb, $dir, $startTime, $moveType, $piece);
+                }
+            );
+        } else {
+            $self->{timeoutSquares}->{$to_bb} = 1;
+            $self->{timeoutCBs}->{$to_bb} = AnyEvent->timer(
+                after => $self->{pieceRecharge},
+                cb => sub {
+                    print "  call back to end timeout for $to_bb\n";
+                    delete $self->{timeoutSquares}->{$to_bb};
+                    delete $self->{timeoutCBs}->{$to_bb};
+                }
+            );
+        }
+    };
+
+    ### message that animates a move on the board
+    my $msg = {
+        'c' => 'authmove',
+        'color' => $self->{color},
+        'move'  => $move,
+        'moveType' => $moveType
+    };
+    $self->send($msg);
+
+    my $startTime = time();
+    $moveStep->($self, $moveStep, $fr_bb, $to_bb, $moveDir, $startTime, $moveType, '');
+    return 1;
+}
+
+sub killPieceBB {
+    my ($self, $bb) = @_;
+
+    print "killing piece $bb\n";
+    my $piece = KungFuChess::Bitboards::_getPieceBB($bb);
+    print "piece: $piece\n";
+    if ($piece) {
+        my $killMsg = {
+            'c'  => 'authkill',
+            'bb' => $bb
+        };
+        $self->send($killMsg);
+    }
+    if ($piece eq 'k') {
+        my $msg = {
+            'c' => 'playerlost',
+            'color' => 'black'
+        };
+        print "sending black lost\n";
+        $self->send($msg);
+        exit; ### game over
+    } elsif ($piece eq 'K') {
+        my $msg = {
+            'c' => 'playerlost',
+            'color' => 'white'
+        };
+        print "sending white lost\n";
+        $self->send($msg);
+        exit; ### game over
+    }
 }
 
 ### https://en.wikipedia.org/wiki/Forsyth%E2%80%93Edwards_Notation

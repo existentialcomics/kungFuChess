@@ -5,6 +5,8 @@ var boardContent = $("#boardContainer");
 var game_chatContent = $('#game-chat-log');
 var input = $('#game-chat-input');
 
+var maxPieceId = 1;
+
 width = boardContent.width();
 height = $("#boardContainer").width();
 
@@ -26,6 +28,251 @@ var delayLayer = new Konva.Layer();
 
 var pieces = {};
 var piecesByImageId = {};
+var piecesByBoardPos = {
+    'a1' : null,
+    'b1' : null,
+    'c1' : null,
+    'd1' : null,
+    'e1' : null,
+    'f1' : null,
+    'g1' : null,
+    'h1' : null,
+
+    'a2' : null,
+    'b2' : null,
+    'c2' : null,
+    'd2' : null,
+    'e2' : null,
+    'f2' : null,
+    'g2' : null,
+    'h2' : null,
+
+    'a3' : null,
+    'b3' : null,
+    'c3' : null,
+    'd3' : null,
+    'e3' : null,
+    'f3' : null,
+    'g3' : null,
+    'h3' : null,
+
+    'a4' : null,
+    'b4' : null,
+    'c4' : null,
+    'd4' : null,
+    'e4' : null,
+    'f4' : null,
+    'g4' : null,
+    'h4' : null,
+
+    'a5' : null,
+    'b5' : null,
+    'c5' : null,
+    'd5' : null,
+    'e5' : null,
+    'f5' : null,
+    'g5' : null,
+    'h5' : null,
+
+    'a6' : null,
+    'b6' : null,
+    'c6' : null,
+    'd6' : null,
+    'e6' : null,
+    'f6' : null,
+    'g6' : null,
+    'h6' : null,
+
+    'a7' : null,
+    'b7' : null,
+    'c7' : null,
+    'd7' : null,
+    'e7' : null,
+    'f7' : null,
+    'g7' : null,
+    'h7' : null,
+
+    'a8' : null,
+    'b8' : null,
+    'c8' : null,
+    'd8' : null,
+    'e8' : null,
+    'f8' : null,
+    'g8' : null,
+    'h8' : null,
+};
+var suspendedPieces = {
+    'a1' : null,
+    'b1' : null,
+    'c1' : null,
+    'd1' : null,
+    'e1' : null,
+    'f1' : null,
+    'g1' : null,
+    'h1' : null,
+
+    'a2' : null,
+    'b2' : null,
+    'c2' : null,
+    'd2' : null,
+    'e2' : null,
+    'f2' : null,
+    'g2' : null,
+    'h2' : null,
+
+    'a3' : null,
+    'b3' : null,
+    'c3' : null,
+    'd3' : null,
+    'e3' : null,
+    'f3' : null,
+    'g3' : null,
+    'h3' : null,
+
+    'a4' : null,
+    'b4' : null,
+    'c4' : null,
+    'd4' : null,
+    'e4' : null,
+    'f4' : null,
+    'g4' : null,
+    'h4' : null,
+
+    'a5' : null,
+    'b5' : null,
+    'c5' : null,
+    'd5' : null,
+    'e5' : null,
+    'f5' : null,
+    'g5' : null,
+    'h5' : null,
+
+    'a6' : null,
+    'b6' : null,
+    'c6' : null,
+    'd6' : null,
+    'e6' : null,
+    'f6' : null,
+    'g6' : null,
+    'h6' : null,
+
+    'a7' : null,
+    'b7' : null,
+    'c7' : null,
+    'd7' : null,
+    'e7' : null,
+    'f7' : null,
+    'g7' : null,
+    'h7' : null,
+
+    'a8' : null,
+    'b8' : null,
+    'c8' : null,
+    'd8' : null,
+    'e8' : null,
+    'f8' : null,
+    'g8' : null,
+    'h8' : null,
+};
+
+// hardcoded translation of BB squares to board squares
+var bitboardToSquare = {
+    '72057594037927936' : 'a8',
+    '144115188075855872' : 'b8',
+    '288230376151711744' : 'c8',
+    '576460752303423488' : 'd8',
+    '1152921504606846976' : 'e8',
+    '2305843009213693952' : 'f8',
+    '4611686018427387904' : 'g8',
+    '9223372036854775808' : 'h8',
+    '281474976710656' : 'a7',
+    '562949953421312' : 'b7',
+    '1125899906842624' : 'c7',
+    '2251799813685248' : 'd7',
+    '4503599627370496' : 'e7',
+    '9007199254740992' : 'f7',
+    '18014398509481984' : 'g7',
+    '36028797018963968' : 'h7',
+    '1099511627776' : 'a6',
+    '2199023255552' : 'b6',
+    '4398046511104' : 'c6',
+    '8796093022208' : 'd6',
+    '17592186044416' : 'e6',
+    '35184372088832' : 'f6',
+    '70368744177664' : 'g6',
+    '140737488355328' : 'h6',
+    '4294967296' : 'a5',
+    '8589934592' : 'b5',
+    '17179869184' : 'c5',
+    '34359738368' : 'd5',
+    '68719476736' : 'e5',
+    '137438953472' : 'f5',
+    '274877906944' : 'g5',
+    '549755813888' : 'h5',
+    '16777216' : 'a4',
+    '33554432' : 'b4',
+    '67108864' : 'c4',
+    '134217728' : 'd4',
+    '268435456' : 'e4',
+    '536870912' : 'f4',
+    '1073741824' : 'g4',
+    '2147483648' : 'h4',
+    '65536' : 'a3',
+    '131072' : 'b3',
+    '262144' : 'c3',
+    '524288' : 'd3',
+    '1048576' : 'e3',
+    '2097152' : 'f3',
+    '4194304' : 'g3',
+    '8388608' : 'h3',
+    '256' : 'a2',
+    '512' : 'b2',
+    '1024' : 'c2',
+    '2048' : 'd2',
+    '4096' : 'e2',
+    '8192' : 'f2',
+    '16384' : 'g2',
+    '32768' : 'h2',
+    '1' : 'a1',
+    '2' : 'b1',
+    '4' : 'c1',
+    '8' : 'd1',
+    '16' : 'e1',
+    '32' : 'f1',
+    '64' : 'g1',
+    '128' : 'h1',
+};
+
+var getSquareFromBB = function(bb) {
+    return bitboardToSquare[bb];
+}
+
+var xToFile = [
+    'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'
+];
+var yToRank = [
+    '8','7', '6', '5', '4', '3', '2', '1'
+];
+var rankToX = {
+    '8' : '0',
+    '7' : '1',
+    '6' : '2',
+    '5' : '3',
+    '4' : '4',
+    '3' : '5',
+    '2' : '6',
+    '1' : '7',
+}
+var fileToY = {
+    'a' : '0',
+    'b' : '1',
+    'c' : '2',
+    'd' : '3',
+    'e' : '4',
+    'f' : '5',
+    'g' : '6',
+    'h' : '7',
+}
 
 var globalIdCount = 1;
 var replayMode = false;
@@ -136,7 +383,7 @@ var game_reconnectMain = function() {
 
 sendMsg = function(msg) {
     if (msg.c != 'pong') {
-        console.log(msg);
+        //console.log(msg);
     }
     msg.gameId = gameId;
     msg.auth = authId;
@@ -186,9 +433,61 @@ requestRematch = function() {
     sendMsg(msg);
 }
 
+var getPieceSquare = function(piece) {
+    var rank = yToRank[piece.y];
+    var file = xToFile[piece.x];
+    return file + rank;
+}
+
 var handleMessage = function(msg) {
-    if (msg.c == 'move'){
-        pieces[msg.id].move(msg.x, msg.y);
+    if (msg.c == 'move'){  // called when a piece changes positions (many times in one "move")
+        var from = getSquareFromBB(msg.fr_bb);
+        var to   = getSquareFromBB(msg.to_bb);
+
+        pieceFrom = piecesByBoardPos[from];
+        console.log("pieceFrom:");
+        console.log(pieceFrom);
+        piecesByBoardPos[to]   = pieceFrom;
+        piecesByBoardPos[from] = null;
+        console.log("moved " + from + " to " + to);
+        console.log(piecesByBoardPos);
+    } else if (msg.c == 'moveAnimate'){ // called when a player moves a piece
+        var m = msg.move.split('');
+
+        var from = m[0].concat(m[1]);
+        var to   = m[2].concat(m[3]);
+        
+        console.log("animate move from " + from + "," + to);
+
+        if (msg.moveType == 3) {        // OO
+            var pieceFrom = piecesByBoardPos[from];
+            var pieceTo   = piecesByBoardPos[to];
+            var y_king = rankToX[m[3]];
+            var x_king = parseInt(fileToY[m[2]]) - 1;
+            pieceFrom.move(x_king, y_king);
+
+            var y_rook = rankToX[m[1]];
+            var x_rook = parseInt(fileToY[m[0]]) + 1;
+            console.log(y_rook + " , " + x_rook);
+            pieceTo.move(x_rook, y_rook);
+        } else if (msg.moveType == 4) { // OOO
+            var pieceFrom = piecesByBoardPos[from];
+            var pieceTo   = piecesByBoardPos[to];
+            var y_king = rankToX[m[3]];
+            var x_king = parseInt(fileToY[m[2]]) + 1;
+            pieceFrom.move(x_king, y_king);
+
+            var y_rook = rankToX[m[1]];
+            var x_rook = parseInt(fileToY[m[0]]) - 2;
+            console.log(y_rook + " , " + x_rook);
+            pieceTo.move(x_rook, y_rook);
+        } else { // all others
+            var pieceFrom = piecesByBoardPos[from];
+            console.log(pieceFrom);
+            var y = rankToX[m[3]];
+            var x = fileToY[m[2]];
+            pieceFrom.move(x, y);
+        }
     } else if (msg.c == 'promote'){
 		pieces[msg.id].image.destroy();
 		var newQueen = getQueen(pieces[msg.id].x, pieces[msg.id].y, pieces[msg.id].color);
@@ -201,10 +500,8 @@ var handleMessage = function(msg) {
 		pieceLayer.draw();
     } else if (msg.c == 'joined'){
         console.debug(msg);
-		console.log('joined ' + authId + ", ", myColor);
 		// TODO mark all color pieces as draggabble
 		for(id in pieces){
-            console.log(myColor);
 			if (pieces[id].color == myColor || myColor == 'both'){
 				pieces[id].image.draggable(true);
 			}
@@ -212,30 +509,66 @@ var handleMessage = function(msg) {
         console.debug(msg);
 		resetGamePieces();
 		pieceLayer.draw();
+    } else if (msg.c == 'suspend'){
+        // knights and castles are removed from the board entirely 
+        // when they move, until they land.
+        var from = getSquareFromBB(msg.fr_bb);
+        var to   = getSquareFromBB(msg.to_bb);
+        console.log('suspending ' + from + ", " + to);
+        var piece = piecesByBoardPos[from];
+        suspendedPieces[to] = piece;
+
+        piecesByBoardPos[from] = null;
+    } else if (msg.c == 'unsuspend'){
+        // this is for knights and castles where the piece
+        // is removed from the board then put down at the destination
+        var square = getSquareFromBB(msg.to_bb);
+        var piece = suspendedPieces[square];
+
+        console.log('unsuspending ' + square + "(" + msg.to_bb + ")");
+        console.log(piece);
+        piecesByBoardPos[square] = piece;
+        suspendedPieces[square] = null;
     } else if (msg.c == 'spawn'){
         var piece;
-        if (msg.type == 'queen'){
-            piece = getQueen(msg.x, msg.y, msg.color);
-        } else if (msg.type == 'king'){
-            piece = getKing(msg.x, msg.y, msg.color);
-        } else if (msg.type == 'rook'){
-            piece = getRook(msg.x, msg.y, msg.color);
-        } else if (msg.type == 'bishop'){
-            piece = getBishop(msg.x, msg.y, msg.color);
-        } else if (msg.type == 'knight'){
-            piece = getKnight(msg.x, msg.y, msg.color);
-        } else if (msg.type == 'pawn'){
-            piece = getPawn(msg.x, msg.y, msg.color);
+        var chr = msg.chr;
+        var m = msg.square.split('');
+        var f = m[0];
+        var r = m[1];
+
+        var type = chr.toLowerCase();
+
+        var color = 'white';
+        if (type === chr) {
+            color = 'black';
+        }
+
+        var y = rankToX[r];
+        var x = fileToY[f];
+
+        if (type == 'q'){
+            piece = getQueen(x, y, color);
+        } else if (type == 'k'){
+            piece = getKing(x, y, color);
+        } else if (type == 'r'){
+            piece = getRook(x, y, color);
+        } else if (type == 'b'){
+            piece = getBishop(x, y, color);
+        } else if (type == 'n'){
+            piece = getKnight(x, y, color);
+        } else if (type == 'p'){
+            piece = getPawn(x, y, color);
         } 
-        piece.id = msg.id;
-		if (! (msg.id in pieces)){
-			pieceLayer.add(piece.image);
-			pieces[msg.id] = piece;
-			if (piece.color == myColor || myColor == 'both'){
-				pieces[msg.id].image.draggable(true);
-			}
-			pieceLayer.draw();
-		}
+        piece.id = maxPieceId++;
+        pieceLayer.add(piece.image);
+        pieces[piece.id] = piece;
+        if (piece.color == myColor || myColor == 'both'){
+            pieces[piece.id].image.draggable(true);
+        }
+        var square = getPieceSquare(piece);
+        piecesByBoardPos[square] = piece;
+
+        pieceLayer.draw();
     } else if (msg.c == 'pong'){
         var d = new Date();
         var timestamp = d.getTime();
@@ -257,22 +590,25 @@ var handleMessage = function(msg) {
             }
         }
     } else if (msg.c == 'kill'){
-        console.log('killing ' + msg.id);
-        pieces[msg.id].image.destroy();
-        if (pieces[msg.id].delayRect){
-            pieces[msg.id].delayRect.destroy();
+        var square = getSquareFromBB(msg.bb);
+        var piece  = piecesByBoardPos[square];
+
+        if (piece != null) {
+            piece.image.destroy();
+            if (piece.delayRect){
+                piece.delayRect.destroy();
+            }
+            delete pieces[piece.id];
+            piecesByBoardPos[square] = null;
+
+            pieceLayer.draw();
         }
-        delete pieces[msg.id];
-        pieceLayer.draw();
     } else if (msg.c == 'gameBegins'){
-        console.log('setting readyToStart timeout');
 		for(id in pieces){
-            console.log(myColor);
             pieces[id].setDelayTimer(3);
 		}
         setTimeout(startGame, 3000)
     } else if (msg.c == 'chat') {
-        console.log("chat recieved");
         input.removeAttr('disabled'); // let the user write another message
         var dt = new Date();
         addGameMessage(
@@ -283,7 +619,6 @@ var handleMessage = function(msg) {
             dt
         );
     } else if (msg.c == 'newgame') { // both players agreed to rematch
-        console.log("new game" + msg.gameId);
         if (anonKey) {
             window.location.replace('/game/' + msg.gameId + "?anonKey=" + anonKey);
         } else {
@@ -359,14 +694,13 @@ conn.onmessage = function(evt) {
 
 	var msg = JSON.parse(evt.data);
     if (msg.c != 'pong') {
-        console.log("msg: " + evt.data);
+        console.log("msg recieved: " + evt.data);
     }
     handleMessage(msg);
 };
 
 var startGame = function(){
     if (! replayMode) {
-        console.log('starting game');
         $('#gameStatusWaitingToStart').hide();
         $('#gameStatusActive').show();
         $('#gameStatusWaitingToEnded').hide();
@@ -375,13 +709,11 @@ var startGame = function(){
 
 var endGame = function(){
     if (! replayMode) {
-        console.log('ending');
         $('#gameStatusWaitingToStart').hide();
         $('#gameStatusActive').hide();
         $('#gameStatusEnded').show();
 
         for(id in pieces){
-            console.log(myColor);
             if (pieces[id].color == myColor || myColor == 'both'){
                 pieces[id].image.draggable = false;
             }
@@ -390,7 +722,6 @@ var endGame = function(){
 }
 
 var rematch = function(){
-    console.log('rematch');
     $('#rematch').attr('disabled', true);
 	var msg = {
 		'c'  : 'rematch',
@@ -400,20 +731,16 @@ var rematch = function(){
 
 var getBoardPos = function(pos){
     var bPos = {};
-    console.log(pos.x);
-    console.log(pos.y);
     bPos.x = Math.floor(getX(pos.x) / width * 8);
     bPos.y = Math.floor(getY(pos.y) / height * 8);
 	if (myColor == 'black'){
 		bPos.y++;
 	}
-	console.debug(bPos);
     return bPos;
 };
 
 var getPixelPos = function(pos){
     var bPos = {};
-    console.log(pos.x);
     bPos.x = Math.floor(getX(pos.x) * width / 8);
     bPos.y = Math.floor(getY(pos.y) * height / 8);
     return bPos;
@@ -575,9 +902,10 @@ var getPiece = function(x, y, color, image){
         if (y > 7){ return false };
 
         isLegal = this.legalMove(this.x - x, this.y - y);
-        if (!isLegal){
-            return false;
-        }
+        //if (!isLegal){
+            //return false;
+        //}
+        isLegal = true;
         this.start_x = this.x;
         this.start_y = this.y;
         if (isLegal){
@@ -606,7 +934,9 @@ var getPiece = function(x, y, color, image){
                     piece.image.draggable = true;
                     piece.isMoving = false;
 
-                    piece.setDelayTimer(timerRecharge)
+                    if (pieces[piece.id] != null) {
+                        piece.setDelayTimer(timerRecharge)
+                    }
 
                     piece.setImagePos(piece.x, piece.y);
                 }
@@ -717,14 +1047,15 @@ stage.on("dragend", function(e){
     piece.setImagePos(piece.x, piece.y);
     boardPos = getBoardPos(pos);
 
+
 	var msg = {
 		'c'  : 'move',
 		'id' : piece.id,
 		'x'  : boardPos.x,
-		'y'  : boardPos.y
+		'y'  : boardPos.y,
+        'move' : xToFile[piece.x] + yToRank[piece.y] + xToFile[boardPos.x] + yToRank[boardPos.y]
 	}
     sendMsg(msg);
-    //piece.move(boardPos.x, boardPos.y);
 
     pieceLayer.draw();
 });
@@ -799,9 +1130,7 @@ $(function () {
     });
     $("#replayGame").click(function() {
         replayMode = true;
-        console.log("replaying game");
         clearBoard();
-        console.log(gameLog);
 
         // clears all active timeouts
         var id = window.setTimeout(function() {}, 0);
@@ -812,13 +1141,9 @@ $(function () {
         var startTime = 0;
         var gameStart = false;
         gameLog.forEach(function (logMsg) {
-            console.log(logMsg.time);
-            console.log(logMsg.msg.c);
             if (logMsg.msg.c == 'gameBegins') {
                 startTime = logMsg.time + 3;
                 gameStart = true;
-                console.log("start time: " + startTime);
-                console.log(logMsg);
             } else {
                 var msgTimeout = 0;
                 if (gameStart) {

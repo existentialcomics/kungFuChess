@@ -7,18 +7,27 @@ package KungFuChess::Bitboards;
 use Math::BigInt;
 
 use constant ({
-    WHITE => 1,
-    BLACK => 2,
+    NO_COLOR => 0,
+    WHITE    => 1,
+    BLACK    => 2,
 
+    DIR_NONE =>  0,
     NORTH =>  8,
     EAST  =>  1,
     SOUTH => -8,
     WEST  => -1,
-
     NORTH_EAST =>  9, # north + east
     SOUTH_EAST => -7,
     SOUTH_WEST => -9,
     NORTH_WEST =>  7,
+
+    MOVE_NONE       => 0,
+    MOVE_NORMAL     => 1,
+    MOVE_EN_PASSANT => 2,
+    MOVE_CASTLE_OO  => 3,
+    MOVE_CASTLE_OOO => 4,
+    MOVE_KNIGHT     => 5,
+    MOVE_PUT_PIECE  => 6,
 
     FILES => { 
         a => 0x0101010101010101,
@@ -84,10 +93,17 @@ my $occupied = 0x0000000000000000;
 
 my $enPassant = 0x0000000000000000;
 
+my $whiteCastleK  = RANKS->{1} & FILES->{'e'};
+my $blackCastleK  = RANKS->{8} & FILES->{'e'};
+my $whiteCastleR  = RANKS->{1} & FILES->{'h'};
+my $blackCastleR  = RANKS->{8} & FILES->{'h'};
+my $whiteQCastleR = RANKS->{1} & FILES->{'a'};
+my $blackQCastleR = RANKS->{8} & FILES->{'a'};
+
 ### frozen pieces, can't move
-my $frozen   = 0x0000000000000000;
+my $frozenBB = 0x0000000000000000;
 ### pieces currently moving, don't attack these!
-my $moving   = 0x0000000000000000;
+my $movingBB = 0x0000000000000000;
 ### these track how long a piece has moved thus far
 ### used to resolve collisions between two moving pieces
 my $momentumOccupied = [
@@ -195,16 +211,7 @@ sub setupInitialPosition {
     $black    |= (FILES->{h} & RANKS->{8});
 }
 
-#template<Direction D>
-#constexpr Bitboard shift(Bitboard b) {
-  #return  D == NORTH      ?  b             << 8 : D == SOUTH      ?  b             >> 8
-        #: D == NORTH+NORTH?  b             <<16 : D == SOUTH+SOUTH?  b             >>16
-        #: D == EAST       ? (b & ~FileHBB) << 1 : D == WEST       ? (b & ~FileABB) >> 1
-        #: D == NORTH_EAST ? (b & ~FileHBB) << 9 : D == NORTH_WEST ? (b & ~FileABB) << 7
-        #: D == SOUTH_EAST ? (b & ~FileHBB) >> 7 : D == SOUTH_WEST ? (b & ~FileABB) >> 9
-        #: 0;
-#}
-
+### copied from shift function in Stockfish
 sub shift_BB {
     my ($bb, $direction) = @_;
     return  $direction == NORTH      ?  $bb                << 8 : $direction == SOUTH      ?  $bb                >> 8
@@ -223,34 +230,56 @@ sub _removePiece {
     $black    &= ~$pieceBB;
     $pawns    &= ~$pieceBB;
     $rooks    &= ~$pieceBB;
+    $bishops  &= ~$pieceBB;
     $knights  &= ~$pieceBB;
     $kings    &= ~$pieceBB;
     $queens   &= ~$pieceBB;
 
-    $frozen   &= ~$pieceBB;
+    $frozenBB &= ~$pieceBB;
+    $movingBB &= ~$pieceBB;
 
     for (0 .. 7) {
         $momentumOccupied->[$_] &= ~$pieceBB;
     }
 }
 
+sub setFrozen {
+    my $bb = shift;
+    $frozenBB &= $bb;
+}
+sub unsetFrozen {
+    my $bb = shift;
+    $frozenBB &= ~$bb;
+}
+sub setMoving {
+    my $bb = shift;
+    $movingBB &= $bb;
+}
+sub unsetMoving {
+    my $bb = shift;
+    $movingBB &= ~$bb;
+}
+
 sub blockers {
     my ($enemyBB, $dirBB, $fromBB, $toBB) = @_;
 
-    while ($fromBB != $toBB && $fromBB) {
+    while ($fromBB != $toBB) {
         $fromBB = shift_BB($fromBB, $dirBB);
-        if ($fromBB & $enemyBB){ return 0; }
+        if (! ($fromBB & $movingBB) ){
+            if ($fromBB == 0)      { return 0; } ### of the board
+            if ($fromBB & $enemyBB){ return 0; }
+        }
     }
     return 1;
 }
 
+### returns the color that moved and type of move
 sub isLegalMove {
-    my ($from, $to) = @_;
-
     my $move = shift;
+
     my ($fr_f, $fr_r, $to_f, $to_r) = split ('', $move);
 
-    print "move: $fr_f, $fr_r, $to_f, $to_r\n";
+    print "bb move: $fr_f, $fr_r, $to_f, $to_r\n";
 
     my $fr_rank = RANKS->{$fr_r};
     my $fr_file = FILES->{$fr_f};
@@ -261,64 +290,116 @@ sub isLegalMove {
 
     my $checkBlockers = 0;
 
+    my @noMove = (NO_COLOR, MOVE_NONE, DIR_NONE, $fr_bb, $to_bb);
+
     if (! $occupied & $fr_bb ) {
         print "from not occupied\n";
-        return 0;
+        return @noMove;
     }
     my $color   = ($white & $fr_bb ? WHITE : BLACK);
     my $pawnDir = ($white & $fr_bb ? NORTH : SOUTH);
 
+
+    ### castles go before checking same color on to_bb
+    if ($fr_bb & $kings) {
+        my ($bbK, $bbR, $bbQR);
+        if ($color == WHITE) {
+            $bbK  = $whiteCastleK;
+            $bbR  = $whiteCastleR;
+            $bbQR = $whiteQCastleR;
+        } else {
+            $bbK  = $blackCastleK;
+            $bbR  = $blackCastleR;
+            $bbQR = $blackQCastleR;
+        }
+
+        if ($fr_bb & $bbK){ 
+            if ($to_bb & $bbR) { 
+                if (blockers(_piecesUs($color), EAST, $fr_bb, shift_BB($to_bb, WEST)) ){
+                    return ($color, MOVE_CASTLE_OO, DIR_NONE, $fr_bb, $to_bb);
+                } else {
+                    return @noMove;
+                }
+            }
+            if ($to_bb & $bbQR) { 
+                if (blockers(_piecesUs($color), WEST, $fr_bb, shift_BB($to_bb, EAST)) ){
+                    return ($color, MOVE_CASTLE_OOO, DIR_NONE, $fr_bb, $to_bb);
+                } else {
+                    return @noMove;
+                }
+            }
+        }
+    }
+
     ### if the same color is on the square
-    if (($to_bb & $occupied) && (($color == WHITE ? $white : $black) & $fr_bb)){
+    if (_piecesUs($color) & $to_bb){
         print "to same color\n";
-        return 0;
+        return @noMove;
     }
 
     if ($fr_bb & $pawns) {
         print " -is pawn legal\n";
         if (shift_BB($fr_bb, $pawnDir) & $to_bb) {
-            if ($to_bb & $occupied) { return 0; }
-            return 1;
+            if ($to_bb & $occupied) { 
+                return @noMove;
+            }
+            return ($color, MOVE_NORMAL, $pawnDir, $fr_bb, $to_bb);
         }
-                                                                # we dont worry about color because you can't move two that way anyway
 
+        # we dont worry about color for ranks because you can't move two that way anyway
         if ((shift_BB($fr_bb, $pawnDir + $pawnDir) & $to_bb) && ($fr_bb & (RANKS->{2} | RANKS->{7})) ){
-            if ($to_bb & $occupied) { return 0; }
-            return 1;
+            if ($to_bb & $occupied) {
+                return @noMove;
+            }
+            return ($color, MOVE_NORMAL, $pawnDir, $fr_bb, $to_bb);
         }
-        if ($occupied & $to_bb & _piecesThem($color) ){
-            if (shift_BB($fr_bb, $pawnDir) & (shift_BB($to_bb, EAST) | shiftBB($to_bb, WEST)) ){
-                return 1;
+        if ($to_bb & _piecesThem($color) ){
+            print "enemy on pawn space\n";
+            my $enemyCapturesE = shift_BB($to_bb, EAST);
+            my $enemyCapturesW = shift_BB($to_bb, WEST);
+            if      (shift_BB($fr_bb, $pawnDir) & $enemyCapturesW){
+                return ($color, MOVE_NORMAL, $pawnDir + EAST, $fr_bb, $to_bb);
+            } elsif (shift_BB($fr_bb, $pawnDir) & $enemyCapturesE){
+                return ($color, MOVE_NORMAL, $pawnDir + WEST, $fr_bb, $to_bb);
+            } else {
+                print "can't take\n";
             }
         }
         ### TODO en passant check frozen squares
-        return 0;
+        return @noMove;
     }
     if ($fr_bb & $knights) {
-        if (shift_BB($pawnDir, NORTH + NORTH) & shift_BB($to_bb, WEST) ){
-            return 1;
+        if ( shift_BB($fr_bb, NORTH + NORTH) &
+             shift_BB($to_bb, WEST) | shift_BB($to_bb, EAST) ){
+            return ($color, MOVE_KNIGHT, DIR_NONE, $fr_bb, $to_bb);
         }
-        if (shift_BB($pawnDir, NORTH + NORTH) & shift_BB($to_bb, EAST) ){
-            return 1;
+        if ( shift_BB($fr_bb, SOUTH + SOUTH) &
+             shift_BB($to_bb, WEST) | shift_BB($to_bb, EAST) ){
+            return ($color, MOVE_KNIGHT, DIR_NONE, $fr_bb, $to_bb);
         }
-        if (shift_BB($pawnDir, SOUTH + SOUTH) & shift_BB($to_bb, WEST) ){
-            return 1;
+        if ( shift_BB(shift_BB($fr_bb, WEST), WEST) &
+             shift_BB($to_bb, NORTH) | shift_BB($to_bb, SOUTH) ){
+            return ($color, MOVE_KNIGHT, DIR_NONE, $fr_bb, $to_bb);
         }
-        if (shift_BB($pawnDir, SOUTH + SOUTH) & shift_BB($to_bb, EAST) ){
-            return 1;
+        if ( shift_BB(shift_BB($fr_bb, EAST), EAST) &
+             shift_BB($to_bb, NORTH) | shift_BB($to_bb, SOUTH) ){
+            return ($color, MOVE_KNIGHT, DIR_NONE, $fr_bb, $to_bb);
         }
-        return 0;
+        return (NO_COLOR, MOVE_NONE, DIR_NONE);
     }
     if ($fr_bb & $rooks) {
-        print " - is rook legal\n";
         return _legalRooks($fr_rank, $fr_file, $to_rank, $to_file, $fr_bb, $to_bb, $color);
     }
     if ($fr_bb & $bishops) {
         return _legalBishops($fr_rank, $fr_file, $to_rank, $to_file, $fr_bb, $to_bb, $color);
     }
     if ($fr_bb & $queens) {
-        #return _legalBishop($fr_x, $fr_y, $to_x, $to_y, $fr_bb, $to_bb, $color) ||
-               #_legalRooks($fr_x, $fr_y, $to_x, $to_y, $fr_bb, $to_bb, $color);
+        my ($r_color, $r_move, $r_dir) = _legalRooks($fr_rank, $fr_file, $to_rank, $to_file, $fr_bb, $to_bb, $color);
+        if ($r_move != MOVE_NONE){
+            return ($r_color, $r_move, $r_dir, $fr_bb, $to_bb);
+        } else {
+            return _legalBishops($fr_rank, $fr_file, $to_rank, $to_file, $fr_bb, $to_bb, $color);
+        }
     }
     if ($fr_bb & $kings) {
         if ($to_bb &
@@ -326,34 +407,36 @@ sub isLegalMove {
              shift_BB($fr_bb, WEST)       |                           shift_BB($fr_bb, EAST)       |
              shift_BB($fr_bb, SOUTH_WEST) | shift_BB($fr_bb, SOUTH) | shift_BB($fr_bb, SOUTH_EAST) )
         ){
-            return 1;
+            ### it's always one space so we don't bother with dir
+            return ($color, MOVE_NORMAL, DIR_NONE, $fr_bb, $to_bb);
         }
-        return 0;
+        return @noMove;
     }
+    return @noMove;
 }
 
 sub _legalRooks {
     my ($fr_rank, $fr_file, $to_rank, $to_file, $fr_bb, $to_bb, $color) = @_;
 
-    if ($fr_file & $to_file  && !($fr_rank & $to_rank)) {
-        if ($fr_rank > $to_rank) {
-            print "checking west\n";
-            return blockers(_piecesThem($color), WEST, $fr_bb, $to_bb, $color);
+    my $dir = 0;
+    if (!($fr_file & $to_file) && $fr_rank & $to_rank) {
+        if ($fr_file < $to_file) {
+            $dir = EAST;
         } else {
-            print "checking east\n";
-            return blockers(_piecesThem($color), EAST, $fr_bb, $to_bb, $color);
+            $dir = WEST;
         }
-    } elsif (!($fr_file & $to_file) && $fr_rank & $to_rank) {
-        if ($fr_file > $to_file) {
-            print "checking north\n";
-            return blockers(_piecesThem($color), NORTH, $fr_bb, $to_bb, $color);
+    } elsif ($fr_file & $to_file  && !($fr_rank & $to_rank)) {
+        if ($fr_rank < $to_rank) {
+            $dir = NORTH;
         } else {
-            print "checking south\n";
-            return blockers(_piecesThem($color), SOUTH, $fr_bb, $to_bb, $color);
+            $dir = SOUTH;
         }
-    } else {
-        print "no paralell\n";
-        return 0;
+    } else { # from and to were not on a parallel rank or file
+        return (NO_COLOR, MOVE_NONE, DIR_NONE, $fr_bb, $to_bb);
+    }
+    ###
+    if (blockers(_piecesUs($color), $dir, $fr_bb, $to_bb) ){
+        return ($color, MOVE_NORMAL, $dir, $fr_bb, $to_bb);
     }
 
 }
@@ -363,31 +446,40 @@ sub _legalBishops {
 
     if ($fr_rank == $to_rank || $fr_file == $to_file) { return 0; }
 
-    if ($fr_file > $to_file) { # north
+    print "legal bishop....\n";
+
+    my $dir = 0;
+    if ($fr_file < $to_file) { # north
         if ($fr_rank > $to_rank) { # west
-            return blockers(_piecesThem($color), NORTH_WEST, $fr_bb, $to_bb);
+            $dir = SOUTH_EAST;
         } else {
-            return blockers(_piecesThem($color), NORTH_EAST, $fr_bb, $to_bb);
+            $dir = NORTH_EAST;
         }
     }
-    if ($fr_file < $to_file) { # south
+    if ($fr_file > $to_file) { # south
         if ($fr_rank > $to_rank) { # west
-            return blockers(_piecesThem($color), SOUTH_WEST, $fr_bb, $to_bb);
+            $dir = SOUTH_WEST;
         } else {
-            return blockers(_piecesThem($color), SOUTH_EAST, $fr_bb, $to_bb);
+            $dir = NORTH_WEST;
         }
     }
+    if (blockers(_piecesUs($color), $dir, $fr_bb, $to_bb) ){
+        return ($color, MOVE_NORMAL, $dir, $fr_bb, $to_bb);
+    }
+    return (NO_COLOR, MOVE_NONE, DIR_NONE, $fr_bb, $to_bb);
 }
 
 sub _piecesUs {
-    if ($_ == WHITE) { return $white; }
+    if ($_[0] == WHITE) { return $white; }
+    print "pieces US black\n";
     return $black;
 }
 sub _piecesThem {
-    if ($_ == WHITE) { return $black; }
+    if ($_[0] == WHITE) { return $black; }
     return $white;
 }
 
+### if this is called on a non-empty square it will cause problems
 sub _putPiece {
     my $p  = shift;
     my $BB = shift;
@@ -446,11 +538,8 @@ sub _getBBsForPiece {
     return ();
 }
 
-sub _getPiece {
-    my $sq = shift;
-    my ($f, $r) = split('', $sq);
-
-    my $squareBB = RANKS->{$r} & FILES->{$f};
+sub _getPieceBB {
+    my $squareBB = shift;
     if (! $occupied & $squareBB) {
         return undef;
     }
@@ -473,55 +562,51 @@ sub _getPiece {
         return uc($chr);
     }
     return $chr;
+
 }
 
-sub move {
-    my $move = shift;
-    my ($fr_f, $fr_r, $to_f, $to_r) = split ('', $move);
+sub _getPiece {
+    my $sq = shift;
+    my ($f, $r) = split('', $sq);
 
-    my $fr_bb = RANKS->{$fr_r} & FILES->{$fr_f};
+    my $squareBB = RANKS->{$r} & FILES->{$f};
+    return _getPieceBB($squareBB);
+}
+
+sub _getBBat {
+    my $sq = shift;
+    my ($f, $r) = split('', $sq);
+
+    return RANKS->{$r} & FILES->{$f};
+}
+
+sub moveStep {
+    my ($fr_bb, $dir) = @_;
+    my $to_bb = shift_BB($fr_bb, $dir);
+    return (move($fr_bb, $to_bb), $to_bb);
+}
+
+### returns 1 for normal, 0 for killed
+sub move {
+    my ($fr_bb, $to_bb) = @_;
+
     if (! $fr_bb & $occupied) {
         print "not occupied\n";
         return 0;
     }
-    my $to_bb = RANKS->{$to_r} & FILES->{$to_f};
 
-    my $piece = _getPiece($fr_f . $fr_r);
+    my $piece = _getPieceBB($fr_bb);
     print "piece: $piece\n";
 
-    #if (! $to_bb & $occupied) {
-        #my ($winningBB, $winningLen) = resolveCollision($fr_bb, $to_bb);
-        #if ($winningBB == $fr_bb) {
-            #### stockfish doesn't remove first, maybe remove in put?
-            #_removePiece($to_bb);
-            #_putPiece($piece, $to_bb);
-            #$momentumOccupied->[$winningLen + 1] |= $to_bb;
-        #} elsif ($winningBB == $to_bb) {
-            #### do nothing
-        #} else {
-            #print "neither matched winning?\n";
-        #}
-    #}
     _removePiece($fr_bb);
+    _removePiece($to_bb);
     _putPiece($piece, $to_bb);
-}
-
-sub resolveCollision {
-    my ($fr_bb, $to_bb) = @_;
-
-    foreach (qw( 7 6 5 4 3 2 1 0)) {
-        if ($fr_bb & $momentumOccupied->[$_]) {
-            return ($fr_bb, $_);
-        } elsif ($fr_bb & $momentumOccupied->[$_]) {
-            return ($to_bb, $_);
-        }
-    }
-    print "should not happen?\n";
-    return ($fr_bb, 0);
+    return 1;
 }
 
 sub pretty {
     my $board = '';
+    print "pretty...\n";
     $board .= "\n   +---+---+---+---+---+---+---+----\n";
     foreach my $r ( qw(8 7 6 5 4 3 2 1) ) {
         foreach my $f ( 'a' .. 'h' ) {
@@ -541,7 +626,7 @@ sub pretty {
 
 sub prettyBoard {
     my $BB = shift;
-    my $board = '';
+    my $board = "BB: " . $BB . "\n";;
     $board .= "\n   +---+---+---+---+---+---+---+----\n";
     foreach my $r ( qw(8 7 6 5 4 3 2 1) ) {
         foreach my $f ( 'a' .. 'h' ) {

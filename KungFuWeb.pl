@@ -668,16 +668,32 @@ websocket '/ws' => sub {
 
             return 0 if (!$color);
 
+            app->log->debug('move authed for ' . $color);
             $msg->{color} = $color;
 
             # pass the move request to the server
             # TODO pass the player's color to the server
             $game->serverBroadcast($msg);
-        } elsif ($msg->{'c'} eq 'authmove'){
+        } elsif ($msg->{'c'} eq 'authunsuspend'){
+            if (! gameauth($msg) ){ return 0; }
+            # pass the move request to the server
+            $msg->{'c'} = 'unsuspend';
+            $game->playerBroadcast($msg);
+        } elsif ($msg->{'c'} eq 'authsuspend'){
+            if (! gameauth($msg) ){ return 0; }
+            # pass the move request to the server
+            $msg->{'c'} = 'suspend';
+            $game->playerBroadcast($msg);
+        } elsif ($msg->{'c'} eq 'authmovestep'){
+            if (! gameauth($msg) ){ return 0; }
+            # pass the move request to the server
+            $msg->{'c'} = 'move';
+            $game->playerBroadcast($msg);
+        } elsif ($msg->{'c'} eq 'authmove'){ # for animation only
             if (! gameauth($msg) ){ return 0; }
 
             # pass the move request to the server
-            $msg->{'c'} = 'move';
+            $msg->{'c'} = 'moveAnimate';
             $game->playerBroadcast($msg);
         } elsif ($msg->{'c'} eq 'spawn'){
             if (! gameauth($msg) ){ return 0; }
@@ -744,6 +760,7 @@ websocket '/ws' => sub {
             endGame($msg->{gameId}, $result);
         } elsif ($msg->{'c'} eq 'playerlost'){
             if (! gameauth($msg) ){ return 0; }
+            print "\n\nPLAYERLOST \n\n";
             $game->playerBroadcast($msg);
 
             my $result = '';
