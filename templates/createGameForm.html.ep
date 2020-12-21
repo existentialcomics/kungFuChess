@@ -21,13 +21,15 @@
                 </div>
                 <label for="colFormLabelLg" class="col col-form-label col-form-label-lg">Game Type</label>
                 <div class="form-radio">
-                    <input class="form-radio-input" type="radio" name="gameType" id="standardRatingRadio" value="rated" checked>
+                    <input class="form-radio-input" type="radio" name="gameType" id="standardRatingRadio" value="rated" 
+                        <% if ($user && $user->{player_id} != -1){ %> checked <% } else { %> disabled <% } %>>
                     <label class="form-radio-label" for="standardRatingRadio">
                         Rated
                     </label>
                 </div>
                 <div class="form-radio">
-                    <input class="form-radio-input" type="radio" name="gameType" id="lightningRatingRadio" value="unrated">
+                    <input class="form-radio-input" type="radio" name="gameType" id="lightningRatingRadio" value="unrated" 
+                        <% if (!($user && $user->{player_id} != -1)){ %> checked <% } %> >
                     <label class="form-radio-label" for="lightningRatingRadio">
                         Unrated
                     </label>

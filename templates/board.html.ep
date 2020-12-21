@@ -7,7 +7,7 @@
     <div class="row">
         <div class="col-3">
             <div id="game-chat-log" disabled="true"></div>
-            <input type="text" id="game-chat-input"></input><br/>
+            <input type="text" id="chat-input" class="form-inline"></input><br/>
         </div>
         <div id="boardContainer" class="col-6">
             <div id="container">
@@ -34,8 +34,8 @@
             </div>
             <! –– this is immedately after the game has finish, will never be shown on load -->
             <div id="gameStatusEnded" style="display:none;">
-                <button type="button" class="btn btn-primary btn-block" id="rematch" onclick="rematch()">Rematch</button>
-                <button type="button" class="btn btn-primary btn-block" id="enter-pool" onclick="rematch()">Enter Pool</button>
+                <button type="button" class="btn btn-primary btn-block" id="rematch">Rematch</button>
+                <button type="button" class="btn btn-primary btn-block" id="enter-pool">Enter Pool</button>
             </div>
             <div id="gameStatusComplete" <%== $gameStatus eq 'finished' ? '' : 'style="display:none;"' %>>
                 <button type="button" class="btn btn-primary btn-block" id="replayGame" >Replay Game</button>
@@ -56,7 +56,6 @@
     </div>
 </div>
 
-
 <script>
     var whitePlayer = JSON.parse('<%== $whitePlayer->getJsonMsg() %>');
     var blackPlayer = JSON.parse('<%== $blackPlayer->getJsonMsg() %>');
@@ -64,6 +63,7 @@
     var myColor  = "<%= $color %>";
 	var authId   = "<%= $authId %>";
 	var anonKey   = "<%= $anonKey %>";
+	var gameSpeed     = "<%= $gameSpeed %>";
 	var timerSpeed    = "<%= $timerSpeed %>";
 	var timerRecharge = "<%= $timerRecharge %>";
     var initialMessages = JSON.parse('<%== ($positionGameMsgs ? $positionGameMsgs : '[]') %>');

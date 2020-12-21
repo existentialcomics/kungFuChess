@@ -1,4 +1,7 @@
 game log in profile
-display revoke /request draw
 game info box
+rematch
 log of chat
+signup duplicate name clean error
+when pieces hit a friendly piece they simply stop!
+better msging when the game times out. draw? no contest?

@@ -67,6 +67,11 @@ sub setServerConnection {
     $self->{serverConn} = $conn;
 }
 
+sub serverReady {
+    my $self = shift;
+    return $self->{serverConn};
+}
+
 sub addConnection {
     my $self = shift;
     my ($connId, $conn) = @_;
@@ -79,25 +84,6 @@ sub removeConnection {
     my $conn = shift;
 
     delete $self->{playersConn}->{$conn};
-}
-
-### returns positive number if all players are ready for how many seconds until game begins
-sub playerRematchReady {
-    my $self = shift;
-    my $msg = shift;
-
-    my $color = $self->authMove($msg);
-    if ($color){
-        if ($color eq 'white'){
-            $self->{whiteRematchReady} = time();
-        } elsif($color eq 'black'){
-            $self->{blackRematchReady} = time();
-        }
-        if ($self->{whiteRematchReady} && $self->{blackRematchReady}) {
-            return 1;
-        }
-    }
-    return 0;
 }
 
 ### returns positive number if all players are ready for how many seconds until game begins
@@ -156,26 +142,6 @@ sub playerDraw {
             $self->{blackDraw} = time();
         }
         if ($self->{whiteDraw} && $self->{blackDraw}) {
-            return 1;
-        }
-    }
-    return 0;
-}
-
-### returns positive number if all players pressed rematch
-sub playerRematch {
-    my $self = shift;
-    my $msg = shift;
-
-    my $color = $self->authMove($msg);
-    if ($color){
-        if ($color eq 'white' || $color eq 'both' || $self->{isAiGame}){
-            $self->{whiteRematch} = time();
-        }
-        if ($color eq 'black' || $color eq 'both' || $self->{isAiGame}){
-            $self->{blackRematch} = time();
-        }
-        if ($self->{whiteRematch} && $self->{blackRematch}) {
             return 1;
         }
     }

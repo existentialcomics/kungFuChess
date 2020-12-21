@@ -53,7 +53,7 @@ li a:hover {
     height: 360px;
 }
 
-#chat-input {
+#game-chat-input {
     border-radius:2px;
     border:1px solid #ccc;
     margin-top:3px;

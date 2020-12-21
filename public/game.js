@@ -1,3 +1,98 @@
+var checkPoolRunning = false;
+var checkPoolGameSpeed = gameSpeed;
+var cancelCheckPool = false;
+
+var rematchPoolRunning = false;
+var cancelRematchPool = false;
+
+function checkPool(originalThread = false) {
+    if (cancelCheckPool) {
+        checkPoolRunning = false;
+        cancelCheckPool = false;
+        return ;
+    }
+    var setInterval = originalThread;
+    if (checkPoolRunning == false) {
+        checkPoolRunning = true;
+        setInterval = true;
+    }
+    $.ajax({
+        type : 'GET',
+        url  : '/ajax/pool/' + checkPoolGameSpeed,
+        dataType : 'json',
+        success : function(data){
+            var jsonRes = data;
+            if (jsonRes.hasOwnProperty('gameId')) {
+                window.location.replace('/game/' + jsonRes.gameId);
+            }
+            if (setInterval) {
+                intervalPlayer = setTimeout(
+                    function() {
+                        checkPool(true);
+                    },
+                    2000
+                );
+            }
+        }
+    });
+}
+
+function rematchPool(originalThread = false) {
+    if (cancelRematchPool) {
+        console.log("canceling rematch pool");
+        rematchPoolRunning = false;
+        cancelRematchPool = false;
+        return ;
+    }
+    var setInterval = originalThread;
+    if (rematchPoolRunning == false) {
+        console.log("setting rematch interval");
+        rematchPoolRunning = true;
+        setInterval = true;
+    }
+    $.ajax({
+        type : 'GET',
+        url  : '/ajax/rematch?gameId=' + gameId,
+        dataType : 'json',
+        success : function(data){
+            var jsonRes = data;
+            if (jsonRes.hasOwnProperty('gameId')) {
+                window.location.replace('/game/' + jsonRes.gameId);
+            }
+            if (setInterval) {
+                intervalPlayer = setTimeout(
+                    function() {
+                        rematchPool(true);
+                    },
+                    2000
+                );
+            }
+        }
+    });
+}
+
+$(function () {
+    $("#enter-pool").click(function() {
+        if (checkPoolRunning) {
+            cancelCheckPool = true;
+            $(this).html('Enter Pool');
+        } else {
+            $(this).html('Enter Pool<br /><span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>');
+            checkPoolGameSpeed = gameSpeed;
+            checkPool();
+        }
+    });
+    $("#rematch").click(function() {
+        if (rematchPoolRunning) {
+            cancelRematchPool = true;
+            $(this).html('Rematch');
+        } else {
+            $(this).html('Requesting Rematch...<br /><span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>');
+            rematchPool();
+        }
+    });
+});
+
 var width  = 320;
 var height = 320;
 
@@ -306,22 +401,13 @@ var updateTimeStamps = function(){
 };
 
 var joinGame = function(){
+        console.log("joinGame()");
 		var ret = {
 			'c' : 'join',
             'gameId' : gameId
 		};
         gameId = gameId;
         sendMsg(ret);
-};
-
-var playerJoinGame = function(){
-		var ret = {
-			'c' : 'playerjoin',
-            'gameId' : gameId,
-		};
-        gameId = gameId;
-        sendMsg(ret);
-        $('#join').attr('disabled', 'disabled');
 };
 
 var resetGamePieces = function(){
@@ -382,8 +468,9 @@ var game_reconnectMain = function() {
 
 
 sendMsg = function(msg) {
-    if (msg.c != 'pong') {
-        //console.log(msg);
+    if (msg.c != 'ping') {
+        console.log("sending msg:");
+        console.log(msg);
     }
     msg.gameId = gameId;
     msg.auth = authId;
@@ -445,12 +532,14 @@ var handleMessage = function(msg) {
         var to   = getSquareFromBB(msg.to_bb);
 
         pieceFrom = piecesByBoardPos[from];
-        console.log("pieceFrom:");
-        console.log(pieceFrom);
+        //console.log("pieceFrom:");
+        //console.log(pieceFrom);
+        //console.log("board:");
+        console.log(piecesByBoardPos);
         piecesByBoardPos[to]   = pieceFrom;
         piecesByBoardPos[from] = null;
         console.log("moved " + from + " to " + to);
-        console.log(piecesByBoardPos);
+        //console.log(piecesByBoardPos);
     } else if (msg.c == 'moveAnimate'){ // called when a player moves a piece
         var m = msg.move.split('');
 
@@ -483,21 +572,34 @@ var handleMessage = function(msg) {
             pieceTo.move(x_rook, y_rook);
         } else { // all others
             var pieceFrom = piecesByBoardPos[from];
+            console.log('animating piece');
             console.log(pieceFrom);
             var y = rankToX[m[3]];
             var x = fileToY[m[2]];
             pieceFrom.move(x, y);
         }
     } else if (msg.c == 'promote'){
-		pieces[msg.id].image.destroy();
-		var newQueen = getQueen(pieces[msg.id].x, pieces[msg.id].y, pieces[msg.id].color);
-		newQueen.id = msg.id;
+        var square = getSquareFromBB(msg.bb);
+        var piece = piecesByBoardPos[square];
+
+		pieces[piece.id].image.destroy();
+		var newQueen = getQueen(piece.x, piece.y, piece.color);
+		newQueen.id = piece.id;
 		pieceLayer.add(newQueen.image);
-		pieces[msg.id] = newQueen;
-        if (pieces[msg.id].color == myColor || myColor == 'both'){
-            pieces[msg.id].image.draggable(true);
+		pieces[newQueen.id] = newQueen;
+        console.log(piece);
+        console.log(newQueen);
+        newQueen.setImagePos(newQueen.x, newQueen.y);
+        if (piece.color == myColor || myColor == 'both'){
+            newQueen.image.draggable(true);
         }
+        piecesByBoardPos[square] = newQueen;
 		pieceLayer.draw();
+    } else if (msg.c == 'notready'){
+        // happens when we join too quickly 
+        var retry = setTimeout(function() {
+            joinGame();
+        }, 500); 
     } else if (msg.c == 'joined'){
         console.debug(msg);
 		// TODO mark all color pieces as draggabble
@@ -536,39 +638,48 @@ var handleMessage = function(msg) {
         var f = m[0];
         var r = m[1];
 
-        var type = chr.toLowerCase();
+        var piece  = piecesByBoardPos[msg.square];
 
-        var color = 'white';
-        if (type === chr) {
-            color = 'black';
+        console.log('spawning at ' + m + ' piece: ' + chr);
+        console.log('current piece:');
+        console.log(piece);
+        console.log(piecesByBoardPos);
+
+        if (piece == null) {
+            var type = chr.toLowerCase();
+
+            var color = 'white';
+            if (type === chr) {
+                color = 'black';
+            }
+
+            var y = rankToX[r];
+            var x = fileToY[f];
+
+            if (type == 'q'){
+                piece = getQueen(x, y, color);
+            } else if (type == 'k'){
+                piece = getKing(x, y, color);
+            } else if (type == 'r'){
+                piece = getRook(x, y, color);
+            } else if (type == 'b'){
+                piece = getBishop(x, y, color);
+            } else if (type == 'n'){
+                piece = getKnight(x, y, color);
+            } else if (type == 'p'){
+                piece = getPawn(x, y, color);
+            } 
+            piece.id = maxPieceId++;
+            pieceLayer.add(piece.image);
+            pieces[piece.id] = piece;
+            if (piece.color == myColor || myColor == 'both'){
+                pieces[piece.id].image.draggable(true);
+            }
+            var square = getPieceSquare(piece);
+            piecesByBoardPos[square] = piece;
+
+            pieceLayer.draw();
         }
-
-        var y = rankToX[r];
-        var x = fileToY[f];
-
-        if (type == 'q'){
-            piece = getQueen(x, y, color);
-        } else if (type == 'k'){
-            piece = getKing(x, y, color);
-        } else if (type == 'r'){
-            piece = getRook(x, y, color);
-        } else if (type == 'b'){
-            piece = getBishop(x, y, color);
-        } else if (type == 'n'){
-            piece = getKnight(x, y, color);
-        } else if (type == 'p'){
-            piece = getPawn(x, y, color);
-        } 
-        piece.id = maxPieceId++;
-        pieceLayer.add(piece.image);
-        pieces[piece.id] = piece;
-        if (piece.color == myColor || myColor == 'both'){
-            pieces[piece.id].image.draggable(true);
-        }
-        var square = getPieceSquare(piece);
-        piecesByBoardPos[square] = piece;
-
-        pieceLayer.draw();
     } else if (msg.c == 'pong'){
         var d = new Date();
         var timestamp = d.getTime();
@@ -618,12 +729,6 @@ var handleMessage = function(msg) {
             'black',
             dt
         );
-    } else if (msg.c == 'newgame') { // both players agreed to rematch
-        if (anonKey) {
-            window.location.replace('/game/' + msg.gameId + "?anonKey=" + anonKey);
-        } else {
-            window.location.replace('/game/' + msg.gameId);
-        }
     } else if (msg.c == 'playerlost') {
         var dt = new Date();
         endGame();
@@ -715,18 +820,10 @@ var endGame = function(){
 
         for(id in pieces){
             if (pieces[id].color == myColor || myColor == 'both'){
-                pieces[id].image.draggable = false;
+                pieces[id].image.draggable(false);
             }
         }
     }
-}
-
-var rematch = function(){
-    $('#rematch').attr('disabled', true);
-	var msg = {
-		'c'  : 'rematch',
-	}
-    sendMsg(msg);
 }
 
 var getBoardPos = function(pos){
@@ -914,7 +1011,7 @@ var getPiece = function(x, y, color, image){
         }
         //piece.setImagePos();
         if (this.x != this.start_x || this.y != this.start_y){
-            this.image.draggable = false;
+            this.image.draggable(false);
             this.isMoving = true;
             piece.firstMove = false;
             //piece.anim_length = Math.sqrt( Math.pow(Math.abs(this.start_x - this.x), 2) + Math.pow(Math.abs(this.start_y - this.y), 2)) * timer * 100;
@@ -931,7 +1028,7 @@ var getPiece = function(x, y, color, image){
 
                 if (frame.time > piece.anim_length){
                     this.stop();
-                    piece.image.draggable = true;
+                    piece.image.draggable(true);
                     piece.isMoving = false;
 
                     if (pieces[piece.id] != null) {
@@ -993,8 +1090,8 @@ var isOccupied = function(x, y){
 var setupBoard = function(){
     var stage = new Konva.Stage({
         container: 'container',
-        width: width,
-        height: height
+        width: width + 20,
+        height: height + 20
     });
     for(var i = 0; i < 8; i++){
         for(var j = 0; j < 8; j++){
@@ -1008,6 +1105,28 @@ var setupBoard = function(){
             boardLayer.add(rect);
         }
     }  
+
+    for(var i = 0; i < 8; i++){
+        var rank = new Konva.Text({
+            x: i * (width / 8) + (width / 16),
+            y: height + 6,
+            text: String.fromCharCode(97 + i),
+            fontSize: 14,
+            fontFamily: 'Calibri',
+            fill: 'black'
+        });
+        var file = new Konva.Text({
+            x: height + 6,
+            y: i * (width / 8) + (width / 16),
+            text: 8 - i,
+            fontSize: 14,
+            fontFamily: 'Calibri',
+            fill: 'black'
+        });
+        boardLayer.add(rank);
+        boardLayer.add(file);
+    }
+
     stage.add(boardLayer);
 
     pieceLayer.draw();

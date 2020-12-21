@@ -99,6 +99,7 @@ var getPlayersRunning = false;
 function getPlayers(originalThread = false) {
     var setInterval = originalThread;
     if (getPlayersRunning == false) {
+        console.log("setting standard interval");
         getPlayersRunning = true;
         setInterval = true;
     }
@@ -125,6 +126,7 @@ function getPlayers(originalThread = false) {
 var checkPoolRunning = false;
 var checkPoolGameSpeed = 'standard';
 var cancelCheckPool = false;
+
 function checkPool(originalThread = false) {
     if (cancelCheckPool) {
         checkPoolRunning = false;

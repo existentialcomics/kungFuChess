@@ -28,6 +28,7 @@ use constant ({
     MOVE_CASTLE_OOO => 4,
     MOVE_KNIGHT     => 5,
     MOVE_PUT_PIECE  => 6,
+    MOVE_PROMOTE    => 7,
 
     FILES => { 
         a => 0x0101010101010101,
@@ -245,7 +246,7 @@ sub _removePiece {
 
 sub setFrozen {
     my $bb = shift;
-    $frozenBB &= $bb;
+    $frozenBB |= $bb;
 }
 sub unsetFrozen {
     my $bb = shift;
@@ -253,7 +254,7 @@ sub unsetFrozen {
 }
 sub setMoving {
     my $bb = shift;
-    $movingBB &= $bb;
+    $movingBB |= $bb;
 }
 sub unsetMoving {
     my $bb = shift;
@@ -261,13 +262,13 @@ sub unsetMoving {
 }
 
 sub blockers {
-    my ($enemyBB, $dirBB, $fromBB, $toBB) = @_;
+    my ($blockingBB, $dirBB, $fromBB, $toBB) = @_;
 
     while ($fromBB != $toBB) {
         $fromBB = shift_BB($fromBB, $dirBB);
         if (! ($fromBB & $movingBB) ){
-            if ($fromBB == 0)      { return 0; } ### of the board
-            if ($fromBB & $enemyBB){ return 0; }
+            if ($fromBB == 0)         { return 0; } ### of the board
+            if ($fromBB & $blockingBB){ return 0; }
         }
     }
     return 1;
@@ -339,11 +340,15 @@ sub isLegalMove {
 
     if ($fr_bb & $pawns) {
         print " -is pawn legal\n";
+        my $pawnMoveType = MOVE_NORMAL;
+        if ($to_bb & RANKS->{'1'} || $to_bb & RANKS->{'8'}) {
+            $pawnMoveType = MOVE_PROMOTE;
+        }
         if (shift_BB($fr_bb, $pawnDir) & $to_bb) {
             if ($to_bb & $occupied) { 
                 return @noMove;
             }
-            return ($color, MOVE_NORMAL, $pawnDir, $fr_bb, $to_bb);
+            return ($color, $pawnMoveType, $pawnDir, $fr_bb, $to_bb);
         }
 
         # we dont worry about color for ranks because you can't move two that way anyway
@@ -351,16 +356,16 @@ sub isLegalMove {
             if ($to_bb & $occupied) {
                 return @noMove;
             }
-            return ($color, MOVE_NORMAL, $pawnDir, $fr_bb, $to_bb);
+            return ($color, $pawnMoveType, $pawnDir, $fr_bb, $to_bb);
         }
         if ($to_bb & _piecesThem($color) ){
             print "enemy on pawn space\n";
             my $enemyCapturesE = shift_BB($to_bb, EAST);
             my $enemyCapturesW = shift_BB($to_bb, WEST);
             if      (shift_BB($fr_bb, $pawnDir) & $enemyCapturesW){
-                return ($color, MOVE_NORMAL, $pawnDir + EAST, $fr_bb, $to_bb);
+                return ($color, $pawnMoveType, $pawnDir + EAST, $fr_bb, $to_bb);
             } elsif (shift_BB($fr_bb, $pawnDir) & $enemyCapturesE){
-                return ($color, MOVE_NORMAL, $pawnDir + WEST, $fr_bb, $to_bb);
+                return ($color, $pawnMoveType, $pawnDir + WEST, $fr_bb, $to_bb);
             } else {
                 print "can't take\n";
             }
@@ -558,7 +563,7 @@ sub _getPieceBB {
         $chr = 'k';
     }
 
-    if ( $white & $squareBB) {
+    if ($white & $squareBB) {
         return uc($chr);
     }
     return $chr;
@@ -622,6 +627,10 @@ sub pretty {
     }
     $board .= "     a   b   c   d   e   f   g   h  \n";
     return $board;
+}
+
+sub prettyMoving {
+    return prettyBoard($movingBB);
 }
 
 sub prettyBoard {

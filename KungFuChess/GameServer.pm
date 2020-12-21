@@ -13,6 +13,7 @@ use JSON::XS;
 use Data::Dumper;
 use IPC::Open2;
 use Config::Simple;
+use Time::HiRes qw(time);
 
 ### taken from Chess::Rep
 ### can't use the whole lib because of chess specific rules like check
@@ -177,6 +178,8 @@ sub _init {
 	my $authKey = shift;
 	my $speed = shift;
 	my $ai = shift;
+
+    print "game key: $gameKey, authkey: $authKey, speed: $speed\n";
     
     my $cfg = new Config::Simple('kungFuChess.cnf');
     $self->{config} = $cfg;
@@ -279,19 +282,19 @@ sub _init {
 	$self->{client} = $client;
 
     if ($ai) {
-        #$self->{aiStates}->{uciok} = 0;
-        #print "setting ai interval:\n";
-        #$self->{aiInterval} = AnyEvent->timer(
-            #after => 1,
-            #interval => 1.0,
-            #cb => sub {
-                #$self->writeStockfishMsg('stop');
-                #$self->writeStockfishMsg('position fen ' . $self->getFENstring());
-                #$self->writeStockfishMsg('go');
-                #print "stockfish interval\n";
-                #$self->getStockfishMsgs();
-            #}
-        #);
+        $self->{aiStates}->{uciok} = 0;
+        print "setting ai interval:\n";
+        $self->{aiInterval} = AnyEvent->timer(
+            after => 1,
+            interval => 1.0,
+            cb => sub {
+                $self->writeStockfishMsg('stop');
+                $self->writeStockfishMsg('position fen ' . $self->getFENstring());
+                $self->writeStockfishMsg('go');
+                print "stockfish interval\n";
+                $self->getStockfishMsgs();
+            }
+        );
     }
 	AnyEvent->condvar->recv;
 	print "GAME ENDING\n";
@@ -465,7 +468,7 @@ sub handleMessage {
 	} elsif ($msg->{c} eq 'playerjoin'){
 		$self->sendAllGamePieces();
 	} elsif ($msg->{c} eq 'move'){
-		$self->moveIfLegal($msg->{color}, $msg->{move}, $msg->{x}, $msg->{y});
+		$self->moveIfLegal($msg->{color}, $msg->{move});
 	} elsif ($msg->{c} eq 'gameBegins'){
         print "game begins\n";
         # to prevent autodraw from coming up right away
@@ -602,7 +605,7 @@ sub moveNotation {
 
         if ($piece) {
             my $filter = $self->filterAiMove($piece, $endX, $endY);
-            $self->moveIfLegal($piece, $endX, $endY);
+            $self->moveIfLegal('black', $notation);
         }
     }
 }
@@ -663,7 +666,9 @@ sub moveIfLegal {
 
         my $done = 0;
         my $nextMoveSpeed = $self->{pieceSpeed};
-        if ($moveType == KungFuChess::Bitboards::MOVE_NORMAL) {
+        if ($moveType == KungFuChess::Bitboards::MOVE_NORMAL || 
+            $moveType == KungFuChess::Bitboards::MOVE_PROMOTE 
+        ) {
             my $moving_to_bb = 0;
             ### for DIR_NONE it means we want to move directly there (King)
             if ($dir == KungFuChess::Bitboards::DIR_NONE) {
@@ -675,6 +680,7 @@ sub moveIfLegal {
             if (exists($self->{activeMoves}->{$moving_to_bb})) {
                 my $themStartTime = $self->{activeMoves}->{$moving_to_bb};
                 print "collision detected, me: $startTime vs $themStartTime\n"; 
+                print "collision times, me $startTime vs $themStartTime\n"; 
                 if ($themStartTime < $startTime) {
                     ### the place we are moving has a piece that started before
                     ### so we get killed.
@@ -695,12 +701,24 @@ sub moveIfLegal {
                 'to_bb'  => $moving_to_bb
             };
             $self->send($msgStep);
+            if ($moveType == KungFuChess::Bitboards::MOVE_PROMOTE) {
+                print "MOVE_PROMOTE\n";
+                my $msgPromote = {
+                    'c' => 'promote',
+                    'bb'  => $moving_to_bb,
+                };
+                $self->send($msgPromote);
+                my $pawn = KungFuChess::Bitboards::_getPieceBB($moving_to_bb);
+                my $p = ($pawn eq 'P' ? 'Q' : 'q');
+                print " putting $pawn $p...\n";
+                KungFuChess::Bitboards::_removePiece($moving_to_bb);
+                KungFuChess::Bitboards::_putPiece($p, $moving_to_bb);
+            }
             print KungFuChess::Bitboards::pretty();
             if ($moving_to_bb == $to_bb) {
                 print "done!\n";
                 $done = 1;
             } else {
-                KungFuChess::Bitboards::setMoving($moving_to_bb);
                 $self->{activeMoves}->{$moving_to_bb} = $startTime;
             }
             $next_fr_bb = $moving_to_bb;
@@ -716,7 +734,7 @@ sub moveIfLegal {
             };
             $self->send($msgStep);
             $moveType = KungFuChess::Bitboards::MOVE_PUT_PIECE;
-            $nextMoveSpeed = $self->{pieceSpeed} * 2;
+            $nextMoveSpeed = $self->{pieceSpeed};
         } elsif ($moveType == KungFuChess::Bitboards::MOVE_PUT_PIECE) {
             print "callback move_put_piece:$piece\n";
             print KungFuChess::Bitboards::pretty();
@@ -822,6 +840,10 @@ sub moveIfLegal {
         }
 
         if (! $done) {
+            print KungFuChess::Bitboards::prettyMoving();
+            KungFuChess::Bitboards::unsetMoving($fr_bb);
+            KungFuChess::Bitboards::setMoving($next_fr_bb);
+            print KungFuChess::Bitboards::prettyMoving();
             $timer = AnyEvent->timer(
                 after => $nextMoveSpeed,
                 cb => sub {
@@ -897,20 +919,22 @@ sub getFENstring {
     my $rowGapCount = 0;
     my $colCount = 0;
     my $colGapCount = 0;
+
     for ($colCount = 0; $colCount < 8; $colCount++) {
+        my $bb = KungFuChess::Bitboards::_getBBat('a' . (8 - $colCount));
         for ($rowCount = 0; $rowCount < 8; $rowCount++) {
-            if ($self->{boardMap}->[$rowCount]->[$colCount]) {
+
+            my $piece = KungFuChess::Bitboards::_getPieceBB($bb);
+            if ($piece) {
                 if ($colGapCount > 0){
                     $fenString .= $colGapCount;
                     $colGapCount = 0;
                 }
-                my $piece = $self->{boardMap}[$rowCount][$colCount];
-                if ($piece) {
-                    $fenString .= $piece->getFENchar();
-                }
+                $fenString .= $piece;
             } else {
                 $colGapCount ++;
             }
+            $bb = KungFuChess::Bitboards::shift_BB($bb, KungFuChess::Bitboards::EAST);
         }
         if ($colGapCount > 0){
             $fenString .= $colGapCount;
