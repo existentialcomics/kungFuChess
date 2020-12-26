@@ -1,1 +1,2 @@
-var wsDomain = '10.0.1.15';
+var wsDomain = 'www1.existentialcomics.com';
+var wsDomainMain = 'www1.existentialcomics.com';

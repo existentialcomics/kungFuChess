@@ -34,6 +34,11 @@
         <a href="/about">About</a>
     </li>
 </ul>
+<% if (defined(stash('alertDanger')) && stash('alertDanger')) { %>
+<div class="alert alert-danger" role="alert">
+   <%= stash('alertDanger') %>
+</div>
+<% } %>
 <script>
     <% if ($user){ %>
         var userAuthToken = "<%= $user->{auth_token} %>";

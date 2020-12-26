@@ -4,6 +4,7 @@ var cancelCheckPool = false;
 
 var rematchPoolRunning = false;
 var cancelRematchPool = false;
+var boardSize = 8;
 
 function checkPool(originalThread = false) {
     if (cancelCheckPool) {
@@ -342,6 +343,7 @@ var getSquareFromBB = function(bb) {
     return bitboardToSquare[bb];
 }
 
+// TODO build dynamically based on boardSize (number of squares)
 var xToFile = [
     'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'
 ];
@@ -451,7 +453,7 @@ var bindGameEvents = function(ws_conn) {
         );
     };
 };
-var conn = new WebSocket("ws://" + wsDomain + ":3000/ws");
+var conn = new WebSocket("wss://" + wsDomain + ":3000/ws");
 bindGameEvents(conn);
 
 var game_reconnectInterval;
@@ -459,7 +461,7 @@ var game_reconnectMain = function() {
     if (isConnected == false) {
         $("#connectionStatus").html("Reconnecting...");
         conn = null;
-        conn = new WebSocket("ws://" + wsDomain + ":3000/ws");
+        conn = new WebSocket("wss://" + wsDomain + ":3000/ws");
         bindGameEvents(main_conn);
     } else {
         reconnectInterval = null;
@@ -828,8 +830,8 @@ var endGame = function(){
 
 var getBoardPos = function(pos){
     var bPos = {};
-    bPos.x = Math.floor(getX(pos.x) / width * 8);
-    bPos.y = Math.floor(getY(pos.y) / height * 8);
+    bPos.x = Math.floor(getX(pos.x) / width * boardSize);
+    bPos.y = Math.floor(getY(pos.y) / height * boardSize);
 	if (myColor == 'black'){
 		bPos.y++;
 	}
@@ -838,21 +840,21 @@ var getBoardPos = function(pos){
 
 var getPixelPos = function(pos){
     var bPos = {};
-    bPos.x = Math.floor(getX(pos.x) * width / 8);
-    bPos.y = Math.floor(getY(pos.y) * height / 8);
+    bPos.x = Math.floor(getX(pos.x) * width / boardSize);
+    bPos.y = Math.floor(getY(pos.y) * height / boardSize);
     return bPos;
 };
 
 var getX = function(x){
 	if (myColor == 'black'){
-		//return width - x - (width / 8);
+		//return width - x - (width / boardSize);
 	}
 	return x;
 };
 
 var getY = function(y){
 	if (myColor == 'black'){
-		return height - y - (height / 8);
+		return height - y - (height / boardSize);
 	}
 	return y;
 };
@@ -860,10 +862,10 @@ var getY = function(y){
 var getPieceImage = function(x, y, image){
     var pieceImage = new Konva.Image({
         image: image,
-        x: x * width / 8,
-        y: getY(y * height / 8),
-        width: width / 8,
-        height: height / 8,
+        x: x * width / boardSize,
+        y: getY(y * height / boardSize),
+        width: width / boardSize,
+        height: height / boardSize,
         draggable: false
     });
     return pieceImage;
@@ -1021,8 +1023,8 @@ var getPiece = function(x, y, color, image){
             var longer_dist = (x_dist > y_dist ? x_dist : y_dist);
             piece.anim_length =  (longer_dist * timerSpeed / 10) * 1000;
             piece.anim = new Konva.Animation(function(frame) {
-                var new_x = (piece.start_x * width / 8) + ((piece.x - piece.start_x) * (frame.time / piece.anim_length) * width / 8);
-                var new_y = (piece.start_y * width / 8) + ((piece.y - piece.start_y) * (frame.time / piece.anim_length) * width / 8);
+                var new_x = (piece.start_x * width / boardSize) + ((piece.x - piece.start_x) * (frame.time / piece.anim_length) * width / boardSize);
+                var new_y = (piece.start_y * width / boardSize) + ((piece.y - piece.start_y) * (frame.time / piece.anim_length) * width / boardSize);
                 piece.image.setX(getX(new_x));
                 piece.image.setY(getY(new_y));
 
@@ -1044,10 +1046,10 @@ var getPiece = function(x, y, color, image){
 
     piece.setDelayTimer = function(timeToDelay) {
         var rect = new Konva.Rect({
-            x: getX(piece.x * width / 8),
-            y: getY(piece.y * width / 8),
-            width: width / 8,
-            height: height / 8,
+            x: getX(piece.x * width / boardSize),
+            y: getY(piece.y * width / boardSize),
+            width: width / boardSize,
+            height: height / boardSize,
             fill: '#888822',
             opacity: 0.5
         });
@@ -1058,7 +1060,7 @@ var getPiece = function(x, y, color, image){
             // TIMER
             duration: timeToDelay,
             height: 0,
-            y: (getY(piece.y * width / 8) + (width / 8)),
+            y: (getY(piece.y * width / boardSize) + (width / boardSize)),
         });
         piece.delayRect = rect;
         tween.play();
@@ -1070,8 +1072,8 @@ var getPiece = function(x, y, color, image){
     }
 
     piece.setImagePos = function(x, y){
-        piece.image.setX(getX(this.x * width / 8));
-        piece.image.setY(getY(this.y * width / 8));
+        piece.image.setX(getX(this.x * width / boardSize));
+        piece.image.setY(getY(this.y * width / boardSize));
         pieceLayer.draw();
     }
     return piece;
@@ -1093,22 +1095,23 @@ var setupBoard = function(){
         width: width + 20,
         height: height + 20
     });
-    for(var i = 0; i < 8; i++){
-        for(var j = 0; j < 8; j++){
+
+    for(var i = 0; i < boardSize; i++){
+        for(var j = 0; j < boardSize; j++){
             var rect = new Konva.Rect({
-              x: i * (width / 8),
-              y: j * (width / 8),
-              width: width / 8,
-              height: height / 8,
+              x: i * (width / boardSize),
+              y: j * (width / boardSize),
+              width: width / boardSize,
+              height: height / boardSize,
               fill: (( (j + (i % 2) ) % 2) != 0 ? '#EEEEEE' : '#c1978e'),
             });
             boardLayer.add(rect);
         }
     }  
 
-    for(var i = 0; i < 8; i++){
+    for(var i = 0; i < boardSize; i++){
         var rank = new Konva.Text({
-            x: i * (width / 8) + (width / 16),
+            x: i * (width / boardSize) + (width / (boardSize * 2)),
             y: height + 6,
             text: String.fromCharCode(97 + i),
             fontSize: 14,
@@ -1117,8 +1120,8 @@ var setupBoard = function(){
         });
         var file = new Konva.Text({
             x: height + 6,
-            y: i * (width / 8) + (width / 16),
-            text: 8 - i,
+            y: i * (width / boardSize) + (boardSize * 2),
+            text: boardSize - i,
             fontSize: 14,
             fontFamily: 'Calibri',
             fill: 'black'
@@ -1146,8 +1149,8 @@ var text = new Konva.Text({
 stage.on("dragstart", function(e){
     //e.target.moveTo(tempLayer);
     var pos = stage.getPointerPosition();
-	e.target.offsetX(e.target.x() - pos.x + (width  / 8 / 2));
-	e.target.offsetY(e.target.y() - pos.y + (height / 8 / 2));
+	e.target.offsetX(e.target.x() - pos.x + (width  / boardSize / 2));
+	e.target.offsetY(e.target.y() - pos.y + (height / boardSize / 2));
     pieceLayer.draw();
 });
 
@@ -1219,6 +1222,7 @@ input.keydown(function(e) {
             'c' : 'chat',
             'message' : message,
         };
+        console.log(msg);
         // send the message as an ordinary text
         sendMsg(msg);
         $(this).val('');
@@ -1235,7 +1239,7 @@ function addGameMessage(author, message, color, textcolor, dt) {
     game_chatContent.append('<p><span style="color:' + color + '">' + author + '</span><span style="font-size: 12px;color:grey"> ' +
             + (dt.getHours() < 10 ? '0' + dt.getHours() : dt.getHours()) + ':'
             + (dt.getMinutes() < 10 ? '0' + dt.getMinutes() : dt.getMinutes())
-            + '</span> ' + escapeHtml(message) + '</p>');
+            + '</span> ' + message + '</p>');
     game_chatContent.scrollTop = game_chatContent.scrollHeight;
 }
 

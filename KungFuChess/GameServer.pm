@@ -199,7 +199,7 @@ sub _init {
     if ($ai) {
         print "initalizing stockfish...\n";
         my($cout, $cin);
-        my $pid = open2($cout, $cin, $cfg->param('path_to_stockfish') . ' 2>&1 | tee /var/log/stockfish.log');
+        my $pid = open2($cout, $cin, $cfg->param('path_to_stockfish') . ' 2>&1 | tee /var/log/stockfish/stockfish.log');
         $cout->blocking(0);
         $self->{ai_out} = $cout;
         $self->{ai_in}  = $cin;
@@ -517,7 +517,7 @@ sub sendAllGamePieces {
     my @msgs = ();
     foreach my $r ( qw(8 7 6 5 4 3 2 1) ) {
         foreach my $f ( 'a' .. 'h' ) {
-            my $chr = KungFuChess::Bitboards::_getPiece($f . $r);
+            my $chr = KungFuChess::Bitboards::_getPiece($f, $r);
             if ($chr) {
                 my $msg = {
                     'c' => 'spawn',
@@ -677,6 +677,9 @@ sub moveIfLegal {
                 $moving_to_bb = KungFuChess::Bitboards::shift_BB($fr_bb, $dir);
             }
 
+            ### TODO replace this with a perfect hash of all 64 bb destinations
+            ### only check this if the moving bitboard is occupied.
+            ### if the piece is ours, stop here.
             if (exists($self->{activeMoves}->{$moving_to_bb})) {
                 my $themStartTime = $self->{activeMoves}->{$moving_to_bb};
                 print "collision detected, me: $startTime vs $themStartTime\n"; 

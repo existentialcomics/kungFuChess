@@ -28,6 +28,8 @@ sub _init {
 
     if (defined($data->{userId})) { 
         return $self->_loadById($data->{userId});
+    } elsif (defined($data->{auth_token})) { 
+        return $self->_loadByAuth($data->{auth_token});
     } elsif (defined($data->{screenname})) { 
         return $self->_loadByScreenname($data->{screenname});
     } elsif (defined($data->{row})) { 
@@ -292,6 +294,23 @@ sub _loadById {
         WHERE player_id = ?',
         { 'Slice' => {} },
         $userId
+    );
+
+    my $row = shift @$profileRows;
+    return $self->_loadByRow($row);
+}
+
+
+sub _loadByAuth {
+    my $self = shift;
+    my $authToken = shift;
+
+    my $profileRows = $self->{dbh}->selectall_arrayref('
+        SELECT *
+        FROM players
+        WHERE auth_token = ?',
+        { 'Slice' => {} },
+        $authToken
     );
 
     my $row = shift @$profileRows;

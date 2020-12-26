@@ -607,12 +607,23 @@ sub createGame {
 
 get '/register' => sub {
     my $c = shift;
+    my $user = $c->current_user();
+    $c->stash('user' => $user);
     $c->render('template' => 'register', format => 'html', handler => 'ep');
 };
 
 post '/register' => sub {
     my $c = shift;
+    my $user = $c->current_user();
+    $c->stash('user' => $user);
+
     my ($u, $p) = ($c->req->param('username'), $c->req->param('password'));
+
+    my $existing = app->db()->selectall_arrayref('SELECT * FROM players WHERE screenname = ?', {}, $u);
+    if ($existing) {
+        $c->stash('alertDanger' => 'Username ' . $u . ' already exists!');
+        return $c->render('template' => 'register', format => 'html', handler => 'ep');
+    }
     $c->db()->do('INSERT INTO players (screenname, password)
             VALUES (?, ?)', {}, $u, encryptPassword($p));
 

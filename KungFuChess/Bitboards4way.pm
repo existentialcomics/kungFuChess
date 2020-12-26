@@ -3,23 +3,26 @@
 use strict;
 #use warnings;
 
-package KungFuChess::Bitboards;
+package KungFuChess::Bitboards4way;
+use parent 'KungFuChess::Bitboards';
 use Math::BigInt;
 
 use constant ({
     NO_COLOR => 0,
     WHITE    => 1,
     BLACK    => 2,
+    RED      => 3,
+    GREEN    => 4,
 
     DIR_NONE =>  0,
-    NORTH =>  8,
+    NORTH =>  16,
     EAST  =>  1,
-    SOUTH => -8,
+    SOUTH => -16,
     WEST  => -1,
-    NORTH_EAST =>  9, # north + east
-    SOUTH_EAST => -7,
-    SOUTH_WEST => -9,
-    NORTH_WEST =>  7,
+    NORTH_EAST =>  17, # north + east
+    SOUTH_EAST => -15,
+    SOUTH_WEST => -17,
+    NORTH_WEST =>  15,
 
     MOVE_NONE       => 0,
     MOVE_NORMAL     => 1,
@@ -30,47 +33,121 @@ use constant ({
     MOVE_PUT_PIECE  => 6,
     MOVE_PROMOTE    => 7,
 
-    FILES => { 
-        a => 0x0101010101010101,
-        b => 0x0101010101010101 << 1,
-        c => 0x0101010101010101 << 2,
-        d => 0x0101010101010101 << 3,
-        e => 0x0101010101010101 << 4,
-        f => 0x0101010101010101 << 5,
-        g => 0x0101010101010101 << 6,
-        h => 0x0101010101010101 << 7,
+    WHITE_PAWN   => 001,
+    WHITE_ROOK   => 002,
+    WHITE_KNIGHT => 003,
+    WHITE_BISHOP => 004,
+    WHITE_KING   => 005,
+    WHITE_QUEEN  => 006,
+
+    BLACK_PAWN   => 101,
+    BLACK_ROOK   => 102,
+    BLACK_KNIGHT => 103,
+    BLACK_BISHOP => 104,
+    BLACK_KING   => 105,
+    BLACK_QUEEN  => 106,
+
+    RED_PAWN   => 201,
+    RED_ROOK   => 202,
+    RED_KNIGHT => 203,
+    RED_BISHOP => 204,
+    RED_KING   => 205,
+    RED_QUEEN  => 206,
+
+    GREEN_PAWN   => 301,
+    GREEN_ROOK   => 302,
+    GREEN_KNIGHT => 303,
+    GREEN_BISHOP => 304,
+    GREEN_KING   => 305,
+    GREEN_QUEEN  => 306,
+
+# binary number for file 1 (12x12)
+# 100000000000
+# 100000000000
+# 100000000000
+# 100000000000
+# 100000000000
+# 100000000000
+# 100000000000
+# 100000000000
+# 100000000000
+# 100000000000
+# 100000000000
+# 100000000000
+# hex number:
+# 800800800800800800800800800800800800
+    FILES => {
+        a  => Math::BigInt->new('0x800800800800800800800800800800800800'),
+        b  => Math::BigInt->new('0x800800800800800800800800800800800800') >> 1,
+        c  => Math::BigInt->new('0x800800800800800800800800800800800800') >> 2,
+        d  => Math::BigInt->new('0x800800800800800800800800800800800800') >> 3,
+        e  => Math::BigInt->new('0x800800800800800800800800800800800800') >> 4,
+        f  => Math::BigInt->new('0x800800800800800800800800800800800800') >> 5,
+        g  => Math::BigInt->new('0x800800800800800800800800800800800800') >> 6,
+        h  => Math::BigInt->new('0x800800800800800800800800800800800800') >> 7,
+        i  => Math::BigInt->new('0x800800800800800800800800800800800800') >> 8,
+        j  => Math::BigInt->new('0x800800800800800800800800800800800800') >> 9,
+        k  => Math::BigInt->new('0x800800800800800800800800800800800800') >> 10,
+        l  => Math::BigInt->new('0x800800800800800800800800800800800800') >> 11,
     },
 
+# binary number for file 1:
+# 000000000000
+# 000000000000
+# 000000000000
+# 000000000000
+# 000000000000
+# 000000000000
+# 000000000000
+# 000000000000
+# 000000000000
+# 000000000000
+# 000000000000
+# 111111111111
+# hex number:
+# 0000000000000000000000000000FFFF
     RANKS => {
-        1 => 0x00000000000000FF,
-        2 => 0x000000000000FF00,
-        3 => 0x0000000000FF0000,
-        4 => 0x00000000FF000000,
-        5 => 0x000000FF00000000,
-        6 => 0x0000FF0000000000,
-        7 => 0x00FF000000000000,
-        8 => 0xFF00000000000000,
+        1  => Math::BigInt->new('0x000000000000000000000000000000000FFF'),
+        2  => Math::BigInt->new('0x000000000000000000000000000000FFF000'),
+        3  => Math::BigInt->new('0x000000000000000000000000000FFF000000'),
+        4  => Math::BigInt->new('0x000000000000000000000000FFF000000000'),
+        5  => Math::BigInt->new('0x000000000000000000000FFF000000000000'),
+        6  => Math::BigInt->new('0x000000000000000000FFF000000000000000'),
+        7  => Math::BigInt->new('0x000000000000000FFF000000000000000000'),
+        8  => Math::BigInt->new('0x000000000000FFF000000000000000000000'),
+        9  => Math::BigInt->new('0x000000000FFF000000000000000000000000'),
+        10 => Math::BigInt->new('0x000000FFF000000000000000000000000000'),
+        11 => Math::BigInt->new('0x000FFF000000000000000000000000000000'),
+        12 => Math::BigInt->new('0xFFF000000000000000000000000000000000'),
     },
 
     FILE_TO_Y => {
-        a => 8,
-        b => 7,
-        c => 6,
-        d => 5,
-        e => 4,
-        f => 3,
-        g => 2,
-        h => 1,
+        a => 16,
+        b => 15,
+        c => 14,
+        d => 13,
+        e => 12,
+        f => 11,
+        g => 10,
+        h => 9,
+        i => 8,
+        j => 7,
+        k => 6,
+        l => 5,
     },
     RANK_TO_X => {
-        1 => 8,
-        2 => 7,
-        3 => 6,
-        4 => 5,
-        5 => 4,
-        6 => 3,
-        7 => 2,
-        8 => 1,
+        1 => 16,
+        2 => 15,
+        3 => 14,
+        4 => 13,
+        5 => 12,
+        6 => 11,
+        7 => 10,
+        8 => 9,
+        9 => 8,
+        10 => 7,
+        11 => 6,
+        12 => 5,
     },
 });
 
@@ -80,19 +157,21 @@ use constant ({
 ### init all bitboards to zero
 
 ### piece types
-my $pawns    = 0x0000000000000000;
-my $knights  = 0x0000000000000000;
-my $bishops  = 0x0000000000000000;
-my $rooks    = 0x0000000000000000;
-my $queens   = 0x0000000000000000;
-my $kings    = 0x0000000000000000;
+my $pawns    = Math::BigInt->new('0x00000000000000000000000000000000');
+my $knights  = Math::BigInt->new('0x00000000000000000000000000000000');
+my $bishops  = Math::BigInt->new('0x00000000000000000000000000000000');
+my $rooks    = Math::BigInt->new('0x00000000000000000000000000000000');
+my $queens   = Math::BigInt->new('0x00000000000000000000000000000000');
+my $kings    = Math::BigInt->new('0x00000000000000000000000000000000');
 
 ### colors
-my $white    = 0x0000000000000000;
-my $black    = 0x0000000000000000;
-my $occupied = 0x0000000000000000;
+my $white    = Math::BigInt->new('0x00000000000000000000000000000000');
+my $black    = Math::BigInt->new('0x00000000000000000000000000000000');
+my $red      = Math::BigInt->new('0x00000000000000000000000000000000');
+my $green    = Math::BigInt->new('0x00000000000000000000000000000000');
+my $occupied = Math::BigInt->new('0x00000000000000000000000000000000');
 
-my $enPassant = 0x0000000000000000;
+my $enPassant = Math::BigInt->new('0x00000000000000000000000000000000');
 
 my $whiteCastleK  = RANKS->{1} & FILES->{'e'};
 my $blackCastleK  = RANKS->{8} & FILES->{'e'};
@@ -102,114 +181,156 @@ my $whiteQCastleR = RANKS->{1} & FILES->{'a'};
 my $blackQCastleR = RANKS->{8} & FILES->{'a'};
 
 ### frozen pieces, can't move
-my $frozenBB = 0x0000000000000000;
+my $frozenBB = Math::BigInt->new('0x00000000000000000000000000000000');
 ### pieces currently moving, don't attack these!
-my $movingBB = 0x0000000000000000;
-### these track how long a piece has moved thus far
-### used to resolve collisions between two moving pieces
-my $momentumOccupied = [
-    0x0000000000000000,
-    0x0000000000000000,
-    0x0000000000000000,
-    0x0000000000000000,
-    0x0000000000000000,
-    0x0000000000000000,
-    0x0000000000000000,
-    0x0000000000000000
-];
+my $movingBB = Math::BigInt->new('0x00000000000000000000000000000000');
 
 sub setupInitialPosition {
-    ### pawns
-    $occupied |= RANKS->{2};
-    $pawns    |= RANKS->{2};
-    $white    |= RANKS->{2};
-        
     # rook 1
-    $occupied |= (FILES->{a} & RANKS->{1});
-    $rooks    |= (FILES->{a} & RANKS->{1});
-    $white    |= (FILES->{a} & RANKS->{1});
+    $occupied |= (FILES->{c} & RANKS->{1});
+    $rooks    |= (FILES->{c} & RANKS->{1});
+    $white    |= (FILES->{c} & RANKS->{1});
+    # pawn 
+    $occupied |= (FILES->{c} & RANKS->{2});
+    $pawns    |= (FILES->{c} & RANKS->{2});
+    $white    |= (FILES->{c} & RANKS->{2});
         
     # knight 1
-    $occupied |= (FILES->{b} & RANKS->{1});
-    $knights  |= (FILES->{b} & RANKS->{1});
-    $white    |= (FILES->{b} & RANKS->{1});
+    $occupied |= (FILES->{d} & RANKS->{1});
+    $knights  |= (FILES->{d} & RANKS->{1});
+    $white    |= (FILES->{d} & RANKS->{1});
+    # pawn 
+    $occupied |= (FILES->{d} & RANKS->{2});
+    $pawns    |= (FILES->{d} & RANKS->{2});
+    $white    |= (FILES->{d} & RANKS->{2});
         
     # bishop 1
-    $occupied |= (FILES->{c} & RANKS->{1});
-    $bishops  |= (FILES->{c} & RANKS->{1});
-    $white    |= (FILES->{c} & RANKS->{1});
+    $occupied |= (FILES->{e} & RANKS->{1});
+    $bishops  |= (FILES->{e} & RANKS->{1});
+    $white    |= (FILES->{e} & RANKS->{1});
+    # pawn 
+    $occupied |= (FILES->{e} & RANKS->{2});
+    $pawns    |= (FILES->{e} & RANKS->{2});
+    $white    |= (FILES->{e} & RANKS->{2});
         
     # queen
-    $occupied |= (FILES->{d} & RANKS->{1});
-    $queens   |= (FILES->{d} & RANKS->{1});
-    $white    |= (FILES->{d} & RANKS->{1});
+    $occupied |= (FILES->{f} & RANKS->{1});
+    $queens   |= (FILES->{f} & RANKS->{1});
+    $white    |= (FILES->{f} & RANKS->{1});
+    # pawn 
+    $occupied |= (FILES->{f} & RANKS->{2});
+    $pawns    |= (FILES->{f} & RANKS->{2});
+    $white    |= (FILES->{f} & RANKS->{2});
         
     # king
-    $occupied |= (FILES->{e} & RANKS->{1});
-    $kings    |= (FILES->{e} & RANKS->{1});
-    $white    |= (FILES->{e} & RANKS->{1});
+    $occupied |= (FILES->{g} & RANKS->{1});
+    $kings    |= (FILES->{g} & RANKS->{1});
+    $white    |= (FILES->{g} & RANKS->{1});
+    # pawn 
+    $occupied |= (FILES->{g} & RANKS->{2});
+    $pawns    |= (FILES->{g} & RANKS->{2});
+    $white    |= (FILES->{g} & RANKS->{2});
         
     # bishop2
-    $occupied |= (FILES->{f} & RANKS->{1});
-    $bishops  |= (FILES->{f} & RANKS->{1});
-    $white    |= (FILES->{f} & RANKS->{1});
+    $occupied |= (FILES->{h} & RANKS->{1});
+    $bishops  |= (FILES->{h} & RANKS->{1});
+    $white    |= (FILES->{h} & RANKS->{1});
+    # pawn 
+    $occupied |= (FILES->{h} & RANKS->{2});
+    $pawns    |= (FILES->{h} & RANKS->{2});
+    $white    |= (FILES->{h} & RANKS->{2});
         
     # knight2
-    $occupied |= (FILES->{g} & RANKS->{1});
-    $knights  |= (FILES->{g} & RANKS->{1});
-    $white    |= (FILES->{g} & RANKS->{1});
+    $occupied |= (FILES->{i} & RANKS->{1});
+    $knights  |= (FILES->{i} & RANKS->{1});
+    $white    |= (FILES->{i} & RANKS->{1});
+    # pawn 
+    $occupied |= (FILES->{i} & RANKS->{2});
+    $pawns    |= (FILES->{i} & RANKS->{2});
+    $white    |= (FILES->{i} & RANKS->{2});
         
     # rook2
-    $occupied |= (FILES->{h} & RANKS->{1});
-    $rooks    |= (FILES->{h} & RANKS->{1});
-    $white    |= (FILES->{h} & RANKS->{1});
+    $occupied |= (FILES->{j} & RANKS->{1});
+    $rooks    |= (FILES->{j} & RANKS->{1});
+    $white    |= (FILES->{j} & RANKS->{1});
+    # pawn 
+    $occupied |= (FILES->{j} & RANKS->{2});
+    $pawns    |= (FILES->{j} & RANKS->{2});
+    $white    |= (FILES->{j} & RANKS->{2});
 
     #### black ####
     
-    ### pawns
-    $occupied |= RANKS->{7};
-    $pawns    |= RANKS->{7};
-    $black    |= RANKS->{7};
-        
     # rook 1
-    $occupied |= (FILES->{a} & RANKS->{8});
-    $rooks    |= (FILES->{a} & RANKS->{8});
-    $black    |= (FILES->{a} & RANKS->{8});
+    $occupied |= (FILES->{c} & RANKS->{12});
+    $rooks    |= (FILES->{c} & RANKS->{12});
+    $black    |= (FILES->{c} & RANKS->{12});
+    # pawn 
+    $occupied |= (FILES->{c} & RANKS->{11});
+    $pawns    |= (FILES->{c} & RANKS->{11});
+    $black    |= (FILES->{c} & RANKS->{11});
         
     # knight 1
-    $occupied |= (FILES->{b} & RANKS->{8});
-    $knights  |= (FILES->{b} & RANKS->{8});
-    $black    |= (FILES->{b} & RANKS->{8});
+    $occupied |= (FILES->{d} & RANKS->{12});
+    $knights  |= (FILES->{d} & RANKS->{12});
+    $black    |= (FILES->{d} & RANKS->{12});
+    # pawn 
+    $occupied |= (FILES->{d} & RANKS->{11});
+    $pawns    |= (FILES->{d} & RANKS->{11});
+    $black    |= (FILES->{d} & RANKS->{11});
         
     # bishop 1
-    $occupied |= (FILES->{c} & RANKS->{8});
-    $bishops  |= (FILES->{c} & RANKS->{8});
-    $black    |= (FILES->{c} & RANKS->{8});
+    $occupied |= (FILES->{e} & RANKS->{12});
+    $bishops  |= (FILES->{e} & RANKS->{12});
+    $black    |= (FILES->{e} & RANKS->{12});
+    # pawn 
+    $occupied |= (FILES->{e} & RANKS->{11});
+    $pawns    |= (FILES->{e} & RANKS->{11});
+    $black    |= (FILES->{e} & RANKS->{11});
         
     # queen
-    $occupied |= (FILES->{d} & RANKS->{8});
-    $queens   |= (FILES->{d} & RANKS->{8});
-    $black    |= (FILES->{d} & RANKS->{8});
+    $occupied |= (FILES->{f} & RANKS->{12});
+    $queens   |= (FILES->{f} & RANKS->{12});
+    $black    |= (FILES->{f} & RANKS->{12});
+    # pawn 
+    $occupied |= (FILES->{f} & RANKS->{11});
+    $pawns    |= (FILES->{f} & RANKS->{11});
+    $black    |= (FILES->{f} & RANKS->{11});
         
     # king
-    $occupied |= (FILES->{e} & RANKS->{8});
-    $kings    |= (FILES->{e} & RANKS->{8});
-    $black    |= (FILES->{e} & RANKS->{8});
+    $occupied |= (FILES->{g} & RANKS->{12});
+    $kings    |= (FILES->{g} & RANKS->{12});
+    $black    |= (FILES->{g} & RANKS->{12});
+    # pawn 
+    $occupied |= (FILES->{g} & RANKS->{11});
+    $pawns    |= (FILES->{g} & RANKS->{11});
+    $black    |= (FILES->{g} & RANKS->{11});
         
     # bishop2
-    $occupied |= (FILES->{f} & RANKS->{8});
-    $bishops  |= (FILES->{f} & RANKS->{8});
-    $black    |= (FILES->{f} & RANKS->{8});
+    $occupied |= (FILES->{h} & RANKS->{12});
+    $bishops  |= (FILES->{h} & RANKS->{12});
+    $black    |= (FILES->{h} & RANKS->{12});
+    # pawn 
+    $occupied |= (FILES->{h} & RANKS->{11});
+    $pawns    |= (FILES->{h} & RANKS->{11});
+    $black    |= (FILES->{h} & RANKS->{11});
         
     # knight2
-    $occupied |= (FILES->{g} & RANKS->{8});
-    $knights  |= (FILES->{g} & RANKS->{8});
-    $black    |= (FILES->{g} & RANKS->{8});
+    $occupied |= (FILES->{i} & RANKS->{12});
+    $knights  |= (FILES->{i} & RANKS->{12});
+    $black    |= (FILES->{i} & RANKS->{12});
+    # pawn 
+    $occupied |= (FILES->{i} & RANKS->{11});
+    $pawns    |= (FILES->{i} & RANKS->{11});
+    $black    |= (FILES->{i} & RANKS->{11});
         
     # rook2
-    $occupied |= (FILES->{h} & RANKS->{8});
-    $rooks    |= (FILES->{h} & RANKS->{8});
-    $black    |= (FILES->{h} & RANKS->{8});
+    $occupied |= (FILES->{j} & RANKS->{12});
+    $rooks    |= (FILES->{j} & RANKS->{12});
+    $black    |= (FILES->{j} & RANKS->{12});
+    # pawn 
+    $occupied |= (FILES->{j} & RANKS->{11});
+    $pawns    |= (FILES->{j} & RANKS->{11});
+    $black    |= (FILES->{j} & RANKS->{11});
 }
 
 ### copied from shift function in Stockfish
@@ -229,6 +350,8 @@ sub _removePiece {
     $occupied &= ~$pieceBB;
     $white    &= ~$pieceBB;
     $black    &= ~$pieceBB;
+    $red      &= ~$pieceBB;
+    $green    &= ~$pieceBB;
     $pawns    &= ~$pieceBB;
     $rooks    &= ~$pieceBB;
     $bishops  &= ~$pieceBB;
@@ -238,10 +361,6 @@ sub _removePiece {
 
     $frozenBB &= ~$pieceBB;
     $movingBB &= ~$pieceBB;
-
-    for (0 .. 7) {
-        $momentumOccupied->[$_] &= ~$pieceBB;
-    }
 }
 
 sub setFrozen {
@@ -267,7 +386,7 @@ sub blockers {
     while ($fromBB != $toBB) {
         $fromBB = shift_BB($fromBB, $dirBB);
         if (! ($fromBB & $movingBB) ){
-            if ($fromBB == 0)         { return 0; } ### off the board
+            if ($fromBB == 0)         { return 0; } ### of the board
             if ($fromBB & $blockingBB){ return 0; }
         }
     }
@@ -286,14 +405,14 @@ sub isLegalMove {
     my $fr_file = FILES->{$fr_f};
     my $to_rank = RANKS->{$to_r};
     my $to_file = FILES->{$to_f};
-    my $fr_bb = $fr_rank & $fr_file;
-    my $to_bb = $to_rank & $to_file;
+    my $fr_bb = Math::BigInt->new($fr_rank & $fr_file);
+    my $to_bb = Math::BigInt->new($to_rank & $to_file);
 
     my $checkBlockers = 0;
 
     my @noMove = (NO_COLOR, MOVE_NONE, DIR_NONE, $fr_bb, $to_bb);
 
-    if (! $occupied & $fr_bb ) {
+    if (! ($occupied & $fr_bb) ) {
         print "from not occupied\n";
         return @noMove;
     }
@@ -481,7 +600,9 @@ sub _piecesUs {
 }
 sub _piecesThem {
     if ($_[0] == WHITE) { return $black; }
-    return $white;
+    if ($_[0] == WHITE) { return $black; }
+    if ($_[0] == WHITE) { return $black; }
+    if ($_[0] == WHITE) { return $black; }
 }
 
 ### if this is called on a non-empty square it will cause problems
@@ -548,7 +669,7 @@ sub _getPieceBB {
     if (! ($occupied & $squareBB)) {
         return undef;
     }
-    my $chr = '';
+    my $chr = 'x';
     if ( $pawns & $squareBB) {
         $chr = 'p';
     } elsif ($rooks & $squareBB) {
@@ -611,10 +732,10 @@ sub move {
 sub pretty {
     my $board = '';
     print "pretty...\n";
-    $board .= "\n   +---+---+---+---+---+---+---+----\n";
-    foreach my $r ( qw(8 7 6 5 4 3 2 1) ) {
-        foreach my $f ( 'a' .. 'h' ) {
-            if ($f eq 'a'){ $board .= " $r | "; }
+    $board .= "\n   +---+---+---+---+---+---+---+---+---+---+---+---+\n";
+    foreach my $r ( qw(12 11 10 9 8 7 6 5 4 3 2 1) ) {
+        foreach my $f ( 'a' .. 'l' ) {
+            if ($f eq 'a'){ $board .= sprintf('%2s | ', $r); }
             my $chr = _getPiece($f, $r);
             if ($chr) {
                 $board .= "$chr | ";
@@ -622,23 +743,41 @@ sub pretty {
                 $board .= "  | ";
             }
         }
-        $board .= "\n   +---+---+---+---+---+---+---+----\n";
+        $board .= "\n   +---+---+---+---+---+---+---+---+---+---+---+---+\n";
     }
-    $board .= "     a   b   c   d   e   f   g   h  \n";
+    $board .= "     a   b   c   d   e   f   g   h   i   j   k   l\n";
     return $board;
 }
 
 sub prettyMoving {
     return prettyBoard($movingBB);
 }
-
+sub prettyOccupied {
+    return prettyBoard($occupied);
+}
+sub prettyBoardTest {
+    #my $bb = FILES->{'a'};
+    my $bb = FILES->{'e'};
+    #my $bb = RANKS->{'1'};
+    #my $bb = RANKS->{'1'} & FILES->{'c'};
+    #my $bb = RANKS->{'2'} | FILES->{'c'};
+    return prettyBoard($bb);
+}
+#10000000000010000000000010000000000010000000000010000000000010000000000010000000000010000000000010000000000010000000000010111111111111000000000000
 sub prettyBoard {
     my $BB = shift;
     my $board = "BB: " . $BB . "\n";;
-    $board .= "\n   +---+---+---+---+---+---+---+----\n";
-    foreach my $r ( qw(8 7 6 5 4 3 2 1) ) {
-        foreach my $f ( 'a' .. 'h' ) {
-            if ($f eq 'a'){ $board .= " $r | "; }
+    my $bin = Math::BigInt->new($BB);
+    my $bin = $bin->as_bin();
+    $bin =~ s/^0b//;
+    $bin = sprintf('%0144s', $bin);
+    while ($bin =~ m/.{12}/g) {
+        print "$&\n";
+    }
+    $board .= "\n   +---+---+---+---+---+---+---+---+---+---+---+---\n";
+    foreach my $r ( qw(12 11 10 9 8 7 6 5 4 3 2 1) ) {
+        foreach my $f ( 'a' .. 'l' ) {
+            if ($f eq 'a'){ $board .= sprintf('%2s | ', $r); }
                 my $rf = RANKS->{$r} & FILES->{$f};
             if ($BB & $rf) {
                 $board .= "X | ";
@@ -646,9 +785,9 @@ sub prettyBoard {
                 $board .= "  | ";
             }
         }
-        $board .= "\n   +---+---+---+---+---+---+---+----\n";
+        $board .= "\n   +---+---+---+---+---+---+---+---+---+---+---+---\n";
     }
-    $board .= "     a   b   c   d   e   f   g   h  \n";
+    $board .= "     a   b   c   d   e   f   g   h   i   j   k   l\n";
     return $board;
 }
 
