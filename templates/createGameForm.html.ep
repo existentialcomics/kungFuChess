@@ -19,6 +19,19 @@
                         Lightning
                     </label>
                 </div>
+                <label for="colFormLabelLg" class="col col-form-label col-form-label-lg">Number of Players</label>
+                <div class="form-radio">
+                    <input class="form-radio-input" type="radio" name="gamePlayersType" id="2wayRatingRadio" value="2way" checked>
+                    <label class="form-radio-label" for="2wayRatingRadio">
+                        2way
+                    </label>
+                </div>
+                <div class="form-radio">
+                    <input class="form-radio-input" type="radio" name="gamePlayersType" id="4wayRatingRadio" value="4way">
+                    <label class="form-radio-label" for="4wayRatingRadio">
+                        4way
+                    </label>
+                </div>
                 <label for="colFormLabelLg" class="col col-form-label col-form-label-lg">Game Type</label>
                 <div class="form-radio">
                     <input class="form-radio-input" type="radio" name="gameType" id="standardRatingRadio" value="rated" 

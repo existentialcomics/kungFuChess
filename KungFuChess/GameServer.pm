@@ -177,9 +177,10 @@ sub _init {
 	my $gameKey = shift;
 	my $authKey = shift;
 	my $speed = shift;
+	my $mode = shift;
 	my $ai = shift;
 
-    print "game key: $gameKey, authkey: $authKey, speed: $speed\n";
+    print "game key: $gameKey, authkey: $authKey, speed: $speed, mode: $mode\n";
     
     my $cfg = new Config::Simple('kungFuChess.cnf');
     $self->{config} = $cfg;
@@ -231,9 +232,11 @@ sub _init {
         [ undef, undef, undef, undef, undef, undef, undef, undef ]
     ];
 
-	my $client = AnyEvent::WebSocket::Client->new;
+	my $client = AnyEvent::WebSocket::Client->new(
+        ssl_no_verify => 1,   
+    );
 
-	$client->connect("ws://localhost:3000/ws")->cb(sub {
+	$client->connect("wss://localhost:3000/ws")->cb(sub {
 		# make $connection an our variable rather than
 		# my so that it will stick around.  Once the
 		# connection falls out of scope any callbacks
@@ -924,7 +927,7 @@ sub getFENstring {
     my $colGapCount = 0;
 
     for ($colCount = 0; $colCount < 8; $colCount++) {
-        my $bb = KungFuChess::Bitboards::_getBBat('a' . (8 - $colCount));
+        my $bb = KungFuChess::Bitboards::_getBBat('a', (8 - $colCount));
         for ($rowCount = 0; $rowCount < 8; $rowCount++) {
 
             my $piece = KungFuChess::Bitboards::_getPieceBB($bb);

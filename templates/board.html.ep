@@ -64,6 +64,7 @@
 	var authId   = "<%= $authId %>";
 	var anonKey   = "<%= $anonKey %>";
 	var gameSpeed     = "<%= $gameSpeed %>";
+	var gameType      = "<%= $gameType %>";
 	var timerSpeed    = "<%= $timerSpeed %>";
 	var timerRecharge = "<%= $timerRecharge %>";
     var initialMessages = JSON.parse('<%== ($positionGameMsgs ? $positionGameMsgs : '[]') %>');

@@ -16,7 +16,7 @@
 <div id="navbar">
 <ul>
     <li>
-    <a href="/">Home</a>
+    <a href="/"><img src='/wushuChessLogo.png' height=50 alt="Home"><img></a>
     </li>
     <li>
     <% if ($user){ %>

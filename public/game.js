@@ -5,6 +5,13 @@ var cancelCheckPool = false;
 var rematchPoolRunning = false;
 var cancelRematchPool = false;
 var boardSize = 8;
+var ranks = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
+var files = [1, 2, 3, 4, 5, 6, 7, 8];
+if (gameType == '4way') {
+    boardSize = 12;
+    ranks = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l'];
+    files = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+}
 
 function checkPool(originalThread = false) {
     if (cancelCheckPool) {
@@ -124,152 +131,14 @@ var delayLayer = new Konva.Layer();
 
 var pieces = {};
 var piecesByImageId = {};
-var piecesByBoardPos = {
-    'a1' : null,
-    'b1' : null,
-    'c1' : null,
-    'd1' : null,
-    'e1' : null,
-    'f1' : null,
-    'g1' : null,
-    'h1' : null,
-
-    'a2' : null,
-    'b2' : null,
-    'c2' : null,
-    'd2' : null,
-    'e2' : null,
-    'f2' : null,
-    'g2' : null,
-    'h2' : null,
-
-    'a3' : null,
-    'b3' : null,
-    'c3' : null,
-    'd3' : null,
-    'e3' : null,
-    'f3' : null,
-    'g3' : null,
-    'h3' : null,
-
-    'a4' : null,
-    'b4' : null,
-    'c4' : null,
-    'd4' : null,
-    'e4' : null,
-    'f4' : null,
-    'g4' : null,
-    'h4' : null,
-
-    'a5' : null,
-    'b5' : null,
-    'c5' : null,
-    'd5' : null,
-    'e5' : null,
-    'f5' : null,
-    'g5' : null,
-    'h5' : null,
-
-    'a6' : null,
-    'b6' : null,
-    'c6' : null,
-    'd6' : null,
-    'e6' : null,
-    'f6' : null,
-    'g6' : null,
-    'h6' : null,
-
-    'a7' : null,
-    'b7' : null,
-    'c7' : null,
-    'd7' : null,
-    'e7' : null,
-    'f7' : null,
-    'g7' : null,
-    'h7' : null,
-
-    'a8' : null,
-    'b8' : null,
-    'c8' : null,
-    'd8' : null,
-    'e8' : null,
-    'f8' : null,
-    'g8' : null,
-    'h8' : null,
-};
-var suspendedPieces = {
-    'a1' : null,
-    'b1' : null,
-    'c1' : null,
-    'd1' : null,
-    'e1' : null,
-    'f1' : null,
-    'g1' : null,
-    'h1' : null,
-
-    'a2' : null,
-    'b2' : null,
-    'c2' : null,
-    'd2' : null,
-    'e2' : null,
-    'f2' : null,
-    'g2' : null,
-    'h2' : null,
-
-    'a3' : null,
-    'b3' : null,
-    'c3' : null,
-    'd3' : null,
-    'e3' : null,
-    'f3' : null,
-    'g3' : null,
-    'h3' : null,
-
-    'a4' : null,
-    'b4' : null,
-    'c4' : null,
-    'd4' : null,
-    'e4' : null,
-    'f4' : null,
-    'g4' : null,
-    'h4' : null,
-
-    'a5' : null,
-    'b5' : null,
-    'c5' : null,
-    'd5' : null,
-    'e5' : null,
-    'f5' : null,
-    'g5' : null,
-    'h5' : null,
-
-    'a6' : null,
-    'b6' : null,
-    'c6' : null,
-    'd6' : null,
-    'e6' : null,
-    'f6' : null,
-    'g6' : null,
-    'h6' : null,
-
-    'a7' : null,
-    'b7' : null,
-    'c7' : null,
-    'd7' : null,
-    'e7' : null,
-    'f7' : null,
-    'g7' : null,
-    'h7' : null,
-
-    'a8' : null,
-    'b8' : null,
-    'c8' : null,
-    'd8' : null,
-    'e8' : null,
-    'f8' : null,
-    'g8' : null,
-    'h8' : null,
-};
+var piecesByBoardPos = {};
+var suspendedPieces = {};
+ranks.forEach(function (rank, index) {
+    ranks.forEach(function (file, index) {
+        piecesByBoardPos["" + rank + file] = null;
+        suspendedPieces["" + rank + file] = null;
+    });
+});
 
 // hardcoded translation of BB squares to board squares
 var bitboardToSquare = {
@@ -344,32 +213,25 @@ var getSquareFromBB = function(bb) {
 }
 
 // TODO build dynamically based on boardSize (number of squares)
-var xToFile = [
-    'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'
-];
-var yToRank = [
-    '8','7', '6', '5', '4', '3', '2', '1'
-];
-var rankToX = {
-    '8' : '0',
-    '7' : '1',
-    '6' : '2',
-    '5' : '3',
-    '4' : '4',
-    '3' : '5',
-    '2' : '6',
-    '1' : '7',
+// this are flipped lol whatever
+var xToFile = ranks.slice();
+var yToRank = files.slice();
+yToRank.reverse();
+
+var rankToX = {};
+var fileToY = {};
+
+var rankLength = ranks.length;
+var fileLength = files.length;
+
+for (var i = 0; i < rankLength; i++) {
+    rankToX[yToRank[i]] = i;
 }
-var fileToY = {
-    'a' : '0',
-    'b' : '1',
-    'c' : '2',
-    'd' : '3',
-    'e' : '4',
-    'f' : '5',
-    'g' : '6',
-    'h' : '7',
+for (var i = 0; i < fileLength; i++) {
+    fileToY[xToFile[i]] = i;
 }
+console.log(xToFile);
+console.log(yToRank);
 
 var globalIdCount = 1;
 var replayMode = false;
@@ -453,7 +315,7 @@ var bindGameEvents = function(ws_conn) {
         );
     };
 };
-var conn = new WebSocket("wss://" + wsDomain + ":3000/ws");
+var conn = new WebSocket("wss://" + wsDomain + "/ws");
 bindGameEvents(conn);
 
 var game_reconnectInterval;
@@ -461,7 +323,7 @@ var game_reconnectMain = function() {
     if (isConnected == false) {
         $("#connectionStatus").html("Reconnecting...");
         conn = null;
-        conn = new WebSocket("wss://" + wsDomain + ":3000/ws");
+        conn = new WebSocket("wss://" + wsDomain + "/ws");
         bindGameEvents(main_conn);
     } else {
         reconnectInterval = null;
@@ -545,6 +407,9 @@ var handleMessage = function(msg) {
     } else if (msg.c == 'moveAnimate'){ // called when a player moves a piece
         var m = msg.move.split('');
 
+        console.log('moveAnimate');
+        console.log(msg);
+
         var from = m[0].concat(m[1]);
         var to   = m[2].concat(m[3]);
         
@@ -576,6 +441,7 @@ var handleMessage = function(msg) {
             var pieceFrom = piecesByBoardPos[from];
             console.log('animating piece');
             console.log(pieceFrom);
+            console.log(m);
             var y = rankToX[m[3]];
             var x = fileToY[m[2]];
             pieceFrom.move(x, y);
@@ -648,27 +514,33 @@ var handleMessage = function(msg) {
         console.log(piecesByBoardPos);
 
         if (piece == null) {
-            var type = chr.toLowerCase();
+            var type = chr;
 
             var color = 'white';
-            if (type === chr) {
+            if (type > 100) {
                 color = 'black';
+            }
+            if (type > 200) {
+                color = 'red';
+            }
+            if (type > 200) {
+                color = 'green';
             }
 
             var y = rankToX[r];
             var x = fileToY[f];
 
-            if (type == 'q'){
+            if (type % 100 == 6){
                 piece = getQueen(x, y, color);
-            } else if (type == 'k'){
+            } else if (type % 100 == 5){
                 piece = getKing(x, y, color);
-            } else if (type == 'r'){
+            } else if (type % 100 == 2){
                 piece = getRook(x, y, color);
-            } else if (type == 'b'){
+            } else if (type % 100 == 4){
                 piece = getBishop(x, y, color);
-            } else if (type == 'n'){
+            } else if (type % 100 == 3){
                 piece = getKnight(x, y, color);
-            } else if (type == 'p'){
+            } else if (type % 100 == 1){
                 piece = getPawn(x, y, color);
             } 
             piece.id = maxPieceId++;
@@ -995,10 +867,10 @@ var getPiece = function(x, y, color, image){
     piecesByImageId[piece.image_id] = piece;
 
     piece.move = function(x, y){
-        if (x < 0){ return false };
-        if (y < 0){ return false };
-        if (x > 7){ return false };
-        if (y > 7){ return false };
+        //if (x < 0){ return false };
+        //if (y < 0){ return false };
+        //if (x > 7){ return false };
+        //if (y > 7){ return false };
 
         isLegal = this.legalMove(this.x - x, this.y - y);
         //if (!isLegal){
@@ -1169,7 +1041,7 @@ stage.on("dragend", function(e){
     piece.setImagePos(piece.x, piece.y);
     boardPos = getBoardPos(pos);
 
-
+    console.log(boardPos);
 	var msg = {
 		'c'  : 'move',
 		'id' : piece.id,
