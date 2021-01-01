@@ -509,9 +509,9 @@ var handleMessage = function(msg) {
         var piece  = piecesByBoardPos[msg.square];
 
         console.log('spawning at ' + m + ' piece: ' + chr);
-        console.log('current piece:');
-        console.log(piece);
-        console.log(piecesByBoardPos);
+        //console.log('current piece:');
+        //console.log(piece);
+        //console.log(piecesByBoardPos);
 
         if (piece == null) {
             var type = chr;
@@ -529,6 +529,7 @@ var handleMessage = function(msg) {
 
             var y = rankToX[r];
             var x = fileToY[f];
+            console.log('color: ' + color);
 
             if (type % 100 == 6){
                 piece = getQueen(x, y, color);
@@ -747,6 +748,10 @@ var getPawn = function(x, y, color){
     var pawnImage;
     if (color == "white"){
         pawnImage = whitePawn;
+    } else if (color == 'red') {
+        pawnImage = redPawn;
+    } else if (color == 'green') {
+        pawnImage = greenPawn;
     } else {
         pawnImage = blackPawn;
     }
@@ -770,6 +775,10 @@ var getQueen = function(x, y, color){
     var queenImage;
     if (color == "white"){
         queenImage = whiteQueen;
+    } else if (color == 'red') {
+        queenImage = redQueen;
+    } else if (color == 'green') {
+        queenImage = greenQueen;
     } else {
         queenImage = blackQueen;
     }
@@ -788,6 +797,10 @@ var getKing = function(x, y, color){
     var kingImage;
     if (color == "white"){
         kingImage = whiteKing;
+    } else if (color == 'red') {
+        kingImage = redKing;
+    } else if (color == 'green') {
+        kingImage = greenKing;
     } else {
         kingImage = blackKing;
     }
@@ -806,6 +819,10 @@ var getRook = function(x, y, color){
     var rookImage;
     if (color == "white"){
         rookImage = whiteRook;
+    } else if (color == 'red') {
+        rookImage = redRook;
+    } else if (color == 'green') {
+        rookImage = greenRook;
     } else {
         rookImage = blackRook;
     }
@@ -823,6 +840,10 @@ var getBishop = function(x, y, color){
     var bishopImage;
     if (color == "white"){
         bishopImage = whiteBishop;
+    } else if (color == 'red') {
+        bishopImage = redBishop;
+    } else if (color == 'green') {
+        bishopImage = greenBishop;
     } else {
         bishopImage = blackBishop;
     }
@@ -839,6 +860,10 @@ var getKnight = function(x, y, color){
     var knightImage;
     if (color == "white"){
         knightImage = whiteKnight;
+    } else if (color == 'red') {
+        knightImage = redKnight;
+    } else if (color == 'green') {
+        knightImage = greenKnight;
     } else {
         knightImage = blackKnight;
     }
