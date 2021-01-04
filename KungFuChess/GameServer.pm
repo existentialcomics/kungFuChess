@@ -7,10 +7,8 @@ package KungFuChess::GameServer;
 
 use AnyEvent::WebSocket::Client;
 use AnyEvent;
-use KungFuChess::Piece;
-use KungFuChess::Bitboards;
 use JSON::XS;
-use Data::Dumper;
+#use KungFuChess::Bitboards;
 use IPC::Open2;
 use Config::Simple;
 use Time::HiRes qw(time);
@@ -184,10 +182,17 @@ sub _init {
     
     my $cfg = new Config::Simple('kungFuChess.cnf');
     $self->{config} = $cfg;
+    $self->{mode} = $mode;
+    if ($self->{mode} eq '4way') {
+        $self->{ranks} = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12'];
+        $self->{files} = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l'];
+    } else {
+        $self->{ranks} = ['1', '2', '3', '4', '5', '6', '7', '8'];
+        $self->{files} = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
+    }
 
 	$self->{gamekey} = $gameKey;
 	$self->{authkey} = $authKey;
-	$self->{pieceIdCount} = 1;
 
     ### currently animating moves
     $self->{activeMoves}    = {};
@@ -208,7 +213,6 @@ sub _init {
         $self->getStockfishMsgs();
     }
 
-    ### needed for KungFuChess::Pieces 
     if ($speed eq 'standard') {
         $self->{pieceSpeed} = 1;
         $self->{pieceRecharge} = 10;
@@ -306,160 +310,6 @@ sub _init {
 sub setupInitialBoard {
 	my $self = shift;
     KungFuChess::Bitboards::setupInitialPosition();
-	my $id = $self->{pieceIdCount}++;
-	# pawns
-	foreach my $x (0..7){
-		$id++;
-		$self->{board}->{$id} = new KungFuChess::Piece(
-			 $x,
-			 1,
-			 'black',
-			 'pawn',
-			 $id,
-			 $self
-		);
-		$id++;
-		$self->{board}->{$id} = new KungFuChess::Piece(
-			 $x,
-			 6,
-			 'white',
-			 'pawn',
-			 $id,
-			 $self
-		);
-	}
-	$id++;
-	$self->{board}->{$id++} = new KungFuChess::Piece(
-			 0,
-			 0,
-			 'black',
-			 'rook',
-			 $id,
-			 $self
-	);
-	$self->{board}->{$id++} = new KungFuChess::Piece(
-			 1,
-			 0,
-			 'black',
-			 'knight',
-			 $id,
-			 $self
-	);
-	$self->{board}->{$id++} = new KungFuChess::Piece(
-			 2,
-			 0,
-			 'black',
-			 'bishop',
-			 $id,
-			 $self
-	);
-	$self->{board}->{$id++} = new KungFuChess::Piece(
-			 3,
-			 0,
-			 'black',
-			 'queen',
-			 $id,
-			 $self
-	);
-	$self->{board}->{$id++} = new KungFuChess::Piece(
-			 4,
-			 0,
-			 'black',
-			 'king',
-			 $id,
-			 $self
-	);
-	$self->{board}->{$id++} = new KungFuChess::Piece(
-			 5,
-			 0,
-			 'black',
-			 'bishop',
-			 $id,
-			 $self
-	);
-	$self->{board}->{$id++} = new KungFuChess::Piece(
-			 6,
-			 0,
-			 'black',
-			 'knight',
-			 $id,
-			 $self
-	);
-	$self->{board}->{$id++} = new KungFuChess::Piece(
-			 7,
-			 0,
-			 'black',
-			 'rook',
-			 $id,
-			 $self
-	);
-	########### WHITE
-	#
-	$self->{board}->{$id++} = new KungFuChess::Piece(
-			 0,
-			 7,
-			 'white',
-			 'rook',
-			 $id,
-			 $self
-	);
-	$self->{board}->{$id++} = new KungFuChess::Piece(
-			 1,
-			 7,
-			 'white',
-			 'knight',
-			 $id,
-			 $self
-	);
-	$self->{board}->{$id++} = new KungFuChess::Piece(
-			 2,
-			 7,
-			 'white',
-			 'bishop',
-			 $id,
-			 $self
-	);
-	$self->{board}->{$id++} = new KungFuChess::Piece(
-			 3,
-			 7,
-			 'white',
-			 'queen',
-			 $id,
-			 $self
-	);
-	$self->{board}->{$id++} = new KungFuChess::Piece(
-			 4,
-			 7,
-			 'white',
-			 'king',
-			 $id,
-			 $self
-	);
-	$self->{board}->{$id++} = new KungFuChess::Piece(
-			 5,
-			 7,
-			 'white',
-			 'bishop',
-			 $id,
-			 $self
-	);
-	$self->{board}->{$id++} = new KungFuChess::Piece(
-			 6,
-			 7,
-			 'white',
-			 'knight',
-			 $id,
-			 $self
-	);
-	$self->{board}->{$id++} = new KungFuChess::Piece(
-			 7,
-			 7,
-			 'white',
-			 'rook',
-			 $id,
-			 $self
-	);
-	$self->{pieceIdCount} = $id++;
 }
 
 sub handleMessage {
@@ -495,16 +345,6 @@ sub handleMessage {
 
 sub checkForForceDraw {
     my $self = shift;
-    my @pieces = $self->getPieces();
-    my $shortestPawnMove = 999999999999999;
-    foreach my $piece (@pieces) {
-        if ($piece->{type} eq 'pawn') {
-            if (time - $piece->{readyToMove} < $shortestPawnMove) {
-                $shortestPawnMove = time - $piece->{readyToMove};
-            }
-        }
-    }
-    if ($shortestPawnMove > 25) { return 1; }
     return 0;
 }
 
@@ -518,8 +358,8 @@ sub sendAllGamePieces {
     print KungFuChess::Bitboards::pretty();
     print "done pretty\n";
     my @msgs = ();
-    foreach my $r ( qw(8 7 6 5 4 3 2 1) ) {
-        foreach my $f ( 'a' .. 'h' ) {
+    foreach my $r ( @{ $self->{ranks} } ) {
+        foreach my $f ( @{ $self->{files} } ) {
             my $chr = KungFuChess::Bitboards::_getPiece($f, $r);
             if ($chr) {
                 my $msg = {
@@ -611,16 +451,6 @@ sub moveNotation {
             $self->moveIfLegal('black', $notation);
         }
     }
-}
-
-###
-sub getPieceAt {
-    my $self = shift;
-    my ($x, $y) = @_;
-    if ($x > 7 || $y > 7 || $x < 0 || $y < 0) {
-        return undef;
-    }
-    return $self->{boardMap}->[$x]->[$y];
 }
 
 ### looks for obvious kung fu problems with moves
@@ -896,23 +726,23 @@ sub killPieceBB {
             'bb' => $bb
         };
         $self->send($killMsg);
-    }
-    if ($piece eq 'k') {
-        my $msg = {
-            'c' => 'playerlost',
-            'color' => 'black'
-        };
-        print "sending black lost\n";
-        $self->send($msg);
-        exit; ### game over
-    } elsif ($piece eq 'K') {
-        my $msg = {
-            'c' => 'playerlost',
-            'color' => 'white'
-        };
-        print "sending white lost\n";
-        $self->send($msg);
-        exit; ### game over
+        if ($piece == KungFuChess::Bitboards::BLACK_KING) {
+            my $msg = {
+                'c' => 'playerlost',
+                'color' => 'black'
+            };
+            print "sending black lost\n";
+            $self->send($msg);
+            exit; ### game over
+        } elsif ($piece == KungFuChess::Bitboards::WHITE_KING) {
+            my $msg = {
+                'c' => 'playerlost',
+                'color' => 'white'
+            };
+            print "sending white lost\n";
+            $self->send($msg);
+            exit; ### game over
+        }
     }
 }
 

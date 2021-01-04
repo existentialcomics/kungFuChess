@@ -27,7 +27,7 @@
                     </label>
                 </div>
                 <div class="form-radio">
-                    <input class="form-radio-input" type="radio" name="gamePlayersType" id="4wayRatingRadio" value="4way">
+                    <input class="form-radio-input" type="radio" name="gamePlayersType" id="4wayRatingRadio" value="4way" disabled>
                     <label class="form-radio-label" for="4wayRatingRadio">
                         4way
                     </label>

@@ -483,9 +483,11 @@ get '/game/:gameId' => sub {
 
     my $color = 'watch';
 
-    my ($white, $black) = getPlayers($gameId);
+    my ($white, $black, $red, $green) = getPlayers($gameId);
     $c->stash('whitePlayer' => $white);
     $c->stash('blackPlayer' => $black);
+    $c->stash('redPlayer'   => $red);
+    $c->stash('greenPlayer' => $green);
     $c->stash('authId' => $user->{auth_token});
     $c->stash('anonKey' => $c->param('anonKey'));
 
@@ -525,6 +527,32 @@ get '/game/:gameId' => sub {
         if ($black->{player_id} == $user->{player_id} && $matchedKey){
             app->log->debug(" User is the black player $black->{player_id} vs $user->{player_id}" );
             $color = ($color eq 'white' ? 'both' : 'black');
+        }
+    }
+    if (defined($red->{player_id})){
+        my $matchedKey = 1;
+        if ($red->{player_id} == -1) {
+            my @row = app->db()->selectrow_array('SELECT red_anon_key FROM games WHERE game_id = ?', {}, $gameId);
+            if (@row) {
+                $matchedKey = ($row[0] eq $c->param('anonKey'));
+            }
+        }
+        if ($red->{player_id} == $user->{player_id} && $matchedKey){
+            app->log->debug(" User is the red player $red->{player_id} vs $user->{player_id}" );
+            $color = ($color eq 'both' ? 'both' : 'red');
+        }
+    }
+    if (defined($green->{player_id})){
+        my $matchedKey = 1;
+        if ($green->{player_id} == -1) {
+            my @row = app->db()->selectrow_array('SELECT green_anon_key FROM games WHERE game_id = ?', {}, $gameId);
+            if (@row) {
+                $matchedKey = ($row[0] eq $c->param('anonKey'));
+            }
+        }
+        if ($green->{player_id} == $user->{player_id} && $matchedKey){
+            app->log->debug(" User is the green player $green->{player_id} vs $user->{player_id}" );
+            $color = ($color eq 'both' ? 'both' : 'green');
         }
     }
     if ($color ne 'watch' && $game) {
@@ -572,16 +600,22 @@ sub getAnonymousUser {
 }
 
 sub createGame {
-    my ($mode, $speed, $rated, $white, $black) = @_;
+    my ($mode, $speed, $rated, $white, $black, $red, $green) = @_;
 
     my $whiteUid = ($white == ANON_USER ? create_uuid_as_string() : undef);
     my $blackUid = ($black == ANON_USER ? create_uuid_as_string() : undef);
+    my $redUid   = undef;
+    my $greenUid = undef;
+    if ($mode eq '4way') {
+        $redUid   = ($white == ANON_USER ? create_uuid_as_string() : undef);
+        $greenUid = ($black == ANON_USER ? create_uuid_as_string() : undef);
+    }
 
     my $auth = create_uuid_as_string();
 
-    my $sth = app->db()->prepare("INSERT INTO games (game_id, game_speed, game_type, white_player, black_player, rated, white_anon_key, black_anon_key)
-        VALUES (NULL, ?, ?, ?, ?, ?, ?, ?)");
-    $sth->execute($speed, $mode, $white, $black, $rated, $whiteUid, $blackUid);
+    my $sth = app->db()->prepare("INSERT INTO games (game_id, game_speed, game_type, white_player, black_player, red_player, green_player, rated, white_anon_key, black_anon_key, red_anon_key, green_anon_key)
+        VALUES (NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+    $sth->execute($speed, $mode, $white, $black, $red, $green, $rated, $whiteUid, $blackUid, $redUid, $greenUid);
 
     my $gameId = $sth->{mysql_insertid};
 
@@ -607,11 +641,11 @@ sub createGame {
     # spin up game server, wait for it to send authjoin
     app->log->debug( "starting game client $gameId, $auth" );
     # spin up game server, wait for it to send authjoin
-    my $cmd = sprintf('/usr/bin/perl ./kungFuChessGame.pl %s %s %s %s %s >>%s  2>%s &',
+    my $cmd = sprintf('/usr/bin/perl ./kungFuChessGame%s.pl %s %s %s %s >>%s  2>%s &',
+        $mode,
         $gameId,
         $auth,
         $speed,
-        $mode,
         $isAiGame,
         '/var/log/kungfuchess/game.log',
         '/var/log/kungfuchess/error.log'
@@ -1129,32 +1163,20 @@ sub endGame {
 sub getPlayers {
     my $gameId = shift;
 
-    ### TODO rating column can be delete?
-    my $ratingColumn = 'rating_standard';
-
-    my @rows = qw(screenname id rating);
-    my @white = app->db()->selectrow_array('SELECT
-        IF(white_player = -1, "anonymous", screenname) as screenname,
-        IF(white_player = -1, -1, player_id) as player_id,
-        ' . $ratingColumn . ' as rating
-            FROM games g
-            LEFT JOIN players p
-            ON g.white_player = p.player_id WHERE game_id = ?', {}, $gameId);
-
-    my @black = app->db()->selectrow_array('SELECT
-        IF(black_player = -1, "anonymous", screenname) as screenname,
-        IF(black_player = -1, -1, player_id) as player_id,
-        ' . $ratingColumn . ' as rating
-            FROM games g
-            LEFT JOIN players p
-            ON g.black_player = p.player_id WHERE game_id = ?', {}, $gameId);
-
-    my @row = app->db()->selectrow_array('SELECT white_player, black_player FROM games WHERE game_id = ?', {}, $gameId);
+    my @row = app->db()->selectrow_array('SELECT white_player, black_player, red_player, green_player FROM games WHERE game_id = ?', {}, $gameId);
 
     my $white = new KungFuChess::Player( { 'userId' => $row[0] }, app->db() );
     my $black = new KungFuChess::Player( { 'userId' => $row[1] }, app->db() );
+    my $red   = undef;
+    my $green = undef;
+    if ($row[2]) {
+        $red = new KungFuChess::Player( { 'userId' => $row[2] }, app->db() );
+    }
+    if ($row[3]) {
+        $red = new KungFuChess::Player( { 'userId' => $row[2] }, app->db() );
+    }
 
-    return ($white, $black);
+    return ($white, $black, $red, $green);
 }
 
 sub getActiveGames {

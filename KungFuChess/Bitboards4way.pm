@@ -572,9 +572,23 @@ sub isLegalMove {
         #print "from not occupied\n";
         return @noMove;
     }
-    my $color   = ($white & $fr_bb ? WHITE : BLACK);
+    my $color   = ($white & $fr_bb ? WHITE : $black & BLACK);
     my $pawnDir = ($white & $fr_bb ? NORTH : SOUTH);
 
+    my $color, $pawnDir;
+    if ($white & $fr_bb) {
+        $color = WHITE;
+        $pawnDir = NORTH;
+    } elsif ($black & $fr_bb) {
+        $color = BLACK;
+        $pawnDir = SOUTH;
+    } elsif ($red & $fr_bb) {
+        $color = RED;
+        $pawnDir = WEST;
+    } elsif ($green & $fr_bb) {
+        $color = GREEN;
+        $pawnDir = EAST;
+    }
 
     ### castles go before checking same color on to_bb
     if ($fr_bb & $kings) {
@@ -952,6 +966,15 @@ sub prettyBoardTest {
     my $bb2 = shift_BB($bb, NORTH);
     $str .= prettyBoard($bb2);
     return $str;
+}
+sub printAllBitboards {
+    my $BB = shift;
+    foreach my $r ( qw(12 11 10 9 8 7 6 5 4 3 2 1) ) {
+        foreach my $f ( 'a' .. 'l' ) {
+            my $rf = RANKS->{$r} & FILES->{$f};
+            print "   '$rf' : '$f$r',\n";
+        }
+    }
 }
 sub prettyBoard {
     my $BB = shift;

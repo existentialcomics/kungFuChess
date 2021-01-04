@@ -4,14 +4,14 @@ use strict; use warnings;
 my $gameKey = shift;
 my $authKey = shift;
 my $speed = shift;
-my $mode = shift;
 my $isAI = shift;
 
 use Cwd qw( abs_path );
 use File::Basename qw( dirname );
 use lib dirname(abs_path($0));
 
+use KungFuChess::Bitboards;
 use KungFuChess::GameServer;
 
-print "init game... ($gameKey, $authKey, $speed, $mode, $isAI)\n";
-my $kfc = KungFuChess::GameServer->new($gameKey, $authKey, $speed, $mode, $isAI);
+print "init game... ($gameKey, $authKey, $speed, $isAI)\n";
+my $kfc = KungFuChess::GameServer->new($gameKey, $authKey, $speed, '2way', $isAI);

@@ -47,11 +47,11 @@
                 <a class="btn-block btn btn-primary p-4" id="enter-pool-lightning" role="button">
                     Lightning Pool
                 </a>
-                <a class="btn-block btn btn-primary p-4" id="enter-pool-4way-standard" role="button">
-                    4way Standard Pool
+                <a class="btn-block btn btn-primary p-4 disabled" id="enter-pool-4way-standard" role="button">
+                    4way Standard Pool (coming soon)
                 </a>
-                <a class="btn-block btn btn-primary p-4" id="enter-pool-4way-lightning" role="button">
-                    4way Lightning Pool
+                <a class="btn-block btn btn-primary p-4 disabled" id="enter-pool-4way-lightning" role="button">
+                    4way Lightning Pool (coming soon)
                 </a>
                 <% } else { %>
                 You must be logged in to enter the quick matching pools. You can still create games from the "Open Games" tab.

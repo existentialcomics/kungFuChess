@@ -10,8 +10,10 @@ use KungFuChess::Bitboards4way;
 
 KungFuChess::Bitboards::setupInitialPosition();
 
-print KungFuChess::Bitboards::pretty();
+#print KungFuChess::Bitboards::pretty();
+print KungFuChess::Bitboards::printAllBitboards();
 #print KungFuChess::Bitboards::prettyBoardTest();
+exit;
 
 my $go = 1;
 while ($go) {
