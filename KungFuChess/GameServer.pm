@@ -676,10 +676,10 @@ sub moveIfLegal {
         }
 
         if (! $done) {
-            print KungFuChess::Bitboards::prettyMoving();
+            #print KungFuChess::Bitboards::prettyMoving();
             KungFuChess::Bitboards::unsetMoving($fr_bb);
             KungFuChess::Bitboards::setMoving($next_fr_bb);
-            print KungFuChess::Bitboards::prettyMoving();
+            #print KungFuChess::Bitboards::prettyMoving();
             $timer = AnyEvent->timer(
                 after => $nextMoveSpeed,
                 cb => sub {
