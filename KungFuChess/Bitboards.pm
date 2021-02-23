@@ -247,6 +247,8 @@ my $ai_blackQCastleR = RANKS->[7] & FILES->[0];
 my $ai_frozenBB = 0x0000000000000000;
 my $ai_movingBB = 0x0000000000000000;
 
+my $currentAiMoveTree = undef;
+
 # set the ai boards back to the current real position;
 sub resetAiBoards {
   $ai_pawns    = $pawns;
@@ -380,12 +382,12 @@ sub setupInitialPosition {
 
 ### copied from shift function in Stockfish
 sub shift_BB {
-    my ($bb, $direction) = @_;
-    return  $direction == NORTH      ?  $bb                << 8 : $direction == SOUTH      ?  $bb                >> 8
-          : $direction == NORTH+NORTH?  $bb                <<16 : $direction == SOUTH+SOUTH?  $bb                >>16
-          : $direction == EAST       ? ($bb & ~FILES->[7]) << 1 : $direction == WEST       ? ($bb & ~FILES->[0]) >> 1
-          : $direction == NORTH_EAST ? ($bb & ~FILES->[7]) << 9 : $direction == NORTH_WEST ? ($bb & ~FILES->[0]) << 7
-          : $direction == SOUTH_EAST ? ($bb & ~FILES->[7]) >> 7 : $direction == SOUTH_WEST ? ($bb & ~FILES->[0]) >> 9
+    #my ($bb, $direction) = @_;
+    return  $_[1] == NORTH      ?  $_[0]                << 8 : $_[1] == SOUTH      ?  $_[0]                >> 8
+          : $_[1] == NORTH+NORTH?  $_[0]                <<16 : $_[1] == SOUTH+SOUTH?  $_[0]                >>16
+          : $_[1] == EAST       ? ($_[0] & ~FILES->[7]) << 1 : $_[1] == WEST       ? ($_[0] & ~FILES->[0]) >> 1
+          : $_[1] == NORTH_EAST ? ($_[0] & ~FILES->[7]) << 9 : $_[1] == NORTH_WEST ? ($_[0] & ~FILES->[0]) << 7
+          : $_[1] == SOUTH_EAST ? ($_[0] & ~FILES->[7]) >> 7 : $_[1] == SOUTH_WEST ? ($_[0] & ~FILES->[0]) >> 9
           : 0;
 }
 
@@ -407,20 +409,20 @@ sub _removePiece {
 }
 
 sub _removePiece_ai {
-    my $pieceBB = shift;
+    #my $pieceBB = shift;
 
-    $ai_occupied &= ~$pieceBB;
-    $ai_white    &= ~$pieceBB;
-    $ai_black    &= ~$pieceBB;
-    $ai_pawns    &= ~$pieceBB;
-    $ai_rooks    &= ~$pieceBB;
-    $ai_bishops  &= ~$pieceBB;
-    $ai_knights  &= ~$pieceBB;
-    $ai_kings    &= ~$pieceBB;
-    $ai_queens   &= ~$pieceBB;
+    $ai_occupied &= ~$_[0];
+    $ai_white    &= ~$_[0];
+    $ai_black    &= ~$_[0];
+    $ai_pawns    &= ~$_[0];
+    $ai_rooks    &= ~$_[0];
+    $ai_bishops  &= ~$_[0];
+    $ai_knights  &= ~$_[0];
+    $ai_kings    &= ~$_[0];
+    $ai_queens   &= ~$_[0];
 
-    $ai_frozenBB &= ~$pieceBB;
-    $ai_movingBB &= ~$pieceBB;
+    $ai_frozenBB &= ~$_[0];
+    $ai_movingBB &= ~$_[0];
 }
 
 sub setFrozen {
@@ -474,8 +476,8 @@ sub blockersBB {
     return $blockingBB;
 }
 
-### returns the color that moved and type of move
-sub isLegalMove {
+### takes input like a2b4 and turns it into fr_bb and to_bb
+sub parseMove {
     my $move = shift;
 
     my ($fr_f, $fr_r, $to_f, $to_r);
@@ -492,6 +494,47 @@ sub isLegalMove {
     my $to_file = FILES_H->{$to_f};
     my $fr_bb = $fr_rank & $fr_file;
     my $to_bb = $to_rank & $to_file;
+
+    return ($fr_bb, $to_bb, $fr_rank, $fr_file, $to_rank, $to_file);
+}
+
+### returns the color that moved and type of move (takes fr_bb and to_bb)
+sub isLegalMove {
+    my ($fr_bb, $to_bb, $fr_rank, $fr_file, $to_rank, $to_file) = @_;
+
+    ### todo can probably figure a faster way to do this
+    if (! defined($fr_rank)) {
+        for (0 .. 7) {
+            if (RANKS->[$_] & $fr_bb) {
+                $fr_rank = RANKS->[$_];
+                last;
+            } 
+        }
+    }
+    if (! defined($to_rank)) {
+        for (0 .. 7) {
+            if (RANKS->[$_] & $to_bb) {
+                $to_rank = RANKS->[$_];
+                last;
+            } 
+        }
+    }
+    if (! defined($fr_file)) {
+        for (0 .. 7) {
+            if (FILES->[$_] & $fr_bb) {
+                $fr_file = FILES->[$_];
+                last;
+            } 
+        }
+    }
+    if (! defined($to_file)) {
+        for (0 .. 7) {
+            if (FILES->[$_] & $to_bb) {
+                $to_file = FILES->[$_];
+                last;
+            } 
+        }
+    }
 
     my @noMove = (NO_COLOR, MOVE_NONE, DIR_NONE, $fr_bb, $to_bb);
 
@@ -699,13 +742,60 @@ sub _putPiece_ai {
     my $p  = shift;
     my $BB = shift;
 
-    ### TODO get rid of variable
-    my @BBs = _getBBsForPiece_ai($p);
-    foreach (@BBs) {
-        $$_ |= $BB;
+    $BB = $BB + 0;
+
+    $ai_occupied |= $BB;
+    if ($p == BLACK_PAWN) {
+        $ai_pawns |= $BB;
+        $ai_black |= $BB;
+    }
+    elsif ($p == WHITE_PAWN) {
+        $ai_pawns |= $BB;
+        $ai_white |= $BB;
+    }
+    elsif ($p == BLACK_ROOK) {
+        $ai_rooks |= $BB;
+        $ai_black |= $BB;
+    }
+    elsif ($p == WHITE_ROOK) {
+        $ai_rooks |= $BB;
+        $ai_white |= $BB;
+    }
+    elsif ($p == BLACK_BISHOP) {
+        $ai_bishops |= $BB;
+        $ai_black  |= $BB;
+    }
+    elsif ($p == WHITE_BISHOP) {
+        $ai_bishops |= $BB;
+        $ai_white  |= $BB;
+    }
+    elsif ($p == BLACK_KNIGHT) {
+        $ai_knights |= $BB;
+        $ai_black  |= $BB;
+    }
+    elsif ($p == WHITE_KNIGHT) {
+        $ai_knights |= $BB;
+        $ai_white  |= $BB;
+    }
+    elsif ($p == BLACK_KING) {
+        $ai_kings |= $BB;
+        $ai_black |= $BB;
+    }
+    elsif ($p == WHITE_KING) {
+        $ai_kings |= $BB;
+        $ai_white |= $BB;
+    }
+    elsif ($p == BLACK_QUEEN) {
+        $ai_queens |= $BB;
+        $ai_black  |= $BB;
+    }
+    elsif ($p == WHITE_QUEEN) {
+        $ai_queens |= $BB;
+        $ai_white  |= $BB;
     }
 }
 
+### TODO this is only used once, get rid of it
 sub _getBBsForPiece {
     my $p = shift;
     if ($p == BLACK_PAWN) {
@@ -753,100 +843,53 @@ sub _getBBsForPiece {
     return ();
 }
 
-sub _getBBsForPiece_ai {
-    my $p = shift;
-    if ($p == BLACK_PAWN) {
-        return (\$ai_occupied, \$ai_pawns, \$ai_black);
-    }
-    if ($p == WHITE_PAWN) {
-        return (\$ai_occupied, \$ai_pawns, \$ai_white);
-    }
-
-    if ($p == BLACK_ROOK) {
-        return (\$ai_occupied, \$ai_rooks, \$ai_black);
-    }
-    if ($p == WHITE_ROOK) {
-        return (\$ai_occupied, \$ai_rooks, \$ai_white);
-    }
-
-    if ($p == BLACK_BISHOP) {
-        return (\$ai_occupied, \$ai_bishops, \$ai_black);
-    }
-    if ($p == WHITE_BISHOP) {
-        return (\$ai_occupied, \$ai_bishops, \$ai_white);
-    }
-
-    if ($p == BLACK_KNIGHT) {
-        return (\$ai_occupied, \$ai_knights, \$ai_black);
-    }
-    if ($p == WHITE_KNIGHT) {
-        return (\$ai_occupied, \$ai_knights, \$ai_white);
-    }
-
-    if ($p == BLACK_KING) {
-        return (\$ai_occupied, \$ai_kings, \$ai_black);
-    }
-    if ($p == WHITE_KING) {
-        return (\$ai_occupied, \$ai_kings, \$ai_white);
-    }
-
-    if ($p == BLACK_QUEEN) {
-        return (\$ai_occupied, \$ai_queens, \$ai_black);
-    }
-    if ($p == WHITE_QUEEN) {
-        return (\$ai_occupied, \$ai_queens, \$ai_white);
-    }
-
-    return ();
-}
-
 sub _getPieceBB {
-    my $squareBB = shift;
-    if (! ($occupied & $squareBB)) {
+    #my $squareBB = shift;
+    if (! ($occupied & $_[0])) {
         return undef;
     }
     my $chr = '';
-    if ( $pawns & $squareBB) {
+    if ( $pawns & $_[0]) {
         $chr = WHITE_PAWN;
-    } elsif ($rooks & $squareBB) {
+    } elsif ($rooks & $_[0]) {
         $chr = WHITE_ROOK;
-    } elsif ($bishops & $squareBB) {
+    } elsif ($bishops & $_[0]) {
         $chr = WHITE_BISHOP;
-    } elsif ($knights & $squareBB) {
+    } elsif ($knights & $_[0]) {
         $chr = WHITE_KNIGHT;
-    } elsif ($queens & $squareBB) {
+    } elsif ($queens & $_[0]) {
         $chr = WHITE_QUEEN;
-    } elsif ($kings & $squareBB) {
+    } elsif ($kings & $_[0]) {
         $chr = WHITE_KING;
     }
 
-    if ($black & $squareBB) {
+    if ($black & $_[0]) {
         return ($chr + 100); # black is 100 higher
     }
     return $chr;
 }
 
 sub _getPieceBB_ai {
-    my $squareBB = shift;
-    if (! ($ai_occupied & $squareBB)) {
+    #my $squareBB = shift;
+    if (! ($ai_occupied & $_[0])) {
         return undef;
     }
-    my $chr = '';
-    if ( $ai_pawns & $squareBB) {
+    my $chr;
+    if ( $ai_pawns & $_[0]) {
         $chr = WHITE_PAWN;
-    } elsif ($ai_rooks & $squareBB) {
+    } elsif ($ai_rooks & $_[0]) {
         $chr = WHITE_ROOK;
-    } elsif ($ai_bishops & $squareBB) {
+    } elsif ($ai_bishops & $_[0]) {
         $chr = WHITE_BISHOP;
-    } elsif ($ai_knights & $squareBB) {
+    } elsif ($ai_knights & $_[0]) {
         $chr = WHITE_KNIGHT;
-    } elsif ($ai_queens & $squareBB) {
+    } elsif ($ai_queens & $_[0]) {
         $chr = WHITE_QUEEN;
-    } elsif ($ai_kings & $squareBB) {
+    } elsif ($ai_kings & $_[0]) {
         $chr = WHITE_KING;
     }
 
-    if ($ai_black & $squareBB) {
+    if ($ai_black & $_[0]) {
         return ($chr + 100); # black is 100 higher
     }
     return $chr;
@@ -866,10 +909,26 @@ sub _getPieceXY {
     return _getPieceBB($squareBB);
 }
 sub _getPieceXY_ai {
-    my ($f, $r) = @_;
+    #my ($f, $r) = @_;
 
-    my $squareBB = RANKS->[$r] & FILES->[$f];
-    return _getPieceBB_ai($squareBB);
+    #my $squareBB = RANKS->[$_[1]] & FILES->[$_[0]];
+    return _getPieceBB_ai(RANKS->[$_[1]] & FILES->[$_[0]]);
+}
+
+sub occupiedColor {
+    my $bb = shift;
+    if ( $bb & $white ) {
+        return WHITE;
+    } elsif ( $bb & $black ) {
+        return BLACK
+    }
+
+    return 0;
+}
+
+sub isMoving {
+    my $bb = shift;
+    return $bb & $movingBB;
 }
 
 sub _getBBat {
@@ -917,8 +976,7 @@ sub do_move_ai {
     my $piece = _getPieceBB_ai($fr_bb);
     my $toPiece = _getPieceBB_ai($to_bb);
 
-    _removePiece_ai($fr_bb);
-    _removePiece_ai($to_bb);
+    _removePiece_ai($fr_bb | $to_bb);
     _putPiece_ai($piece, $to_bb);
 
     $ai_frozenBB &= $to_bb;
@@ -937,8 +995,7 @@ sub undo_move_ai {
 
     my $piece = _getPieceBB_ai($to_bb);
 
-    _removePiece_ai($fr_bb);
-    _removePiece_ai($to_bb);
+    _removePiece_ai($fr_bb | $to_bb);
     _putPiece_ai($piece, $fr_bb);
     if ($toPiece) {
         _putPiece_ai($toPiece, $to_bb);
@@ -954,7 +1011,7 @@ sub getPieceDisplay {
     if ($piece > 200) {
         $color =  "\033[90m";
     }
-    $color = "";
+    #$color = "";
     my $normal = "\033[0m";
     $normal = "";
     if ($piece % 100 == PAWN) {
@@ -1023,8 +1080,8 @@ sub evaluate {
     );
     my @attacking = (
         [ 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0 ], 
-        [ 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0 ],  # white, pieces
-        [ 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0 ],  # black, pieces
+        [ 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0 ],  # white
+        [ 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0 ],  # black
     );
     ### 3x3 square of king
     my @kingRing = (
@@ -1038,6 +1095,11 @@ sub evaluate {
         0,
         0
     );
+    my @pieces = (
+        undef,
+        [ [], [], [], [], [], [], [] ],  # white pieces
+        [ [], [], [], [], [], [], [] ],  # black pieces
+    );
 
     ### TODO reset all eval vars here
     foreach my $r ( 0 .. 7 ) {
@@ -1045,8 +1107,8 @@ sub evaluate {
             my $fr = RANKS->[$r] & FILES->[$f];
             if ($fr & $ai_movingBB) { next; }
             if ($fr & $ai_frozenBB) { next; }
-            my $piece = _getPieceXY_ai($f, $r);
-            next if ($piece == 0);
+            my $piece = _getPieceBB_ai($fr);
+            next if (! defined($piece));
 
             ### begin evaluating a piece
             my $pieceType = $piece % 100;
@@ -1058,13 +1120,23 @@ sub evaluate {
             my $pieceAttackingBB     = 0x0;
             my $pieceAttackingXrayBB = 0x0;
 
+            ### tracks all the pieces for calulating bonuses
+            push @{$pieces[$color]->[$pieceType]}, $fr;
+
             ### for square bonuses
             my $sq_f = $f;
             my $sq_r = $color == WHITE ? $r : 7 - $r;
             $squareBonus[$color] += $SQ_BONUS->[$pieceType]->[$sq_r]->[$sq_f];
 
             if ($pieceType == KING) {
-
+                foreach my $shift (@MOVES_Q) {
+                    my $to = $fr;
+                    $to = shift_BB($to, $shift);
+                    if ($to != 0) {
+                        $attacking[$color]->[$pieceType] |= $to;
+                        $attacking[$color]->[ALL_P]      |= $to;
+                    }
+                }
             } elsif ($pieceType == BISHOP || $pieceType == ROOK || $pieceType == QUEEN) {
                 my @pmoves;
                 if ($pieceType == BISHOP) {
@@ -1083,6 +1155,8 @@ sub evaluate {
                     my $to = $fr;
                     $to = shift_BB($to, $shift);
                     while ($to != 0) {
+                        $attacking[$color]->[$pieceType] |= $to;
+                        $attacking[$color]->[ALL_P]      |= $to;
                         if ($to & $them){
                             $to = 0;
                             next;
@@ -1108,6 +1182,7 @@ sub evaluate {
                 }
             } elsif ($pieceType == KNIGHT) {
                 
+                $material[$color] += 3;
                 foreach my $to (
                    shift_BB(shift_BB($fr, NORTH), NORTH_EAST),
                    shift_BB(shift_BB($fr, NORTH), NORTH_WEST),
@@ -1118,8 +1193,9 @@ sub evaluate {
                    shift_BB(shift_BB($fr, WEST) , NORTH_WEST),
                    shift_BB(shift_BB($fr, WEST) , SOUTH_WEST),
                 ) {
-                    $material[$color] += 3;
                     if ($to != 0) {
+                        $attacking[$color]->[$pieceType] |= $to;
+                        $attacking[$color]->[ALL_P]      |= $to;
                         $mobilityBonus[$color] += 25;
                         if (! ($to & $us) ) {
                             $moves[$color]->{sprintf('%s-%s', $fr, $to)} = [
@@ -1131,10 +1207,6 @@ sub evaluate {
                                 undef # children moves
                             ];
                         }
-                        if ($attacking[$color] & $to) {
-                            $attacking[$color] |= $to;
-                        }
-                        $attacking[$color] |= $to;
                     }
                 }
             } elsif ($pieceType == PAWN) {
@@ -1151,6 +1223,8 @@ sub evaluate {
                     ];
                 }
                 $to = shift_BB($fr, $pawnDir + WEST);
+                $attacking[$color]->[$pieceType] |= $to;
+                $attacking[$color]->[ALL_P]      |= $to;
                 if ($to & $them) {
                     $moves[$color]->{sprintf('%s-%s', $fr, $to)} = [
                         $fr,
@@ -1160,9 +1234,10 @@ sub evaluate {
                         0,    # score
                         undef # children moves
                     ];
-                    $attacking[$color] |= shift_BB($fr, $pawnDir + WEST);
                 }
                 $to = shift_BB($fr, $pawnDir + EAST);
+                $attacking[$color]->[$pieceType] |= $to;
+                $attacking[$color]->[ALL_P]      |= $to;
                 if ($to & $them) {
                     $moves[$color]->{sprintf('%s-%s', $fr, $to)} = [
                         $fr,
@@ -1172,7 +1247,34 @@ sub evaluate {
                         0,    # score
                         undef # children moves
                     ];
-                    $attacking[$color] |= shift_BB($fr, $pawnDir + EAST)
+                }
+            }
+        }
+    }
+
+    foreach my $color (1 .. 2) {
+        my $them = ($color = WHITE ? BLACK : WHITE);
+        foreach my $pType (1 .. 7) {
+            foreach my $bb ($pieces[$color]->[$pType]) {
+                if ($pType == BISHOP || $pType == KNIGHT) {
+                    if ($attacking[$them][PAWN] & $bb) {
+                        $additionalPenalty[$color] -= 2;
+                    }
+                }
+                if ($pType == ROOK) {
+                    if ($attacking[$them][PAWN] & $bb) {
+                        $additionalPenalty[$color] -= 4;
+                    }
+                }
+                if ($pType == QUEEN) {
+                    if ($attacking[$them][PAWN] & $bb) {
+                        $additionalPenalty[$color] -= 7;
+                    }
+                }
+                if ($pType == KING) {
+                    if ($attacking[$them][PAWN] & $bb) {
+                        $additionalPenalty[$color] -= 15;
+                    }
                 }
             }
         }
@@ -1192,12 +1294,29 @@ sub evaluate {
 }
 
 sub aiThink {
-    my $depth = shift;
-    my $timeToThink = shift;
+    my ($depth, $timeToThink) = @_;
 
     my ($score, $bestMoves, $moves) = evaluateTree(0, $depth, time() + $timeToThink);
     #print Dumper($bestMoves);
-    return $bestMoves;
+    $currentAiMoveTree = $moves;
+
+    return ($score, $bestMoves, $moves);
+}
+
+sub aiThinkAndMove {
+    my ($depth, $timeToThink, $color) = @_;
+
+    my ($score, $bestMoves, $moves) = evaluateTree(0, $depth, time() + $timeToThink);
+
+    foreach my $move (@{$bestMoves->[$color]}) {
+        my $fr_bb = $moves->[$color]->{$move}->[MOVE_FR];
+        my $to_bb = $moves->[$color]->{$move}->[MOVE_TO];
+        if (isLegalMove($fr_bb, $to_bb)) {
+            move($fr_bb, $to_bb);
+            do_move_ai($fr_bb, $to_bb);
+        }
+    }
+    return ($score, $bestMoves, $moves);
 }
 
 sub evaluateTree {
@@ -1207,6 +1326,8 @@ sub evaluateTree {
     if ($depth > $maxDepth) { return (undef, undef, undef); }
 
     my ($score, $moves) = evaluate();
+            #print pretty_ai();
+            #print "   ---- eval score:  $score -----\n";
 
     my @bestMoves = (
         [],
@@ -1243,41 +1364,34 @@ sub evaluateTree {
         while (my ($key, $move) = each %{$moves->[$color]}) {
             my $undoPiece = do_move_ai($move->[0], $move->[1]);
             #print " ---------------------- prettyAI --------------\n";
-            #print pretty_ai();
             my ($newScore, $newBestMoves, $newMoves)          = evaluateTree($depth + 1, $maxDepth, $stopTime);
             $moves->[$color]->{$key}->[MOVE_SCORE]      = $newScore;
             $moves->[$color]->{$key}->[MOVE_NEXT_MOVES] = $newMoves;
             undo_move_ai($move->[0], $move->[1], $undoPiece);
-            #print pretty_ai();
-
-            if (! defined($newScore)) {
-                return ($score, undef, $moves);
-                #print "*us: $newScore, depth: $depth\n";
-            }
 
             if ($color == WHITE) {
                 if ($newScore) {
                     if ($newScore > $bestScores[WHITE]->[0]) {
                         ### move scores down
-                        $bestMoves[WHITE]->[1] = $bestMoves[WHITE]->[0];
+                        $bestMoves[WHITE]->[1]  = $bestMoves[WHITE]->[0];
                         $bestScores[WHITE]->[1] = $bestScores[WHITE]->[0];
-                        $bestMoves[WHITE]->[2] = $bestMoves[WHITE]->[1];
+                        $bestMoves[WHITE]->[2]  = $bestMoves[WHITE]->[1];
                         $bestScores[WHITE]->[2] = $bestScores[WHITE]->[1];
-                        $bestMoves[WHITE]->[3] = $bestMoves[WHITE]->[2];
+                        $bestMoves[WHITE]->[3]  = $bestMoves[WHITE]->[2];
                         $bestScores[WHITE]->[3] = $bestScores[WHITE]->[2];
 
                         $bestMoves[WHITE]->[0]  = $key;
                         $bestScores[WHITE]->[0] = $newScore;
                     } elsif ($newScore > $bestScores[WHITE]->[1]) {
-                        $bestMoves[WHITE]->[2] = $bestMoves[WHITE]->[1];
+                        $bestMoves[WHITE]->[2]  = $bestMoves[WHITE]->[1];
                         $bestScores[WHITE]->[2] = $bestScores[WHITE]->[1];
-                        $bestMoves[WHITE]->[3] = $bestMoves[WHITE]->[2];
+                        $bestMoves[WHITE]->[3]  = $bestMoves[WHITE]->[2];
                         $bestScores[WHITE]->[3] = $bestScores[WHITE]->[2];
 
                         $bestMoves[WHITE]->[1]  = $key;
                         $bestScores[WHITE]->[1] = $newScore;
                     } elsif ($newScore > $bestScores[WHITE]->[2]) {
-                        $bestMoves[WHITE]->[3] = $bestMoves[WHITE]->[2];
+                        $bestMoves[WHITE]->[3]  = $bestMoves[WHITE]->[2];
                         $bestScores[WHITE]->[3] = $bestScores[WHITE]->[2];
 
                         $bestMoves[WHITE]->[2]  = $key;
@@ -1291,25 +1405,25 @@ sub evaluateTree {
                 if ($newScore) {
                     if ($newScore < $bestScores[BLACK]->[0]) {
                         ### move scores down
-                        $bestMoves[BLACK]->[1] = $bestMoves[BLACK]->[0];
+                        $bestMoves[BLACK]->[1]  = $bestMoves[BLACK]->[0];
                         $bestScores[BLACK]->[1] = $bestScores[BLACK]->[0];
-                        $bestMoves[BLACK]->[2] = $bestMoves[BLACK]->[1];
+                        $bestMoves[BLACK]->[2]  = $bestMoves[BLACK]->[1];
                         $bestScores[BLACK]->[2] = $bestScores[BLACK]->[1];
-                        $bestMoves[BLACK]->[3] = $bestMoves[BLACK]->[2];
+                        $bestMoves[BLACK]->[3]  = $bestMoves[BLACK]->[2];
                         $bestScores[BLACK]->[3] = $bestScores[BLACK]->[2];
 
                         $bestMoves[BLACK]->[0]  = $key;
                         $bestScores[BLACK]->[0] = $newScore;
                     } elsif ($newScore < $bestScores[BLACK]->[1]) {
-                        $bestMoves[BLACK]->[2] = $bestMoves[BLACK]->[1];
+                        $bestMoves[BLACK]->[2]  = $bestMoves[BLACK]->[1];
                         $bestScores[BLACK]->[2] = $bestScores[BLACK]->[1];
-                        $bestMoves[BLACK]->[3] = $bestMoves[BLACK]->[2];
+                        $bestMoves[BLACK]->[3]  = $bestMoves[BLACK]->[2];
                         $bestScores[BLACK]->[3] = $bestScores[BLACK]->[2];
 
                         $bestMoves[BLACK]->[1]  = $key;
                         $bestScores[BLACK]->[1] = $newScore;
                     } elsif ($newScore < $bestScores[BLACK]->[2]) {
-                        $bestMoves[BLACK]->[3] = $bestMoves[BLACK]->[2];
+                        $bestMoves[BLACK]->[3]  = $bestMoves[BLACK]->[2];
                         $bestScores[BLACK]->[3] = $bestScores[BLACK]->[2];
 
                         $bestMoves[BLACK]->[2]  = $key;
@@ -1319,12 +1433,22 @@ sub evaluateTree {
                         $bestScores[BLACK]->[3] = $newScore;
                     }
                 }
-
             }
             #print " ---------------------- DONE --------------\n";
         }
     }
 
+
+    if ($bestScores[WHITE]->[0] != -999999) { ### this means we hit max depth
+        my $treeScore = (
+            ($bestScores[WHITE]->[0] + $bestScores[BLACK]->[0]) +
+            ($bestScores[WHITE]->[1] + $bestScores[BLACK]->[1])
+        ) / 4;
+        #print "  " x $depth;
+        #print "$depth treeScore: $treeScore vs eval: $score\n";
+
+        #$score = $treeScore;
+    }
     return ($score, \@bestMoves, $moves);
 }
 

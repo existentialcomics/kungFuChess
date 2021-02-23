@@ -602,8 +602,8 @@ sub getAnonymousUser {
 sub createGame {
     my ($mode, $speed, $rated, $white, $black, $red, $green) = @_;
 
-    my $whiteUid = ($white == ANON_USER ? create_uuid_as_string() : undef);
-    my $blackUid = ($black == ANON_USER ? create_uuid_as_string() : undef);
+    my $whiteUid = ($white == ANON_USER || $black == AI_USER ? create_uuid_as_string() : undef);
+    my $blackUid = ($black == ANON_USER || $black == AI_USER ? create_uuid_as_string() : undef);
     my $redUid   = undef;
     my $greenUid = undef;
     if ($mode eq '4way') {
@@ -641,17 +641,35 @@ sub createGame {
     # spin up game server, wait for it to send authjoin
     app->log->debug( "starting game client $gameId, $auth" );
     # spin up game server, wait for it to send authjoin
-    my $cmd = sprintf('/usr/bin/perl ./kungFuChessGame%s.pl %s %s %s %s >>%s  2>%s &',
+    my $cmd = sprintf('/usr/bin/perl ./kungFuChessGame%s.pl %s %s %s %s >%s  2>%s &',
         $mode,
         $gameId,
         $auth,
         $speed,
-        $isAiGame,
+        0,       # ai
         '/var/log/kungfuchess/game.log',
         '/var/log/kungfuchess/error.log'
     );
     app->log->debug($cmd);
     system($cmd);
+
+    if ($isAiGame) {
+        my $aiUser = new KungFuChess::Player(
+            { 'ai' => 1, 'auth_token' => $blackUid }
+        );
+        my $cmdAi = sprintf('/usr/bin/perl ./kungFuChessGame%sAi.pl %s %s %s %s >%s  2>%s &',
+            $mode,
+            $gameId,
+            $blackUid,
+            $speed,
+            1,       # ai
+            '/var/log/kungfuchess/game-ai.log',
+            '/var/log/kungfuchess/error-ai.log'
+        );
+        app->log->debug($cmdAi);
+        system($cmdAi);
+        $currentGames{$gameId}->addPlayer($aiUser, 'black');
+    }
 
     return $gameId;
 }
@@ -820,12 +838,18 @@ websocket '/ws' => sub {
         } elsif ($msg->{'c'} eq 'move'){
             app->log->debug('moving, ready to auth');
             return 0 if (!$game->gameBegan());
+            app->log->debug('game has begun');
+
+            app->log->debug($msg->{auth});
             my $color = $game->authMove($msg);
+            app->log->debug("moving $color");
 
             return 0 if (!$color);
 
             app->log->debug('move authed for ' . $color);
             $msg->{color} = $color;
+
+            print Dumper($msg);
 
             # pass the move request to the server
             # TODO pass the player's color to the server
@@ -844,6 +868,11 @@ websocket '/ws' => sub {
             if (! gameauth($msg) ){ return 0; }
             # pass the move request to the server
             $msg->{'c'} = 'move';
+            $game->playerBroadcast($msg);
+        } elsif ($msg->{'c'} eq 'authstop'){
+            if (! gameauth($msg) ){ return 0; }
+            # pass the move request to the server
+            $msg->{'c'} = 'stop';
             $game->playerBroadcast($msg);
         } elsif ($msg->{'c'} eq 'authmove'){ # for animation only
             if (! gameauth($msg) ){ return 0; }

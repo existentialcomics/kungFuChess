@@ -428,7 +428,7 @@ var bindEvents = function(ws_conn) {
     }
 }
 
-var main_conn = new WebSocket("wss://" + wsDomainMain + "/ws");
+var main_conn = new WebSocket(wsProtocol + "://" + wsDomainMain + "/ws");
 bindEvents(main_conn);
 
 var reconnectInterval;
@@ -436,7 +436,7 @@ var reconnectMain = function() {
     if (isConnected == false) {
         $("#connectionStatus").html("Reconnecting...");
         main_conn = null;
-        main_conn = new WebSocket("wss://" + wsDomainMain + "/ws");
+        main_conn = new WebSocket(wsProtocol + "://" + wsDomainMain + "/ws");
         bindEvents(main_conn);
     } else {
         reconnectInterval = null;

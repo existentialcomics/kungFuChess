@@ -28,14 +28,16 @@ sub _init {
 
     if (defined($data->{userId})) { 
         return $self->_loadById($data->{userId});
-    } elsif (defined($data->{auth_token})) { 
-        return $self->_loadByAuth($data->{auth_token});
     } elsif (defined($data->{screenname})) { 
         return $self->_loadByScreenname($data->{screenname});
     } elsif (defined($data->{row})) { 
         return $self->_loadByRow($data->{row});
     } elsif (defined($data->{anon})) { 
         return $self->_loadAnonymousUser();
+    } elsif (defined($data->{ai})) { 
+        return $self->_loadAiUser($data->{auth_token});
+    } elsif (defined($data->{auth_token})) { 
+        return $self->_loadByAuth($data->{auth_token});
     } else {
         print "undef\n";
         return undef;
@@ -282,6 +284,18 @@ sub _loadAnonymousUser {
     $self->{rating_lighting} = '';
     $self->{is_anon} = 1;
     $self->{'auth_token'} = create_uuid_as_string();
+}
+
+sub _loadAiUser {
+    my $self = shift;
+    my $authToken = shift;
+
+    $self->{player_id} = -2;
+    $self->{screenname} = 'ai';
+    $self->{rating_standard} = '';
+    $self->{rating_lighting} = '';
+    $self->{is_anon} = 1;
+    $self->{'auth_token'} = $authToken ? $authToken : create_uuid_as_string();
 }
 
 sub _loadById {

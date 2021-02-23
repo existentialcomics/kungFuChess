@@ -466,7 +466,7 @@ var bindGameEvents = function(ws_conn) {
         );
     };
 };
-var conn = new WebSocket("wss://" + wsDomain + "/ws");
+var conn = new WebSocket(wsProtocol + "://" + wsDomain + "/ws");
 bindGameEvents(conn);
 
 var game_reconnectInterval;
@@ -474,7 +474,7 @@ var game_reconnectMain = function() {
     if (isConnected == false) {
         $("#connectionStatus").html("Reconnecting...");
         conn = null;
-        conn = new WebSocket("wss://" + wsDomain + "/ws");
+        conn = new WebSocket(wsProtocol + "://" + wsDomain + "/ws");
         bindGameEvents(main_conn);
     } else {
         reconnectInterval = null;
@@ -546,59 +546,57 @@ var handleMessage = function(msg) {
         var from = getSquareFromBB(msg.fr_bb);
         var to   = getSquareFromBB(msg.to_bb);
 
-        console.log("handle move message");
-        console.log(from);
-        console.log(to);
         pieceFrom = piecesByBoardPos[from];
-        //console.log("pieceFrom:");
-        //console.log(pieceFrom);
-        //console.log("board:");
-        console.log(piecesByBoardPos);
         piecesByBoardPos[to]   = pieceFrom;
         piecesByBoardPos[from] = null;
-        console.log("moved " + from + " to " + to);
-        //console.log(piecesByBoardPos);
+    } else if (msg.c == 'stop'){ // when pieces collides and one is forced to stop
+        let re = /([a-z])([0-9]{1,2})/;
+        var from = getSquareFromBB(msg.fr_bb);
+
+        var m_from = from.match(re);
+
+        var y = rankToX[m_from[2]];
+        var x = parseInt(fileToY[m_from[1]]);
+        var pieceFrom = piecesByBoardPos[from];
+        console.log(pieceFrom);
+
+        pieceFrom.stop(x, y);
+
     } else if (msg.c == 'moveAnimate'){ // called when a player moves a piece
-        let re = /([a-z])([0-9]{1,2})([a-z])([0-9]{1,2})/;
-        var m = msg.move.match(re);
+        let re = /([a-z])([0-9]{1,2})/;
 
         console.log('moveAnimate');
         console.log(msg);
 
-        var from = m[1].concat(m[2]);
-        var to   = m[3].concat(m[4]);
-        
-        console.log("animate move from " + from + "," + to);
+        var from = getSquareFromBB(msg.fr_bb);
+        var to   = getSquareFromBB(msg.to_bb);
+        var m_from = from.match(re);
+        var m_to   = to.match(re);
 
         if (msg.moveType == 3) {        // OO
             var pieceFrom = piecesByBoardPos[from];
             var pieceTo   = piecesByBoardPos[to];
-            var y_king = rankToX[m[4]];
-            var x_king = parseInt(fileToY[m[3]]) - 1;
+            var y_king = rankToX[m_to[2]];
+            var x_king = parseInt(fileToY[m_to[1]]) - 1;
             pieceFrom.move(x_king, y_king);
 
-            var y_rook = rankToX[m[2]];
-            var x_rook = parseInt(fileToY[m[1]]) + 1;
-            console.log(y_rook + " , " + x_rook);
+            var y_rook = rankToX[m_from[2]];
+            var x_rook = parseInt(fileToY[m_from[1]]) + 1;
             pieceTo.move(x_rook, y_rook);
         } else if (msg.moveType == 4) { // OOO
             var pieceFrom = piecesByBoardPos[from];
             var pieceTo   = piecesByBoardPos[to];
-            var y_king = rankToX[m[4]];
-            var x_king = parseInt(fileToY[m[3]]) + 1;
+            var y_king = rankToX[m_to[2]];
+            var x_king = parseInt(fileToY[m_to[1]]) + 1;
             pieceFrom.move(x_king, y_king);
 
-            var y_rook = rankToX[m[2]];
-            var x_rook = parseInt(fileToY[m[1]]) - 2;
-            console.log(y_rook + " , " + x_rook);
+            var y_rook = rankToX[m_from[2]];
+            var x_rook = parseInt(fileToY[m_from[1]]) - 2;
             pieceTo.move(x_rook, y_rook);
         } else { // all others
             var pieceFrom = piecesByBoardPos[from];
-            console.log('animating piece');
-            console.log(pieceFrom);
-            console.log(m);
-            var y = rankToX[m[4]];
-            var x = fileToY[m[3]];
+            var y = rankToX[m_to[2]];
+            var x = fileToY[m_to[1]];
             pieceFrom.move(x, y);
         }
     } else if (msg.c == 'promote'){
@@ -673,13 +671,13 @@ var handleMessage = function(msg) {
             var type = chr;
 
             var color = 'white';
-            if (type > 100) {
+            if (type > 200) {
                 color = 'black';
             }
-            if (type > 200) {
+            if (type > 300) {
                 color = 'red';
             }
-            if (type > 300) {
+            if (type > 400) {
                 color = 'green';
             }
 
@@ -691,11 +689,11 @@ var handleMessage = function(msg) {
                 piece = getQueen(x, y, color);
             } else if (type % 100 == 5){
                 piece = getKing(x, y, color);
-            } else if (type % 100 == 2){
-                piece = getRook(x, y, color);
             } else if (type % 100 == 4){
-                piece = getBishop(x, y, color);
+                piece = getRook(x, y, color);
             } else if (type % 100 == 3){
+                piece = getBishop(x, y, color);
+            } else if (type % 100 == 2){
                 piece = getKnight(x, y, color);
             } else if (type % 100 == 1){
                 piece = getPawn(x, y, color);
@@ -1057,12 +1055,7 @@ var getPiece = function(x, y, color, image){
     piecesByImageId[piece.image_id] = piece;
 
     piece.move = function(x, y){
-        //if (x < 0){ return false };
-        //if (y < 0){ return false };
-        //if (x > 7){ return false };
-        //if (y > 7){ return false };
-
-        isLegal = this.legalMove(this.x - x, this.y - y);
+        //isLegal = this.legalMove(this.x - x, this.y - y);
         //if (!isLegal){
             //return false;
         //}
@@ -1090,7 +1083,7 @@ var getPiece = function(x, y, color, image){
                 piece.image.setX(getX(new_x));
                 piece.image.setY(getY(new_y));
 
-                if (frame.time > piece.anim_length){
+                if ((frame.time > piece.anim_length)){
                     this.stop();
                     piece.image.draggable(true);
                     piece.isMoving = false;
@@ -1104,6 +1097,16 @@ var getPiece = function(x, y, color, image){
             }, pieceLayer);
             piece.anim.start();
         }
+    }
+
+    piece.stop = function(new_x, new_y) {
+        piece.x = new_x;
+        piece.y = new_y;
+        piece.anim.stop();
+        piece.image.draggable(true);
+        piece.isMoving = false;
+        piece.setDelayTimer(timerRecharge)
+        piece.setImagePos(piece.x, piece.y);
     }
 
     piece.setDelayTimer = function(timeToDelay) {
