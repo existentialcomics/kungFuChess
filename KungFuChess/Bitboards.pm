@@ -1441,13 +1441,13 @@ sub evaluateTree {
 
     if ($bestScores[WHITE]->[0] != -999999) { ### this means we hit max depth
         my $treeScore = (
-            ($bestScores[WHITE]->[0] + $bestScores[BLACK]->[0]) +
-            ($bestScores[WHITE]->[1] + $bestScores[BLACK]->[1])
-        ) / 4;
+            ($bestScores[WHITE]->[0] + $bestScores[BLACK]->[0])
+            #+ ($bestScores[WHITE]->[1] + $bestScores[BLACK]->[1])
+        ) / 2;
         #print "  " x $depth;
         #print "$depth treeScore: $treeScore vs eval: $score\n";
 
-        #$score = $treeScore;
+        $score = $treeScore;
     }
     return ($score, \@bestMoves, $moves);
 }

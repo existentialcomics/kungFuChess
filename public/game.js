@@ -558,9 +558,13 @@ var handleMessage = function(msg) {
         var y = rankToX[m_from[2]];
         var x = parseInt(fileToY[m_from[1]]);
         var pieceFrom = piecesByBoardPos[from];
-        console.log(pieceFrom);
 
-        pieceFrom.stop(x, y);
+        if (msg.hasOwnProperty('time_remaining')) {
+            console.log("stopping with time " + msg.time_remaining);
+            pieceFrom.stop(x, y, msg.time_remaining);
+        } else {
+            pieceFrom.stop(x, y);
+        }
 
     } else if (msg.c == 'moveAnimate'){ // called when a player moves a piece
         let re = /([a-z])([0-9]{1,2})/;
@@ -648,67 +652,20 @@ var handleMessage = function(msg) {
         var square = getSquareFromBB(msg.to_bb);
         var piece = suspendedPieces[square];
 
-        console.log('unsuspending ' + square + "(" + msg.to_bb + ")");
-        console.log(piece);
-        piecesByBoardPos[square] = piece;
-        suspendedPieces[square] = null;
-    } else if (msg.c == 'spawn'){
-        var piece;
-        var chr = msg.chr;
-        let re = /([a-z])([0-9]{1,2})/;
-        var m = msg.square.match(re);
-        var f = m[1];
-        var r = m[2];
-
-        var piece  = piecesByBoardPos[msg.square];
-
-        console.log('spawning at ' + m + ' piece: ' + chr);
-        //console.log('current piece:');
-        //console.log(piece);
-        //console.log(piecesByBoardPos);
-
         if (piece == null) {
-            var type = chr;
-
-            var color = 'white';
-            if (type > 200) {
-                color = 'black';
-            }
-            if (type > 300) {
-                color = 'red';
-            }
-            if (type > 400) {
-                color = 'green';
-            }
-
-            var y = rankToX[r];
-            var x = fileToY[f];
-            console.log('color: ' + color);
-
-            if (type % 100 == 6){
-                piece = getQueen(x, y, color);
-            } else if (type % 100 == 5){
-                piece = getKing(x, y, color);
-            } else if (type % 100 == 4){
-                piece = getRook(x, y, color);
-            } else if (type % 100 == 3){
-                piece = getBishop(x, y, color);
-            } else if (type % 100 == 2){
-                piece = getKnight(x, y, color);
-            } else if (type % 100 == 1){
-                piece = getPawn(x, y, color);
-            } 
-            piece.id = maxPieceId++;
-            pieceLayer.add(piece.image);
-            pieces[piece.id] = piece;
-            if (piece.color == myColor || myColor == 'both'){
-                pieces[piece.id].image.draggable(true);
-            }
-            var square = getPieceSquare(piece);
+            console.log('no piece found spawning instead');
+            spawn(msg.chr, square);
+            piece = suspendedPieces[square];
+            piece.stop(x, y);
+            // TODO add the delay animation here
+        } else {
+            console.log('unsuspending ' + square + "(" + msg.to_bb + ")");
+            console.log(piece);
             piecesByBoardPos[square] = piece;
-
-            pieceLayer.draw();
+            suspendedPieces[square] = null;
         }
+    } else if (msg.c == 'spawn'){
+        spawn(msg.chr, msg.square);
     } else if (msg.c == 'pong'){
         var d = new Date();
         var timestamp = d.getTime();
@@ -814,6 +771,66 @@ var handleMessage = function(msg) {
         console.debug(msg);
     }
 
+}
+
+var spawn = function(chr, square) {
+        console.log('spawning');
+        console.log(square);
+        var piece;
+        let re = /([a-z])([0-9]{1,2})/;
+        var m = square.match(re);
+        var f = m[1];
+        var r = m[2];
+
+        var piece  = piecesByBoardPos[square];
+
+        console.log('spawning at ' + m + ' piece: ' + chr);
+        //console.log('current piece:');
+        //console.log(piece);
+        //console.log(piecesByBoardPos);
+
+        if (piece == null) {
+            var type = chr;
+
+            var color = 'white';
+            if (type > 200) {
+                color = 'black';
+            }
+            if (type > 300) {
+                color = 'red';
+            }
+            if (type > 400) {
+                color = 'green';
+            }
+
+            var y = rankToX[r];
+            var x = fileToY[f];
+            console.log('color: ' + color);
+
+            if (type % 100 == 6){
+                piece = getQueen(x, y, color);
+            } else if (type % 100 == 5){
+                piece = getKing(x, y, color);
+            } else if (type % 100 == 4){
+                piece = getRook(x, y, color);
+            } else if (type % 100 == 3){
+                piece = getBishop(x, y, color);
+            } else if (type % 100 == 2){
+                piece = getKnight(x, y, color);
+            } else if (type % 100 == 1){
+                piece = getPawn(x, y, color);
+            } 
+            piece.id = maxPieceId++;
+            pieceLayer.add(piece.image);
+            pieces[piece.id] = piece;
+            if (piece.color == myColor || myColor == 'both'){
+                pieces[piece.id].image.draggable(true);
+            }
+            var square = getPieceSquare(piece);
+            piecesByBoardPos[square] = piece;
+
+            pieceLayer.draw();
+        }
 }
 
 var clearBoard = function() {
@@ -1099,13 +1116,15 @@ var getPiece = function(x, y, color, image){
         }
     }
 
-    piece.stop = function(new_x, new_y) {
+    piece.stop = function(new_x, new_y, timeToCharge = timerRecharge) {
         piece.x = new_x;
         piece.y = new_y;
-        piece.anim.stop();
+        if (piece.hasOwnProperty('anim')) {
+            piece.anim.stop();
+        }
         piece.image.draggable(true);
         piece.isMoving = false;
-        piece.setDelayTimer(timerRecharge)
+        piece.setDelayTimer(timeToCharge)
         piece.setImagePos(piece.x, piece.y);
     }
 
@@ -1114,6 +1133,7 @@ var getPiece = function(x, y, color, image){
             x: getX(piece.x * width / boardSize),
             y: getY(piece.y * width / boardSize),
             width: width / boardSize,
+            //height: (height / boardSize) * (timeToDelay / timerRecharge),
             height: height / boardSize,
             fill: '#888822',
             opacity: 0.5

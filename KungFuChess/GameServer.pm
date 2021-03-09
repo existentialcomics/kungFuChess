@@ -371,7 +371,6 @@ sub sendAllGamePieces {
 
     print "sending all game pieces...\n";
     print KungFuChess::Bitboards::pretty();
-    print "done pretty\n";
     my @msgs = ();
     foreach my $r ( @{ $self->{ranks} } ) {
         foreach my $f ( @{ $self->{files} } ) {
@@ -382,14 +381,35 @@ sub sendAllGamePieces {
                     'chr'    => $chr,
                     'square' => $f . $r
                 };
-
-                if ($returnOnly) {
-                    push @msgs, $msg;
-                } else {
-                    $self->send($msg);
-                }
+                push @msgs, $msg;
             }
         }
+    }
+    while (my ($key, $value) = each %{$self->{timeoutSquares}}) {
+        print "timeout: $key, $value\n";
+        my $msg = {
+            'c' => 'authstop',
+            'fr_bb'  => $key,
+            'time_remaining' => $self->{pieceRecharge} - (time() - $value)
+        };
+        push @msgs, $msg;
+    }
+    while (my ($key, $value) = each %{$self->{activeMoves}}) {
+        print "active: $key, $value->{to_bb}\n";
+        my $msg = {
+            'c' => 'authmove',
+            'fr_bb' => $key,
+            'to_bb' => $value->{to_bb}
+        };
+        push @msgs, $msg;
+    }
+    if (!$returnOnly) {
+        print "sending...\n";
+        foreach my $msg (@msgs) {
+            print "sending msg $msg->{c}\n";
+            $self->send($msg);
+        }
+        print "done sending $#msgs messages\n";
     }
     return @msgs;
 }
@@ -548,7 +568,7 @@ sub moveIfLegal {
             my $themColor = KungFuChess::Bitboards::occupiedColor($moving_to_bb);
             if ($themColor != 0 && $themColor != $usColor) {
                 if (exists($self->{activeMoves}->{$moving_to_bb})) {
-                    my $themStartTime = $self->{activeMoves}->{$moving_to_bb};
+                    my $themStartTime = $self->{activeMoves}->{$moving_to_bb}->{start_time};
                     print "collision detected, me: $startTime vs $themStartTime\n"; 
                     print "collision times, me $startTime vs $themStartTime\n"; 
                     if ($themStartTime < $startTime) {
@@ -608,7 +628,10 @@ sub moveIfLegal {
                 print "done!\n";
                 $done = 1;
             } else {
-                $self->{activeMoves}->{$moving_to_bb} = $startTime;
+                $self->{activeMoves}->{$moving_to_bb} = {
+                    'to_bb' => $to_bb,
+                    'start_time' => $startTime
+                };
             }
             $next_fr_bb = $moving_to_bb;
         } elsif ($moveType == KungFuChess::Bitboards::MOVE_KNIGHT) {
@@ -634,6 +657,7 @@ sub moveIfLegal {
 
             my $msgSpawn = {
                 'c' => 'authunsuspend',
+                'chr' => $piece,
                 'to_bb'  => $to_bb
             };
             $self->send($msgSpawn);
@@ -745,7 +769,7 @@ sub moveIfLegal {
             );
         } else {
             print " ** done moving to $to_bb\n";
-            $self->{timeoutSquares}->{$to_bb} = 1;
+            $self->{timeoutSquares}->{$to_bb} = time();
             $self->{timeoutCBs}->{$to_bb} = AnyEvent->timer(
                 after => $self->{pieceRecharge},
                 cb => sub {
@@ -770,7 +794,10 @@ sub moveIfLegal {
 
     my $startTime = time();
     ### usually times are set here but we set just to 1 to show it exists
-    $self->{activeMoves}->{$fr_bb} = 1;
+    $self->{activeMoves}->{$fr_bb} = {
+        to_bb => $to_bb,
+        start_time => 1
+    };
     $moveStep->($self, $moveStep, $fr_bb, $to_bb, $moveDir, $startTime, $moveType, '');
 
     KungFuChess::Bitboards::resetAiBoards();
@@ -782,9 +809,7 @@ sub killPieceBB {
 
     ### mark that it is no longer active, stopping any movement
     print Dumper($self->{activeMoves});
-    delete $self->{activeMoves}->{$bb};
     print "killing piece $bb\n";
-    print Dumper($self->{activeMoves});
     my $piece = KungFuChess::Bitboards::_getPieceBB($bb);
     if ($piece) {
         print "piece: $piece\n";
