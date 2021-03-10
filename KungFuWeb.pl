@@ -689,12 +689,19 @@ post '/register' => sub {
     my ($u, $p) = ($c->req->param('username'), $c->req->param('password'));
 
     my $existing = app->db()->selectall_arrayref('SELECT * FROM players WHERE screenname = ?', {}, $u);
-    if ($existing) {
+    if (@$existing) {
+        print "existing: \n";
+        print Dumper($existing);
         $c->stash('alertDanger' => 'Username ' . $u . ' already exists!');
         return $c->render('template' => 'register', format => 'html', handler => 'ep');
     }
     $c->db()->do('INSERT INTO players (screenname, password)
             VALUES (?, ?)', {}, $u, encryptPassword($p));
+
+    if ($c->authenticate($u, encryptPassword($p))){
+        my $user = $c->current_user();
+        $c->stash('user' => $user);
+    }
 
     $c->redirect_to("/");
 };
