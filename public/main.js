@@ -141,7 +141,7 @@ function checkPool(originalThread = false) {
     }
     $.ajax({
         type : 'GET',
-        url  : '/ajax/pool/' + checkPoolGameSpeed,
+        url  : '/ajax/pool/' + checkPoolGameSpeed + "/" + checkPoolGameType,
         dataType : 'json',
         success : function(data){
             var jsonRes = data;

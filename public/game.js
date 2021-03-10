@@ -711,7 +711,7 @@ var handleMessage = function(msg) {
         addGameMessage(
             msg.author,
             msg.message,
-            "green",
+            msg.color,
             'black',
             dt
         );

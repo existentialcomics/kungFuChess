@@ -695,8 +695,8 @@ post '/register' => sub {
         $c->stash('alertDanger' => 'Username ' . $u . ' already exists!');
         return $c->render('template' => 'register', format => 'html', handler => 'ep');
     }
-    $c->db()->do('INSERT INTO players (screenname, password)
-            VALUES (?, ?)', {}, $u, encryptPassword($p));
+    $c->db()->do('INSERT INTO players (screenname, password, rating_standard, rating_lightning)
+            VALUES (?, ?, 1200, 1200)', {}, $u, encryptPassword($p));
 
     if ($c->authenticate($u, encryptPassword($p))){
         my $user = $c->current_user();
@@ -820,7 +820,7 @@ websocket '/ws' => sub {
                 $game->serverBroadcast($msg);
             }
         } elsif ($msg->{'c'} eq 'chat'){
-            my $player = getPlayerByAuth($msg->{auth});
+            my $player = new KungFuChess::Player({auth_token => $msg->{auth}}, app->db());
             $msg->{'message'} = escape_html($msg->{'message'});
             $msg->{'author'}  = escape_html( ($player ? $player->{screenname} : "anonymous") );
 
@@ -1313,6 +1313,7 @@ sub savePlayer {
     my $result = shift;
     my $gameType = shift;
 
+    app->log->debug("saving player rating $player->{player_id}");
     my $sth = app->db()->prepare('UPDATE players SET rating_standard = ?, rating_lightning = ? WHERE player_id = ?' );
     $sth->execute($player->{rating_standard}, $player->{rating_lightning}, $player->{player_id});
 
@@ -1330,7 +1331,9 @@ sub savePlayer {
             app->log->debug("UNKNOWN result! $result");
         }
         if ($resultColumn ne '') {
-            my $sthResult = app->db()->prepare("UPDATE players SET $playedColumn = $playedColumn + 1, $resultColumn = $resultColumn + 1 WHERE player_id = ?" );
+            app->log->debug("saving player $playedColumn $resultColumn $player->{player_id}");
+            my $sthResult = app->db()->prepare("UPDATE players SET $playedColumn = $playedColumn + 1, $resultColumn = $resultColumn + 1 WHERE player_id = ?");
+            $sth->execute($player->{player_id});
         }
     }
 }
@@ -1343,7 +1346,7 @@ sub getMyOpenGame {
 
     ### TODO if not anon user delete other games
     my $myGame = app->db()->selectrow_hashref('
-        SELECT p.matched_game, p.player_id, p.rated, p.private_game_key, p.game_speed,
+        SELECT p.matched_game, p.player_id, p.rated, p.private_game_key, p.game_speed, p.open_to_public,
                py.rating_standard, py.rating_lightning, py.screenname, p.in_matching_pool
         FROM pool p LEFT JOIN players py ON p.player_id = py.player_id
             WHERE p.player_id = ?
