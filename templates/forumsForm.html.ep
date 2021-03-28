@@ -1,0 +1,22 @@
+%= include 'header'
+
+<div id="loginContainer" class="container">
+    <div class="card">
+        <div class="card-header">
+        Sign In
+        </div>
+        <div class="card-body">
+            <form method='POST' action='/forums/<%= $topic %>'>
+                <label>Subject</label>
+                <input type='text' name='subject' value=''>
+                <br />
+                <label>body</label>
+                <input type='textfield' name="body" value=''>
+                <br />
+                <input class="btn btn-primary" type='submit' value="Submit"/>
+            </form>
+        </div>
+    </div>
+</div>
+
+%= include 'footer'

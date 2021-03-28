@@ -44,6 +44,17 @@ sub _init {
     }
 }
 
+sub getProvisionalFactor {
+    my $self = shift;
+    my $gameType = shift;
+
+    my $gamesPlayed = $self->getGamesPlayed($gameType);
+    if ($self->getGamesPlayed($gameType) > 20) {
+        return 0;
+    }
+    return ($gamesPlayed / 20);
+}
+
 sub getBelt {
     my $self = shift;
     my $gameType = shift;
@@ -58,7 +69,7 @@ sub getBelt {
     my $rating = $self->{'rating_' . $gameType};
 
     # provisional belt
-    if ($self->getGamesPlayed($gameType) < 10) {
+    if ($self->getGamesPlayed($gameType) < 20) {
         return 'green';
     }
 

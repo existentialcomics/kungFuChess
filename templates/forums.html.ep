@@ -1,0 +1,16 @@
+%= include 'header'
+
+
+<div class="container bg-light card" id='homeContent'>
+    <div class="row">
+    <a href='/forums/kungfuchess'>General Chess</a>
+    </div>
+    <div class="row">
+    <a href='/forums/feedback'>Feedback</a>
+    </div>
+    <div class="row">
+    <a href='forums/off-topic'>Off Topic</a>
+    </div>
+</div>
+
+%= include 'footer'

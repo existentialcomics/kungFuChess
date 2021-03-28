@@ -4,6 +4,8 @@ use strict; use warnings;
 use Mojolicious::Lite;
 use Mojolicious::Plugin::Database;
 use Mojolicious::Plugin::Authentication;
+use Mojolicious::Validator;
+use Mojolicious::Validator::Validation;
 use UUID::Tiny ':std';
 use Data::Dumper;
 use JSON::XS;
@@ -350,6 +352,100 @@ get '/about' => sub {
     $c->stash('user' => $user);
 
     $c->render('template' => 'about', format => 'html', handler => 'ep');
+};
+
+get '/forums' => sub {
+    my $c = shift;
+    my $user = $c->current_user();
+    $c->stash('user' => $user);
+
+    $c->render('template' => 'forums', format => 'html', handler => 'ep');
+};
+
+get '/forums/:topic' => sub {
+    my $c = shift;
+    my $user = $c->current_user();
+    $c->stash('user' => $user);
+
+    print "HERE\n";
+    my $posts = app->db()->selectall_arrayref(
+        'SELECT forum_post.*, forum_post.post_text as preview, count(forum_comment.forum_comment_id) as comment_count FROM forum_post INNER JOIN forum_comment ON forum_post.forum_post_id = forum_comment.forum_post_id GROUP BY forum_comment.forum_comment_id', { 'Slice' => {} }
+    );
+    $c->stash('posts' => $posts);
+
+    print Dumper($posts);
+    $c->render('template' => 'forumsTopic', format => 'html', handler => 'ep');
+};
+
+### create a forum post
+post '/forums/:topic' => sub {
+    my $c = shift;
+    my $user = $c->current_user();
+    $c->stash('user' => $user);
+    my $topic   = $c->stash('topic');
+    my $subject = $c->req->param('subject');
+    my $text    = $c->req->param('body');
+
+    my $sth = app->db()->prepare('INSERT INTO forum_post (category, post_title, post_text, player_id, post_time) VALUES (?, ?, ?, ?, NOW())', {}); 
+
+    $sth->execute(
+        'chess',
+        $subject,
+        $text,
+        $user->{player_id}
+    );
+    
+    my $id = $sth->{mysql_insertid};
+
+    $c->redirect_to("/forums/$topic/$id");
+};
+
+### create a forum post form
+get '/forums/:topic/post' => sub {
+    my $c = shift;
+    my $user = $c->current_user();
+    $c->stash('user' => $user);
+    $c->render('template' => 'forumsForm', format => 'html', handler => 'ep');
+};
+
+get '/forums/:topic/:postId' => sub {
+    my $c = shift;
+    my $user = $c->current_user();
+    $c->stash('user' => $user);
+
+    my $post = app()->db->selectrow_hashref('SELECT * FROM forum_post WHERE forum_post_id = ?', {}, $c->stash('postId'));
+    $c->stash('post' => $post);
+
+    my $comments = app()->db->selectall_arrayref(
+        'SELECT * FROM forum_comment LEFT JOIN players ON forum_comment.player_id = players.player_id WHERE forum_post_id = ?',
+        { 'Slice' => {} },
+        $c->stash('postId')
+    );
+    print "comments\n";
+    print Dumper($comments);
+    $c->stash('comments' => $comments);
+
+    $c->render('template' => 'forumPost', format => 'html', handler => 'ep');
+};
+
+### create a comment
+post '/forums/:topic/:postId' => sub {
+    my $c = shift;
+    my $user = $c->current_user();
+    $c->stash('user' => $user);
+    my $postId = $c->stash('postId');
+    my $commentText  = $c->req->param('comment');
+    my $topic  = $c->stash('topic');
+
+    my $sth = app->db()->prepare('INSERT INTO forum_comment (forum_post_id, comment_text, player_id, post_time) VALUES (?, ?, ?, NOW())', {}); 
+
+    $sth->execute(
+        $postId,
+        $commentText,
+        $user->{player_id}
+    );
+
+    $c->redirect_to('/forums/' . $topic . '/' . $postId);
 };
 
 get '/profile/:screenname' => sub {
@@ -1087,6 +1183,9 @@ sub updateRatings {
     my $e1 = $r1 / ($r1 + $r2);
     my $e2 = $r2 / ($r1 + $r2);
 
+    my $whiteProv = $white->getProvisionFactor();
+    my $blackProv = $black->getProvisionFactor();
+
     $white->{$ratingColumn} = $white->{$ratingColumn} + $k * ($result - $e1);
     $black->{$ratingColumn} = $black->{$ratingColumn} + $k * ((1 - $result) - $e2);
     savePlayer($white, $result, $gameSpeed);
@@ -1313,7 +1412,7 @@ sub savePlayer {
     my $result = shift;
     my $gameType = shift;
 
-    app->log->debug("saving player rating $player->{player_id}");
+    app->log->debug("saving player rating $player->{player_id} $player->{rating_standard}, $player->{rating_lightning}");
     my $sth = app->db()->prepare('UPDATE players SET rating_standard = ?, rating_lightning = ? WHERE player_id = ?' );
     $sth->execute($player->{rating_standard}, $player->{rating_lightning}, $player->{player_id});
 
@@ -1333,7 +1432,7 @@ sub savePlayer {
         if ($resultColumn ne '') {
             app->log->debug("saving player $playedColumn $resultColumn $player->{player_id}");
             my $sthResult = app->db()->prepare("UPDATE players SET $playedColumn = $playedColumn + 1, $resultColumn = $resultColumn + 1 WHERE player_id = ?");
-            $sth->execute($player->{player_id});
+            $sthResult->execute($player->{player_id});
         }
     }
 }

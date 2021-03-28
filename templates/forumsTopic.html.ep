@@ -1,0 +1,17 @@
+%= include 'header'
+
+<div class="container bg-light card">
+
+Posts:
+<% foreach my $post (@{$posts}){ %>
+    <a href = "/forums/<%= $topic %>/<%= $post->{forum_post_id} %>">
+        <%= $post->{post_title} %>
+    </a><br />
+    <%= $post->{preview} %>
+<% } %>
+
+</div>
+
+<a href="/forums/<%= $topic %>/post">Create topic</a>
+
+%= include 'footer'

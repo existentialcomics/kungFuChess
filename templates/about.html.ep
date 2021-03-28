@@ -40,7 +40,11 @@
     <p>
     Source code for <a href="https://github.com/existentialcomics/kungFuChess">this site can be found here, under the GLPv3 license.</a><br />
     </p>
+    <p>
+    Contact: <a href="mailto:existentialcomics@gmail.com?subject=Kung Fu Chess">existentialcomics@gmail.com</a>
+    </p>
     </div>
 </div>
+
 
 %= include 'footer'

@@ -1,0 +1,25 @@
+%= include 'header'
+
+<div class="container bg-light card">
+
+<%= $post->{post_title} %><br />
+<%= $post->{post_text} %><br />
+<% foreach my $comment (@{$comments}){ %>
+    <%= $comment->{comment_text} %><br />
+    <%= $comment->{screenname} %>
+<% } %>
+
+</div>
+
+<a href="/forums/<%= $topic %>/post">Comment</a>
+
+<form method='POST' action=''>
+<label>Subject</label>
+<label>comment</label>
+<input type='textfield' name="comment" value=''>
+<br />
+<input class="btn btn-primary" type='submit' value="Submit"/>
+</form>
+
+
+%= include 'footer'
