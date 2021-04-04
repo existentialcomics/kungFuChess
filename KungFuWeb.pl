@@ -6,6 +6,7 @@ use Mojolicious::Plugin::Database;
 use Mojolicious::Plugin::Authentication;
 use Mojolicious::Validator;
 use Mojolicious::Validator::Validation;
+use Mojolicious::Plugin::CSRFProtect;
 use UUID::Tiny ':std';
 use Data::Dumper;
 use JSON::XS;
@@ -59,6 +60,7 @@ app->plugin('database', {
 });
 
 app->plugin('DefaultHelpers');
+app->plugin('CSRFProtect');
 
 app->plugin('authentication' => {
     'autoload_user' => 1,
@@ -366,16 +368,52 @@ get '/forums/:topic' => sub {
     my $c = shift;
     my $user = $c->current_user();
     $c->stash('user' => $user);
+    my $page = $c->req->param('page');
+    my $limit = 5;
+    if ($page) {
+        $page =~ s/[^\d]//;
+        if ($page eq '') { $page = 1; }
+    } else {
+        $page = 1;
+    }
+    my $offset = ($page - 1) * $limit;
 
-    print "HERE\n";
     my $posts = app->db()->selectall_arrayref(
-        'SELECT forum_post.*, forum_post.post_text as preview, count(forum_comment.forum_comment_id) as comment_count FROM forum_post INNER JOIN forum_comment ON forum_post.forum_post_id = forum_comment.forum_post_id GROUP BY forum_comment.forum_comment_id', { 'Slice' => {} }
+        "SELECT forum_post.*, players.*, forum_post.post_text as preview,
+        count(forum_comment.forum_comment_id) as comment_count FROM forum_post
+            LEFT JOIN players ON forum_post.player_id = players.player_id 
+            INNER JOIN forum_comment ON forum_post.forum_post_id = forum_comment.forum_post_id
+            WHERE category = ?
+            GROUP BY forum_comment.forum_comment_id
+            LIMIT $limit OFFSET $offset
+            ",
+        { 'Slice' => {} },
+        topicToCategory($c->stash('topic'))
     );
+    my $max = app->db()->selectrow_arrayref('SELECT COUNT(*) FROM forum_post WHERE category = ?'
+        ,
+        {},
+        topicToCategory($c->stash('topic'))
+    );
+
+    my $maxPage = $max->[0] / $limit;
+    $c->stash('page' => $page);
+
+    foreach my $post (@$posts) {
+        $post->{player} = new KungFuChess::Player({ row => $post }, app->db());
+    }
     $c->stash('posts' => $posts);
 
-    print Dumper($posts);
     $c->render('template' => 'forumsTopic', format => 'html', handler => 'ep');
 };
+
+sub topicToCategory {
+    my $topic = shift;
+    if ($topic eq 'kungfuchess') { return 'chess'; }
+    #if ($_ eq 'feedback') { return 'feedback'; }
+    #if ($_ eq 'off-topic') { return 'off-topic'; }
+    return $topic;
+}
 
 ### create a forum post
 post '/forums/:topic' => sub {
@@ -389,7 +427,7 @@ post '/forums/:topic' => sub {
     my $sth = app->db()->prepare('INSERT INTO forum_post (category, post_title, post_text, player_id, post_time) VALUES (?, ?, ?, ?, NOW())', {}); 
 
     $sth->execute(
-        'chess',
+        topicToCategory($c->stash('topic')),
         $subject,
         $text,
         $user->{player_id}
@@ -413,15 +451,19 @@ get '/forums/:topic/:postId' => sub {
     my $user = $c->current_user();
     $c->stash('user' => $user);
 
-    my $post = app()->db->selectrow_hashref('SELECT * FROM forum_post WHERE forum_post_id = ?', {}, $c->stash('postId'));
+    my $post = app()->db->selectrow_hashref('SELECT * FROM forum_post LEFT JOIN players ON forum_post.player_id = players.player_id WHERE forum_post_id = ?', {}, $c->stash('postId'));
+    $post->{player} = new KungFuChess::Player({ row => $post }, app->db());
     $c->stash('post' => $post);
+
 
     my $comments = app()->db->selectall_arrayref(
         'SELECT * FROM forum_comment LEFT JOIN players ON forum_comment.player_id = players.player_id WHERE forum_post_id = ?',
         { 'Slice' => {} },
         $c->stash('postId')
     );
-    print "comments\n";
+    foreach my $comment (@$comments) {
+        $comment->{player} = new KungFuChess::Player({ row => $comment }, app->db());
+    }
     print Dumper($comments);
     $c->stash('comments' => $comments);
 

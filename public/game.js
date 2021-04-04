@@ -381,8 +381,6 @@ for (var i = 0; i < rankLength; i++) {
 for (var i = 0; i < fileLength; i++) {
     fileToY[xToFile[i]] = i;
 }
-console.log(xToFile);
-console.log(yToRank);
 
 var globalIdCount = 1;
 var replayMode = false;
@@ -416,7 +414,6 @@ var updateTimeStamps = function(){
 };
 
 var joinGame = function(){
-        console.log("joinGame()");
 		var ret = {
 			'c' : 'join',
             'gameId' : gameId
@@ -484,8 +481,8 @@ var game_reconnectMain = function() {
 
 sendMsg = function(msg) {
     if (msg.c != 'ping') {
-        console.log("sending msg:");
-        console.log(msg);
+        //console.log("sending msg:");
+        //console.log(msg);
     }
     msg.gameId = gameId;
     msg.auth = authId;
@@ -560,7 +557,6 @@ var handleMessage = function(msg) {
         var pieceFrom = piecesByBoardPos[from];
 
         if (msg.hasOwnProperty('time_remaining')) {
-            console.log("stopping with time " + msg.time_remaining);
             pieceFrom.stop(x, y, msg.time_remaining);
         } else {
             pieceFrom.stop(x, y);
@@ -568,9 +564,6 @@ var handleMessage = function(msg) {
 
     } else if (msg.c == 'moveAnimate'){ // called when a player moves a piece
         let re = /([a-z])([0-9]{1,2})/;
-
-        console.log('moveAnimate');
-        console.log(msg);
 
         var from = getSquareFromBB(msg.fr_bb);
         var to   = getSquareFromBB(msg.to_bb);
@@ -612,8 +605,6 @@ var handleMessage = function(msg) {
 		newQueen.id = piece.id;
 		pieceLayer.add(newQueen.image);
 		pieces[newQueen.id] = newQueen;
-        console.log(piece);
-        console.log(newQueen);
         newQueen.setImagePos(newQueen.x, newQueen.y);
         if (piece.color == myColor || myColor == 'both'){
             newQueen.image.draggable(true);
@@ -641,7 +632,6 @@ var handleMessage = function(msg) {
         // when they move, until they land.
         var from = getSquareFromBB(msg.fr_bb);
         var to   = getSquareFromBB(msg.to_bb);
-        console.log('suspending ' + from + ", " + to);
         var piece = piecesByBoardPos[from];
         suspendedPieces[to] = piece;
 
@@ -653,14 +643,11 @@ var handleMessage = function(msg) {
         var piece = suspendedPieces[square];
 
         if (piece == null) {
-            console.log('no piece found spawning instead');
             spawn(msg.chr, square);
             piece = suspendedPieces[square];
             piece.stop(x, y);
             // TODO add the delay animation here
         } else {
-            console.log('unsuspending ' + square + "(" + msg.to_bb + ")");
-            console.log(piece);
             piecesByBoardPos[square] = piece;
             suspendedPieces[square] = null;
         }
@@ -774,8 +761,6 @@ var handleMessage = function(msg) {
 }
 
 var spawn = function(chr, square) {
-        console.log('spawning');
-        console.log(square);
         var piece;
         let re = /([a-z])([0-9]{1,2})/;
         var m = square.match(re);
@@ -783,11 +768,6 @@ var spawn = function(chr, square) {
         var r = m[2];
 
         var piece  = piecesByBoardPos[square];
-
-        console.log('spawning at ' + m + ' piece: ' + chr);
-        //console.log('current piece:');
-        //console.log(piece);
-        //console.log(piecesByBoardPos);
 
         if (piece == null) {
             var type = chr;
@@ -805,7 +785,6 @@ var spawn = function(chr, square) {
 
             var y = rankToX[r];
             var x = fileToY[f];
-            console.log('color: ' + color);
 
             if (type % 100 == 6){
                 piece = getQueen(x, y, color);
@@ -838,6 +817,7 @@ var clearBoard = function() {
 		pieces[id].image.destroy();
     }
     pieces = [];
+    piecesByBoardPos = {};
     pieceLayer.draw();
 }
 
@@ -1254,7 +1234,6 @@ stage.on("dragend", function(e){
     piece.setImagePos(piece.x, piece.y);
     boardPos = getBoardPos(pos);
 
-    console.log(boardPos);
 	var msg = {
 		'c'  : 'move',
 		'id' : piece.id,
@@ -1307,7 +1286,6 @@ input.keydown(function(e) {
             'c' : 'chat',
             'message' : message,
         };
-        console.log(msg);
         // send the message as an ordinary text
         sendMsg(msg);
         $(this).val('');
@@ -1354,7 +1332,7 @@ $(function () {
                 gameStart = true;
             } else {
                 var msgTimeout = 0;
-                if (gameStart) {
+                if ((gameStart && logMsg.msg.c != 'spawn') || (logMsg.msg.c == 'spawn')) {
                     msgTimeout = (logMsg.time - startTime) * 1000;
                 }
                 setTimeout(

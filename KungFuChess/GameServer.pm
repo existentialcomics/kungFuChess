@@ -771,7 +771,7 @@ sub moveIfLegal {
             print " ** done moving to $to_bb\n";
             $self->{timeoutSquares}->{$to_bb} = time();
             $self->{timeoutCBs}->{$to_bb} = AnyEvent->timer(
-                after => $self->{pieceRecharge},
+                after => $self->{pieceRecharge} + $nextMoveSpeed,
                 cb => sub {
                     print "  call back to end timeout for $to_bb\n";
                     # TODO replicate in Bitboards

@@ -2,16 +2,17 @@
 
 <div class="container bg-light card">
 
-Posts:
 <% foreach my $post (@{$posts}){ %>
+    %= include '_user', 'user' => $post
     <a href = "/forums/<%= $topic %>/<%= $post->{forum_post_id} %>">
         <%= $post->{post_title} %>
     </a><br />
     <%= $post->{preview} %>
+    <hr>
 <% } %>
 
+<a href="?page=<%= $page - 1 %>">prev</a><a href="?page=<%= $page + 1 %>">next</a><a href="/forums/<%= $topic %>/post">Create topic</a>
 </div>
 
-<a href="/forums/<%= $topic %>/post">Create topic</a>
 
 %= include 'footer'

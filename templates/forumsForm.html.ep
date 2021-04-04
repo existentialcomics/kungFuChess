@@ -3,15 +3,15 @@
 <div id="loginContainer" class="container">
     <div class="card">
         <div class="card-header">
-        Sign In
+        Post a Topic
         </div>
         <div class="card-body">
             <form method='POST' action='/forums/<%= $topic %>'>
-                <label>Subject</label>
-                <input type='text' name='subject' value=''>
+                <label>Subject</label><br />
+                <input class="form-control"  type='text' name='subject' value=''>
                 <br />
-                <label>body</label>
-                <input type='textfield' name="body" value=''>
+                <label>Body</label><br />
+                <textarea class="form-control" rows="5" cols="60" name="body"></textarea><br>
                 <br />
                 <input class="btn btn-primary" type='submit' value="Submit"/>
             </form>

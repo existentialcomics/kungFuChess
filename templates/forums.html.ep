@@ -2,15 +2,14 @@
 
 
 <div class="container bg-light card" id='homeContent'>
-    <div class="row">
-    <a href='/forums/kungfuchess'>General Chess</a>
-    </div>
-    <div class="row">
-    <a href='/forums/feedback'>Feedback</a>
-    </div>
-    <div class="row">
-    <a href='forums/off-topic'>Off Topic</a>
-    </div>
+    <a class='h3' href='/forums/kungfuchess'>General Chess</a><br />
+    <p>Discuss strategy and chess.</p>
+    <hr>
+    <a class='h3' href='/forums/feedback'>Feedback</a>
+    <p>Feedback and bug reports.</p>
+    <hr>
+    <a class='h3' href='forums/off-topic'>Off Topic</a>
+    <p>Anything goes more or less.</p>
 </div>
 
 %= include 'footer'

@@ -4,7 +4,7 @@
         Sign In
         </div>
         <div class="card-body">
-            <form method='POST' action='/login'>
+            <%= form_for login => (method => 'post') => begin %>
                 <label>username</label>
                 <input type='text' name='username' value=''>
                 <br />
@@ -12,7 +12,7 @@
                 <input type='password' name="password" value=''>
                 <br />
                 <input class="btn btn-primary" type='submit' value="Submit"/>
-            </form>
+            <% end %>
 
             Don't have an account? <a href="/register">Register here</a>
         </div>

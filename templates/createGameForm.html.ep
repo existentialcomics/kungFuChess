@@ -4,7 +4,7 @@
     Create a game
     </div>
     <div class="card-body">
-        <form method="POST" action="/createGame" id="createGameForm">
+        <%= form_for createGame => (method => 'post',  id => 'createGameForm') => begin %>
             <div class="form-group">
                 <label for="colFormLabelLg" class="col col-form-label col-form-label-lg">Game Speed</label>
                 <div class="form-radio">
@@ -67,7 +67,8 @@
                 </div>
             </div>
             <button type="submit" class="btn btn-primary" id='createGameSubmit'>Create Game</button>
-        </form>
+    <% end %>
     </div>
 </div>
 </div>
+<%= jquery_ajax_csrf_protection %>

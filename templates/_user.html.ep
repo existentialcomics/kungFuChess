@@ -1,0 +1,11 @@
+<table>
+<tr>
+    <td>
+    <div id="<%= $user->{player}->getBelt('standard') %>belt"></div>
+    </td>
+    <td>
+    <%= $user->{player}->{screenname} %><br />
+    </td>
+</tr>
+</table>
+
