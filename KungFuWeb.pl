@@ -828,9 +828,7 @@ post '/register' => sub {
 
     my $existing = app->db()->selectall_arrayref('SELECT * FROM players WHERE screenname = ?', {}, $u);
     if (@$existing) {
-        print "existing: \n";
-        print Dumper($existing);
-        $c->stash('alertDanger' => 'Username ' . $u . ' already exists!');
+        $c->stash('error' => 'Username ' . $u . ' already exists!');
         return $c->render('template' => 'register', format => 'html', handler => 'ep');
     }
     $c->db()->do('INSERT INTO players (screenname, password, rating_standard, rating_lightning)

@@ -37,9 +37,9 @@
         <a href="/about">About</a>
     </li>
 </ul>
-<% if (defined(stash('alertDanger')) && stash('alertDanger')) { %>
+<% if (defined(stash('error')) && stash('error')) { %>
 <div class="alert alert-danger" role="alert">
-   <%= stash('alertDanger') %>
+   <%= stash('error') %>
 </div>
 <% } %>
 <script>

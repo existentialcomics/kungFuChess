@@ -6,7 +6,7 @@
         Post a Topic
         </div>
         <div class="card-body">
-            <form method='POST' action='/forums/<%= $topic %>'>
+            <%= form_for login => (method => "/forums/$topic") => begin %>
                 <label>Subject</label><br />
                 <input class="form-control"  type='text' name='subject' value=''>
                 <br />
@@ -14,7 +14,7 @@
                 <textarea class="form-control" rows="5" cols="60" name="body"></textarea><br>
                 <br />
                 <input class="btn btn-primary" type='submit' value="Submit"/>
-            </form>
+            <% end %>
         </div>
     </div>
 </div>
