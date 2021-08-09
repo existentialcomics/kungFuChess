@@ -15,14 +15,62 @@
             </div>
         </div>
         <div class="col-3">
-            <% if ($color eq 'white' || $color eq 'watch') { %>
-                <span class="circle offline" id="blackOnline"></span>
-                <span id='blackPlayerName'><%= $blackPlayer->{screenname} %></span>
-                <span id='blackRating'><%= $blackPlayer->{rating_standard} %></span>
-            <% } else { %>
+            <% if ($color eq 'black') { %>
                 <span class="circle offline" id="whiteOnline"></span>
                 <span id='whitePlayerName'><%= $whitePlayer->{screenname} %></span>
                 <span id='whiteRating'><%= $whitePlayer->{rating_standard} %></span>
+                <% if ($gameType eq '4way') { %>
+                    <br />
+                    <span class="circle offline" id="redOnline"></span>
+                    <span id='redPlayerName'><%= $redPlayer->{screenname} %></span>
+                    <span id='redRating'><%= $redPlayer->{rating_standard} %></span>
+                    <br />
+                    <span class="circle offline" id="greenOnline"></span>
+                    <span id='greenPlayerName'><%= $greenPlayer->{screenname} %></span>
+                    <span id='greenRating'><%= $greenPlayer->{rating_standard} %></span>
+                <% } %>
+            <% } elsif ($color eq 'red') { %>
+                <span class="circle offline" id="whiteOnline"></span>
+                <span id='whitePlayerName'><%= $whitePlayer->{screenname} %></span>
+                <span id='whiteRating'><%= $whitePlayer->{rating_standard} %></span>
+                <br />
+                <span class="circle offline" id="blackOnline"></span>
+                <span id='blackPlayerName'><%= $blackPlayer->{screenname} %></span>
+                <span id='blackRating'><%= $blackPlayer->{rating_standard} %></span>
+                <% if ($gameType eq '4way') { %>
+                    <br />
+                    <span class="circle offline" id="greenOnline"></span>
+                    <span id='greenPlayerName'><%= $greenPlayer->{screenname} %></span>
+                    <span id='greenRating'><%= $greenPlayer->{rating_standard} %></span>
+                <% } %>
+            <% } elsif ($color eq 'green') { %>
+                <span class="circle offline" id="whiteOnline"></span>
+                <span id='whitePlayerName'><%= $whitePlayer->{screenname} %></span>
+                <span id='whiteRating'><%= $whitePlayer->{rating_standard} %></span>
+                <br />
+                <span class="circle offline" id="blackOnline"></span>
+                <span id='blackPlayerName'><%= $blackPlayer->{screenname} %></span>
+                <span id='blackRating'><%= $blackPlayer->{rating_standard} %></span>
+                <% if ($gameType eq '4way') { %>
+                    <br />
+                    <span class="circle offline" id="greenOnline"></span>
+                    <span id='greenPlayerName'><%= $greenPlayer->{screenname} %></span>
+                    <span id='greenRating'><%= $greenPlayer->{rating_standard} %></span>
+                <% } %>
+            <% } else { %>
+                <span class="circle offline" id="blackOnline"></span>
+                <span id='blackPlayerName'><%= $blackPlayer->{screenname} %></span>
+                <span id='blackRating'><%= $blackPlayer->{rating_standard} %></span>
+                <% if ($gameType eq '4way') { %>
+                    <br />
+                    <span class="circle offline" id="redOnline"></span>
+                    <span id='redPlayerName'><%= $redPlayer->{screenname} %></span>
+                    <span id='redRating'><%= $redPlayer->{rating_standard} %></span>
+                    <br />
+                    <span class="circle offline" id="greenOnline"></span>
+                    <span id='greenPlayerName'><%= $greenPlayer->{screenname} %></span>
+                    <span id='greenRating'><%= $greenPlayer->{rating_standard} %></span>
+                <% } %>
             <% } %>
             <div id="gameStatusWaitingToStart" <%== $gameStatus eq 'waiting to begin' ? '' : 'style="display:none;"' %>>
                 <button type="button" class="btn btn-primary btn-block" id="readyToStart" onclick="readyToStart()">Ready To Start</button>
@@ -40,18 +88,23 @@
             <div id="gameStatusComplete" <%== $gameStatus eq 'finished' ? '' : 'style="display:none;"' %>>
                 <button type="button" class="btn btn-primary btn-block" id="replayGame" >Replay Game</button>
             </div>
-            <% if ($color eq 'white' || $color eq 'watch') { %>
-                <span class="circle offline" id="whiteOnline"></span>
-                <span id='whitePlayerName'><%= $whitePlayer->{screenname} %></span>
-                <span id='whiteRating'><%= $whitePlayer->{rating_standard} %></span>
-            <% } else { %>
+            <% if ($color eq 'black') { %>
                 <span class="circle offline" id="blackOnline"></span>
                 <span id='blackPlayerName'><%= $blackPlayer->{screenname} %></span>
                 <span id='blackRating'><%= $blackPlayer->{rating_standard} %></span>
+            <% } elsif ($color eq 'red') { %>
+                <span class="circle offline" id="redOnline"></span>
+                <span id='redPlayerName'><%= $redPlayer->{screenname} %></span>
+                <span id='redRating'><%= $redPlayer->{rating_standard} %></span>
+            <% } elsif ($color eq 'green') { %>
+                <span class="circle offline" id="greenOnline"></span>
+                <span id='greenPlayerName'><%= $greenPlayer->{screenname} %></span>
+                <span id='greenRating'><%= $greenPlayer->{rating_standard} %></span>
+            <% } else { %>
+                <span class="circle offline" id="whiteOnline"></span>
+                <span id='whitePlayerName'><%= $whitePlayer->{screenname} %></span>
+                <span id='whiteRating'><%= $whitePlayer->{rating_standard} %></span>
             <% } %>
-        </div>
-        <div>
-            <%= $gameStatus %>
         </div>
     </div>
 </div>
@@ -59,6 +112,8 @@
 <script>
     var whitePlayer = JSON.parse('<%== $whitePlayer->getJsonMsg() %>');
     var blackPlayer = JSON.parse('<%== $blackPlayer->getJsonMsg() %>');
+    var redPlayer   = JSON.parse('<%== $whitePlayer->getJsonMsg() %>');
+    var greenPlayer = JSON.parse('<%== $blackPlayer->getJsonMsg() %>');
 	var gameId   = "<%= $gameId %>";
     var myColor  = "<%= $color %>";
 	var authId   = "<%= $authId %>";

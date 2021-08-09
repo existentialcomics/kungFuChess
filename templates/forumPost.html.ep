@@ -2,13 +2,17 @@
 
 <div class="container bg-light card">
 
+<row>
 %= include '_user', 'user' => $post
-<%= $post->{post_title} %><br />
-<%= $post->{post_text} %><br />
+<h3><%= $post->{post_title} %></h3>
+<h5><%= $post->{post_text} %></h5>
+</row>
 <% foreach my $comment (@{$comments}){ %>
     <hr>
+    <row>
     %= include '_user', 'user' => $comment
     <%= $comment->{comment_text} %><br />
+    </row>
 <% } %>
 
 <div id="loginContainer" class="container">

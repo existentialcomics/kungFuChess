@@ -6,6 +6,7 @@ use strict;
 ### same package name as Bitboards so the server doesn't have to know which it is using
 package KungFuChess::Bitboards;
 use Math::BigInt;
+use Data::Dumper;
 use base 'Exporter';
 
 use constant ({
@@ -34,33 +35,50 @@ use constant ({
     MOVE_PUT_PIECE  => 6,
     MOVE_PROMOTE    => 7,
 
-    WHITE_PAWN   => 001,
-    WHITE_ROOK   => 002,
-    WHITE_KNIGHT => 003,
-    WHITE_BISHOP => 004,
-    WHITE_KING   => 005,
-    WHITE_QUEEN  => 006,
+    ### matches Stockfish
+    ALL_P  => 000,
+    PAWN   => 001,
+    KNIGHT => 002,
+    BISHOP => 003,
+    ROOK   => 004,
+    KING   => 005,
+    QUEEN  => 006,
 
-    BLACK_PAWN   => 101,
-    BLACK_ROOK   => 102,
-    BLACK_KNIGHT => 103,
-    BLACK_BISHOP => 104,
-    BLACK_KING   => 105,
-    BLACK_QUEEN  => 106,
+    ### array of a move
+    MOVE_FR         => 0,
+    MOVE_TO         => 1,
+    MOVE_PIECE      => 2,
+    MOVE_PIECE_TYPE => 3,
+    MOVE_SCORE      => 4,
+    MOVE_NEXT_MOVES => 5,
+     
+    WHITE_PAWN   => 101,
+    WHITE_KNIGHT => 102,
+    WHITE_BISHOP => 103,
+    WHITE_ROOK   => 104,
+    WHITE_KING   => 105,
+    WHITE_QUEEN  => 106,
 
-    RED_PAWN   => 201,
-    RED_ROOK   => 202,
-    RED_KNIGHT => 203,
-    RED_BISHOP => 204,
-    RED_KING   => 205,
-    RED_QUEEN  => 206,
+    BLACK_PAWN   => 201,
+    BLACK_KNIGHT => 202,
+    BLACK_BISHOP => 203,
+    BLACK_ROOK   => 204,
+    BLACK_KING   => 205,
+    BLACK_QUEEN  => 206,
 
-    GREEN_PAWN   => 301,
-    GREEN_ROOK   => 302,
-    GREEN_KNIGHT => 303,
-    GREEN_BISHOP => 304,
-    GREEN_KING   => 305,
-    GREEN_QUEEN  => 306,
+    RED_PAWN   => 301,
+    RED_KNIGHT => 302,
+    RED_BISHOP => 303,
+    RED_ROOK   => 304,
+    RED_KING   => 305,
+    RED_QUEEN  => 306,
+
+    GREEN_PAWN   => 401,
+    GREEN_KNIGHT => 402,
+    GREEN_BISHOP => 403,
+    GREEN_ROOK   => 404,
+    GREEN_KING   => 405,
+    GREEN_QUEEN  => 406,
 
 # binary number for file 1 (12x12)
 # 100000000000
@@ -77,7 +95,21 @@ use constant ({
 # 100000000000
 # hex number:
 # 800800800800800800800800800800800800
-    FILES => {
+    FILES => [
+        Math::BigInt->new('0x800800800800800800800800800800800800'),
+        Math::BigInt->new('0x800800800800800800800800800800800800') >> 1,
+        Math::BigInt->new('0x800800800800800800800800800800800800') >> 2,
+        Math::BigInt->new('0x800800800800800800800800800800800800') >> 3,
+        Math::BigInt->new('0x800800800800800800800800800800800800') >> 4,
+        Math::BigInt->new('0x800800800800800800800800800800800800') >> 5,
+        Math::BigInt->new('0x800800800800800800800800800800800800') >> 6,
+        Math::BigInt->new('0x800800800800800800800800800800800800') >> 7,
+        Math::BigInt->new('0x800800800800800800800800800800800800') >> 8,
+        Math::BigInt->new('0x800800800800800800800800800800800800') >> 9,
+        Math::BigInt->new('0x800800800800800800800800800800800800') >> 10,
+        Math::BigInt->new('0x800800800800800800800800800800800800') >> 11,
+    ],
+    FILES_H => {
         a  => Math::BigInt->new('0x800800800800800800800800800800800800'),
         b  => Math::BigInt->new('0x800800800800800800800800800800800800') >> 1,
         c  => Math::BigInt->new('0x800800800800800800800800800800800800') >> 2,
@@ -107,7 +139,21 @@ use constant ({
 # 111111111111
 # hex number:
 # 0000000000000000000000000000FFFF
-    RANKS => {
+    RANKS => [
+        Math::BigInt->new('0x000000000000000000000000000000000FFF'),
+        Math::BigInt->new('0x000000000000000000000000000000FFF000'),
+        Math::BigInt->new('0x000000000000000000000000000FFF000000'),
+        Math::BigInt->new('0x000000000000000000000000FFF000000000'),
+        Math::BigInt->new('0x000000000000000000000FFF000000000000'),
+        Math::BigInt->new('0x000000000000000000FFF000000000000000'),
+        Math::BigInt->new('0x000000000000000FFF000000000000000000'),
+        Math::BigInt->new('0x000000000000FFF000000000000000000000'),
+        Math::BigInt->new('0x000000000FFF000000000000000000000000'),
+        Math::BigInt->new('0x000000FFF000000000000000000000000000'),
+        Math::BigInt->new('0x000FFF000000000000000000000000000000'),
+        Math::BigInt->new('0xFFF000000000000000000000000000000000'),
+    ],
+    RANKS_H => {
         1  => Math::BigInt->new('0x000000000000000000000000000000000FFF'),
         2  => Math::BigInt->new('0x000000000000000000000000000000FFF000'),
         3  => Math::BigInt->new('0x000000000000000000000000000FFF000000'),
@@ -178,310 +224,319 @@ my $occupied = Math::BigInt->new('0x00000000000000000000000000000000');
 
 my $enPassant = Math::BigInt->new('0x00000000000000000000000000000000');
 
-my $whiteCastleK  = RANKS->{1} & FILES->{'e'};
-my $blackCastleK  = RANKS->{8} & FILES->{'e'};
-my $whiteCastleR  = RANKS->{1} & FILES->{'h'};
-my $blackCastleR  = RANKS->{8} & FILES->{'h'};
-my $whiteQCastleR = RANKS->{1} & FILES->{'a'};
-my $blackQCastleR = RANKS->{8} & FILES->{'a'};
+my $whiteCastleK  = RANKS_H->{1} & FILES_H->{'g'};
+my $whiteCastleR  = RANKS_H->{1} & FILES_H->{'j'};
+my $whiteQCastleR = RANKS_H->{1} & FILES_H->{'c'};
+my $blackCastleK  = RANKS_H->{12} & FILES_H->{'g'};
+my $blackCastleR  = RANKS_H->{12} & FILES_H->{'j'};
+my $blackQCastleR = RANKS_H->{12} & FILES_H->{'c'};
+my $redCastleK  = RANKS_H->{6} & FILES_H->{'a'};
+my $redCastleR  = RANKS_H->{3} & FILES_H->{'a'};
+my $redQCastleR = RANKS_H->{10} & FILES_H->{'a'};
+my $greenCastleK  = RANKS_H->{6} & FILES_H->{'l'};
+my $greenCastleR  = RANKS_H->{3} & FILES_H->{'l'};
+my $greenQCastleR = RANKS_H->{10} & FILES_H->{'l'};
 
 ### frozen pieces, can't move
 my $frozenBB = Math::BigInt->new('0x00000000000000000000000000000000');
 ### pieces currently moving, don't attack these!
 my $movingBB = Math::BigInt->new('0x00000000000000000000000000000000');
 
+sub resetAiBoards {
+}
+
 sub setupInitialPosition {
     #### white ####
     # rook 1
-    $occupied |= (FILES->{c} & RANKS->{1});
-    $rooks    |= (FILES->{c} & RANKS->{1});
-    $white    |= (FILES->{c} & RANKS->{1});
+    $occupied |= (FILES_H->{c} & RANKS_H->{1});
+    $rooks    |= (FILES_H->{c} & RANKS_H->{1});
+    $white    |= (FILES_H->{c} & RANKS_H->{1});
     # pawn 
-    $occupied |= (FILES->{c} & RANKS->{2});
-    $pawns    |= (FILES->{c} & RANKS->{2});
-    $white    |= (FILES->{c} & RANKS->{2});
+    $occupied |= (FILES_H->{c} & RANKS_H->{2});
+    $pawns    |= (FILES_H->{c} & RANKS_H->{2});
+    $white    |= (FILES_H->{c} & RANKS_H->{2});
         
     # knight 1
-    $occupied |= (FILES->{d} & RANKS->{1});
-    $knights  |= (FILES->{d} & RANKS->{1});
-    $white    |= (FILES->{d} & RANKS->{1});
+    $occupied |= (FILES_H->{d} & RANKS_H->{1});
+    $knights  |= (FILES_H->{d} & RANKS_H->{1});
+    $white    |= (FILES_H->{d} & RANKS_H->{1});
     # pawn 
-    $occupied |= (FILES->{d} & RANKS->{2});
-    $pawns    |= (FILES->{d} & RANKS->{2});
-    $white    |= (FILES->{d} & RANKS->{2});
+    $occupied |= (FILES_H->{d} & RANKS_H->{2});
+    $pawns    |= (FILES_H->{d} & RANKS_H->{2});
+    $white    |= (FILES_H->{d} & RANKS_H->{2});
         
     # bishop 1
-    $occupied |= (FILES->{e} & RANKS->{1});
-    $bishops  |= (FILES->{e} & RANKS->{1});
-    $white    |= (FILES->{e} & RANKS->{1});
+    $occupied |= (FILES_H->{e} & RANKS_H->{1});
+    $bishops  |= (FILES_H->{e} & RANKS_H->{1});
+    $white    |= (FILES_H->{e} & RANKS_H->{1});
     # pawn 
-    $occupied |= (FILES->{e} & RANKS->{2});
-    $pawns    |= (FILES->{e} & RANKS->{2});
-    $white    |= (FILES->{e} & RANKS->{2});
+    $occupied |= (FILES_H->{e} & RANKS_H->{2});
+    $pawns    |= (FILES_H->{e} & RANKS_H->{2});
+    $white    |= (FILES_H->{e} & RANKS_H->{2});
         
     # queen
-    $occupied |= (FILES->{f} & RANKS->{1});
-    $queens   |= (FILES->{f} & RANKS->{1});
-    $white    |= (FILES->{f} & RANKS->{1});
+    $occupied |= (FILES_H->{f} & RANKS_H->{1});
+    $queens   |= (FILES_H->{f} & RANKS_H->{1});
+    $white    |= (FILES_H->{f} & RANKS_H->{1});
     # pawn 
-    $occupied |= (FILES->{f} & RANKS->{2});
-    $pawns    |= (FILES->{f} & RANKS->{2});
-    $white    |= (FILES->{f} & RANKS->{2});
+    $occupied |= (FILES_H->{f} & RANKS_H->{2});
+    $pawns    |= (FILES_H->{f} & RANKS_H->{2});
+    $white    |= (FILES_H->{f} & RANKS_H->{2});
         
     # king
-    $occupied |= (FILES->{g} & RANKS->{1});
-    $kings    |= (FILES->{g} & RANKS->{1});
-    $white    |= (FILES->{g} & RANKS->{1});
+    $occupied |= (FILES_H->{g} & RANKS_H->{1});
+    $kings    |= (FILES_H->{g} & RANKS_H->{1});
+    $white    |= (FILES_H->{g} & RANKS_H->{1});
     # pawn 
-    $occupied |= (FILES->{g} & RANKS->{2});
-    $pawns    |= (FILES->{g} & RANKS->{2});
-    $white    |= (FILES->{g} & RANKS->{2});
+    $occupied |= (FILES_H->{g} & RANKS_H->{2});
+    $pawns    |= (FILES_H->{g} & RANKS_H->{2});
+    $white    |= (FILES_H->{g} & RANKS_H->{2});
         
     # bishop2
-    $occupied |= (FILES->{h} & RANKS->{1});
-    $bishops  |= (FILES->{h} & RANKS->{1});
-    $white    |= (FILES->{h} & RANKS->{1});
+    $occupied |= (FILES_H->{h} & RANKS_H->{1});
+    $bishops  |= (FILES_H->{h} & RANKS_H->{1});
+    $white    |= (FILES_H->{h} & RANKS_H->{1});
     # pawn 
-    $occupied |= (FILES->{h} & RANKS->{2});
-    $pawns    |= (FILES->{h} & RANKS->{2});
-    $white    |= (FILES->{h} & RANKS->{2});
+    $occupied |= (FILES_H->{h} & RANKS_H->{2});
+    $pawns    |= (FILES_H->{h} & RANKS_H->{2});
+    $white    |= (FILES_H->{h} & RANKS_H->{2});
         
     # knight2
-    $occupied |= (FILES->{i} & RANKS->{1});
-    $knights  |= (FILES->{i} & RANKS->{1});
-    $white    |= (FILES->{i} & RANKS->{1});
+    $occupied |= (FILES_H->{i} & RANKS_H->{1});
+    $knights  |= (FILES_H->{i} & RANKS_H->{1});
+    $white    |= (FILES_H->{i} & RANKS_H->{1});
     # pawn 
-    $occupied |= (FILES->{i} & RANKS->{2});
-    $pawns    |= (FILES->{i} & RANKS->{2});
-    $white    |= (FILES->{i} & RANKS->{2});
+    $occupied |= (FILES_H->{i} & RANKS_H->{2});
+    $pawns    |= (FILES_H->{i} & RANKS_H->{2});
+    $white    |= (FILES_H->{i} & RANKS_H->{2});
         
     # rook2
-    $occupied |= (FILES->{j} & RANKS->{1});
-    $rooks    |= (FILES->{j} & RANKS->{1});
-    $white    |= (FILES->{j} & RANKS->{1});
+    $occupied |= (FILES_H->{j} & RANKS_H->{1});
+    $rooks    |= (FILES_H->{j} & RANKS_H->{1});
+    $white    |= (FILES_H->{j} & RANKS_H->{1});
     # pawn 
-    $occupied |= (FILES->{j} & RANKS->{2});
-    $pawns    |= (FILES->{j} & RANKS->{2});
-    $white    |= (FILES->{j} & RANKS->{2});
+    $occupied |= (FILES_H->{j} & RANKS_H->{2});
+    $pawns    |= (FILES_H->{j} & RANKS_H->{2});
+    $white    |= (FILES_H->{j} & RANKS_H->{2});
 
     #### black ####
     # rook 1
-    $occupied |= (FILES->{c} & RANKS->{12});
-    $rooks    |= (FILES->{c} & RANKS->{12});
-    $black    |= (FILES->{c} & RANKS->{12});
+    $occupied |= (FILES_H->{c} & RANKS_H->{12});
+    $rooks    |= (FILES_H->{c} & RANKS_H->{12});
+    $black    |= (FILES_H->{c} & RANKS_H->{12});
     # pawn 
-    $occupied |= (FILES->{c} & RANKS->{11});
-    $pawns    |= (FILES->{c} & RANKS->{11});
-    $black    |= (FILES->{c} & RANKS->{11});
+    $occupied |= (FILES_H->{c} & RANKS_H->{11});
+    $pawns    |= (FILES_H->{c} & RANKS_H->{11});
+    $black    |= (FILES_H->{c} & RANKS_H->{11});
         
     # knight 1
-    $occupied |= (FILES->{d} & RANKS->{12});
-    $knights  |= (FILES->{d} & RANKS->{12});
-    $black    |= (FILES->{d} & RANKS->{12});
+    $occupied |= (FILES_H->{d} & RANKS_H->{12});
+    $knights  |= (FILES_H->{d} & RANKS_H->{12});
+    $black    |= (FILES_H->{d} & RANKS_H->{12});
     # pawn 
-    $occupied |= (FILES->{d} & RANKS->{11});
-    $pawns    |= (FILES->{d} & RANKS->{11});
-    $black    |= (FILES->{d} & RANKS->{11});
+    $occupied |= (FILES_H->{d} & RANKS_H->{11});
+    $pawns    |= (FILES_H->{d} & RANKS_H->{11});
+    $black    |= (FILES_H->{d} & RANKS_H->{11});
         
     # bishop 1
-    $occupied |= (FILES->{e} & RANKS->{12});
-    $bishops  |= (FILES->{e} & RANKS->{12});
-    $black    |= (FILES->{e} & RANKS->{12});
+    $occupied |= (FILES_H->{e} & RANKS_H->{12});
+    $bishops  |= (FILES_H->{e} & RANKS_H->{12});
+    $black    |= (FILES_H->{e} & RANKS_H->{12});
     # pawn 
-    $occupied |= (FILES->{e} & RANKS->{11});
-    $pawns    |= (FILES->{e} & RANKS->{11});
-    $black    |= (FILES->{e} & RANKS->{11});
+    $occupied |= (FILES_H->{e} & RANKS_H->{11});
+    $pawns    |= (FILES_H->{e} & RANKS_H->{11});
+    $black    |= (FILES_H->{e} & RANKS_H->{11});
         
     # queen
-    $occupied |= (FILES->{f} & RANKS->{12});
-    $queens   |= (FILES->{f} & RANKS->{12});
-    $black    |= (FILES->{f} & RANKS->{12});
+    $occupied |= (FILES_H->{f} & RANKS_H->{12});
+    $queens   |= (FILES_H->{f} & RANKS_H->{12});
+    $black    |= (FILES_H->{f} & RANKS_H->{12});
     # pawn 
-    $occupied |= (FILES->{f} & RANKS->{11});
-    $pawns    |= (FILES->{f} & RANKS->{11});
-    $black    |= (FILES->{f} & RANKS->{11});
+    $occupied |= (FILES_H->{f} & RANKS_H->{11});
+    $pawns    |= (FILES_H->{f} & RANKS_H->{11});
+    $black    |= (FILES_H->{f} & RANKS_H->{11});
         
     # king
-    $occupied |= (FILES->{g} & RANKS->{12});
-    $kings    |= (FILES->{g} & RANKS->{12});
-    $black    |= (FILES->{g} & RANKS->{12});
+    $occupied |= (FILES_H->{g} & RANKS_H->{12});
+    $kings    |= (FILES_H->{g} & RANKS_H->{12});
+    $black    |= (FILES_H->{g} & RANKS_H->{12});
     # pawn 
-    $occupied |= (FILES->{g} & RANKS->{11});
-    $pawns    |= (FILES->{g} & RANKS->{11});
-    $black    |= (FILES->{g} & RANKS->{11});
+    $occupied |= (FILES_H->{g} & RANKS_H->{11});
+    $pawns    |= (FILES_H->{g} & RANKS_H->{11});
+    $black    |= (FILES_H->{g} & RANKS_H->{11});
         
     # bishop2
-    $occupied |= (FILES->{h} & RANKS->{12});
-    $bishops  |= (FILES->{h} & RANKS->{12});
-    $black    |= (FILES->{h} & RANKS->{12});
+    $occupied |= (FILES_H->{h} & RANKS_H->{12});
+    $bishops  |= (FILES_H->{h} & RANKS_H->{12});
+    $black    |= (FILES_H->{h} & RANKS_H->{12});
     # pawn 
-    $occupied |= (FILES->{h} & RANKS->{11});
-    $pawns    |= (FILES->{h} & RANKS->{11});
-    $black    |= (FILES->{h} & RANKS->{11});
+    $occupied |= (FILES_H->{h} & RANKS_H->{11});
+    $pawns    |= (FILES_H->{h} & RANKS_H->{11});
+    $black    |= (FILES_H->{h} & RANKS_H->{11});
         
     # knight2
-    $occupied |= (FILES->{i} & RANKS->{12});
-    $knights  |= (FILES->{i} & RANKS->{12});
-    $black    |= (FILES->{i} & RANKS->{12});
+    $occupied |= (FILES_H->{i} & RANKS_H->{12});
+    $knights  |= (FILES_H->{i} & RANKS_H->{12});
+    $black    |= (FILES_H->{i} & RANKS_H->{12});
     # pawn 
-    $occupied |= (FILES->{i} & RANKS->{11});
-    $pawns    |= (FILES->{i} & RANKS->{11});
-    $black    |= (FILES->{i} & RANKS->{11});
+    $occupied |= (FILES_H->{i} & RANKS_H->{11});
+    $pawns    |= (FILES_H->{i} & RANKS_H->{11});
+    $black    |= (FILES_H->{i} & RANKS_H->{11});
         
     # rook2
-    $occupied |= (FILES->{j} & RANKS->{12});
-    $rooks    |= (FILES->{j} & RANKS->{12});
-    $black    |= (FILES->{j} & RANKS->{12});
+    $occupied |= (FILES_H->{j} & RANKS_H->{12});
+    $rooks    |= (FILES_H->{j} & RANKS_H->{12});
+    $black    |= (FILES_H->{j} & RANKS_H->{12});
     # pawn 
-    $occupied |= (FILES->{j} & RANKS->{11});
-    $pawns    |= (FILES->{j} & RANKS->{11});
-    $black    |= (FILES->{j} & RANKS->{11});
+    $occupied |= (FILES_H->{j} & RANKS_H->{11});
+    $pawns    |= (FILES_H->{j} & RANKS_H->{11});
+    $black    |= (FILES_H->{j} & RANKS_H->{11});
 
     #### red ####
     # rook 1
-    $occupied |= (FILES->{a} & RANKS->{10});
-    $rooks    |= (FILES->{a} & RANKS->{10});
-    $red      |= (FILES->{a} & RANKS->{10});
+    $occupied |= (FILES_H->{a} & RANKS_H->{10});
+    $rooks    |= (FILES_H->{a} & RANKS_H->{10});
+    $red      |= (FILES_H->{a} & RANKS_H->{10});
     # pawn 
-    $occupied |= (FILES->{b} & RANKS->{10});
-    $pawns    |= (FILES->{b} & RANKS->{10});
-    $red      |= (FILES->{b} & RANKS->{10});
+    $occupied |= (FILES_H->{b} & RANKS_H->{10});
+    $pawns    |= (FILES_H->{b} & RANKS_H->{10});
+    $red      |= (FILES_H->{b} & RANKS_H->{10});
         
     # knight 1
-    $occupied |= (FILES->{a} & RANKS->{9});
-    $knights  |= (FILES->{a} & RANKS->{9});
-    $red      |= (FILES->{a} & RANKS->{9});
+    $occupied |= (FILES_H->{a} & RANKS_H->{9});
+    $knights  |= (FILES_H->{a} & RANKS_H->{9});
+    $red      |= (FILES_H->{a} & RANKS_H->{9});
     # pawn 
-    $occupied |= (FILES->{b} & RANKS->{9});
-    $pawns    |= (FILES->{b} & RANKS->{9});
-    $red      |= (FILES->{b} & RANKS->{9});
+    $occupied |= (FILES_H->{b} & RANKS_H->{9});
+    $pawns    |= (FILES_H->{b} & RANKS_H->{9});
+    $red      |= (FILES_H->{b} & RANKS_H->{9});
         
     # bishop 1
-    $occupied |= (FILES->{a} & RANKS->{8});
-    $bishops  |= (FILES->{a} & RANKS->{8});
-    $red      |= (FILES->{a} & RANKS->{8});
+    $occupied |= (FILES_H->{a} & RANKS_H->{8});
+    $bishops  |= (FILES_H->{a} & RANKS_H->{8});
+    $red      |= (FILES_H->{a} & RANKS_H->{8});
     # pawn 
-    $occupied |= (FILES->{b} & RANKS->{8});
-    $pawns    |= (FILES->{b} & RANKS->{8});
-    $red      |= (FILES->{b} & RANKS->{8});
+    $occupied |= (FILES_H->{b} & RANKS_H->{8});
+    $pawns    |= (FILES_H->{b} & RANKS_H->{8});
+    $red      |= (FILES_H->{b} & RANKS_H->{8});
         
     # queen
-    $occupied |= (FILES->{a} & RANKS->{7});
-    $queens   |= (FILES->{a} & RANKS->{7});
-    $red      |= (FILES->{a} & RANKS->{7});
+    $occupied |= (FILES_H->{a} & RANKS_H->{7});
+    $queens   |= (FILES_H->{a} & RANKS_H->{7});
+    $red      |= (FILES_H->{a} & RANKS_H->{7});
     # pawn 
-    $occupied |= (FILES->{b} & RANKS->{7});
-    $pawns    |= (FILES->{b} & RANKS->{7});
-    $red      |= (FILES->{b} & RANKS->{7});
+    $occupied |= (FILES_H->{b} & RANKS_H->{7});
+    $pawns    |= (FILES_H->{b} & RANKS_H->{7});
+    $red      |= (FILES_H->{b} & RANKS_H->{7});
         
     # king
-    $occupied |= (FILES->{a} & RANKS->{6});
-    $kings    |= (FILES->{a} & RANKS->{6});
-    $red      |= (FILES->{a} & RANKS->{6});
+    $occupied |= (FILES_H->{a} & RANKS_H->{6});
+    $kings    |= (FILES_H->{a} & RANKS_H->{6});
+    $red      |= (FILES_H->{a} & RANKS_H->{6});
     # pawn 
-    $occupied |= (FILES->{b} & RANKS->{6});
-    $pawns    |= (FILES->{b} & RANKS->{6});
-    $red      |= (FILES->{b} & RANKS->{6});
+    $occupied |= (FILES_H->{b} & RANKS_H->{6});
+    $pawns    |= (FILES_H->{b} & RANKS_H->{6});
+    $red      |= (FILES_H->{b} & RANKS_H->{6});
         
     # bishop2
-    $occupied |= (FILES->{a} & RANKS->{5});
-    $bishops  |= (FILES->{a} & RANKS->{5});
-    $red      |= (FILES->{a} & RANKS->{5});
+    $occupied |= (FILES_H->{a} & RANKS_H->{5});
+    $bishops  |= (FILES_H->{a} & RANKS_H->{5});
+    $red      |= (FILES_H->{a} & RANKS_H->{5});
     # pawn 
-    $occupied |= (FILES->{b} & RANKS->{5});
-    $pawns    |= (FILES->{b} & RANKS->{5});
-    $red      |= (FILES->{b} & RANKS->{5});
+    $occupied |= (FILES_H->{b} & RANKS_H->{5});
+    $pawns    |= (FILES_H->{b} & RANKS_H->{5});
+    $red      |= (FILES_H->{b} & RANKS_H->{5});
         
     # knight2
-    $occupied |= (FILES->{a} & RANKS->{4});
-    $knights  |= (FILES->{a} & RANKS->{4});
-    $red      |= (FILES->{a} & RANKS->{4});
+    $occupied |= (FILES_H->{a} & RANKS_H->{4});
+    $knights  |= (FILES_H->{a} & RANKS_H->{4});
+    $red      |= (FILES_H->{a} & RANKS_H->{4});
     # pawn 
-    $occupied |= (FILES->{b} & RANKS->{4});
-    $pawns    |= (FILES->{b} & RANKS->{4});
-    $red      |= (FILES->{b} & RANKS->{4});
+    $occupied |= (FILES_H->{b} & RANKS_H->{4});
+    $pawns    |= (FILES_H->{b} & RANKS_H->{4});
+    $red      |= (FILES_H->{b} & RANKS_H->{4});
         
     # rook2
-    $occupied |= (FILES->{a} & RANKS->{3});
-    $rooks    |= (FILES->{a} & RANKS->{3});
-    $red      |= (FILES->{a} & RANKS->{3});
+    $occupied |= (FILES_H->{a} & RANKS_H->{3});
+    $rooks    |= (FILES_H->{a} & RANKS_H->{3});
+    $red      |= (FILES_H->{a} & RANKS_H->{3});
     # pawn 
-    $occupied |= (FILES->{b} & RANKS->{3});
-    $pawns    |= (FILES->{b} & RANKS->{3});
-    $red      |= (FILES->{b} & RANKS->{3});
+    $occupied |= (FILES_H->{b} & RANKS_H->{3});
+    $pawns    |= (FILES_H->{b} & RANKS_H->{3});
+    $red      |= (FILES_H->{b} & RANKS_H->{3});
 
     #### green ####
     # rook 1
-    $occupied |= (FILES->{l} & RANKS->{10});
-    $rooks    |= (FILES->{l} & RANKS->{10});
-    $green    |= (FILES->{l} & RANKS->{10});
+    $occupied |= (FILES_H->{l} & RANKS_H->{10});
+    $rooks    |= (FILES_H->{l} & RANKS_H->{10});
+    $green    |= (FILES_H->{l} & RANKS_H->{10});
     # pawn 
-    $occupied |= (FILES->{k} & RANKS->{10});
-    $pawns    |= (FILES->{k} & RANKS->{10});
-    $green    |= (FILES->{k} & RANKS->{10});
+    $occupied |= (FILES_H->{k} & RANKS_H->{10});
+    $pawns    |= (FILES_H->{k} & RANKS_H->{10});
+    $green    |= (FILES_H->{k} & RANKS_H->{10});
         
     # knight 1
-    $occupied |= (FILES->{l} & RANKS->{9});
-    $knights  |= (FILES->{l} & RANKS->{9});
-    $green    |= (FILES->{l} & RANKS->{9});
+    $occupied |= (FILES_H->{l} & RANKS_H->{9});
+    $knights  |= (FILES_H->{l} & RANKS_H->{9});
+    $green    |= (FILES_H->{l} & RANKS_H->{9});
     # pawn 
-    $occupied |= (FILES->{k} & RANKS->{9});
-    $pawns    |= (FILES->{k} & RANKS->{9});
-    $green    |= (FILES->{k} & RANKS->{9});
+    $occupied |= (FILES_H->{k} & RANKS_H->{9});
+    $pawns    |= (FILES_H->{k} & RANKS_H->{9});
+    $green    |= (FILES_H->{k} & RANKS_H->{9});
         
     # bishop 1
-    $occupied |= (FILES->{l} & RANKS->{8});
-    $bishops  |= (FILES->{l} & RANKS->{8});
-    $green    |= (FILES->{l} & RANKS->{8});
+    $occupied |= (FILES_H->{l} & RANKS_H->{8});
+    $bishops  |= (FILES_H->{l} & RANKS_H->{8});
+    $green    |= (FILES_H->{l} & RANKS_H->{8});
     # pawn 
-    $occupied |= (FILES->{k} & RANKS->{8});
-    $pawns    |= (FILES->{k} & RANKS->{8});
-    $green    |= (FILES->{k} & RANKS->{8});
+    $occupied |= (FILES_H->{k} & RANKS_H->{8});
+    $pawns    |= (FILES_H->{k} & RANKS_H->{8});
+    $green    |= (FILES_H->{k} & RANKS_H->{8});
         
     # queen
-    $occupied |= (FILES->{l} & RANKS->{7});
-    $queens   |= (FILES->{l} & RANKS->{7});
-    $green    |= (FILES->{l} & RANKS->{7});
+    $occupied |= (FILES_H->{l} & RANKS_H->{7});
+    $queens   |= (FILES_H->{l} & RANKS_H->{7});
+    $green    |= (FILES_H->{l} & RANKS_H->{7});
     # pawn 
-    $occupied |= (FILES->{k} & RANKS->{7});
-    $pawns    |= (FILES->{k} & RANKS->{7});
-    $green    |= (FILES->{k} & RANKS->{7});
+    $occupied |= (FILES_H->{k} & RANKS_H->{7});
+    $pawns    |= (FILES_H->{k} & RANKS_H->{7});
+    $green    |= (FILES_H->{k} & RANKS_H->{7});
         
     # king
-    $occupied |= (FILES->{l} & RANKS->{6});
-    $kings    |= (FILES->{l} & RANKS->{6});
-    $green    |= (FILES->{l} & RANKS->{6});
+    $occupied |= (FILES_H->{l} & RANKS_H->{6});
+    $kings    |= (FILES_H->{l} & RANKS_H->{6});
+    $green    |= (FILES_H->{l} & RANKS_H->{6});
     # pawn 
-    $occupied |= (FILES->{k} & RANKS->{6});
-    $pawns    |= (FILES->{k} & RANKS->{6});
-    $green    |= (FILES->{k} & RANKS->{6});
+    $occupied |= (FILES_H->{k} & RANKS_H->{6});
+    $pawns    |= (FILES_H->{k} & RANKS_H->{6});
+    $green    |= (FILES_H->{k} & RANKS_H->{6});
         
     # bishop2
-    $occupied |= (FILES->{l} & RANKS->{5});
-    $bishops  |= (FILES->{l} & RANKS->{5});
-    $green    |= (FILES->{l} & RANKS->{5});
+    $occupied |= (FILES_H->{l} & RANKS_H->{5});
+    $bishops  |= (FILES_H->{l} & RANKS_H->{5});
+    $green    |= (FILES_H->{l} & RANKS_H->{5});
     # pawn 
-    $occupied |= (FILES->{k} & RANKS->{5});
-    $pawns    |= (FILES->{k} & RANKS->{5});
-    $green    |= (FILES->{k} & RANKS->{5});
+    $occupied |= (FILES_H->{k} & RANKS_H->{5});
+    $pawns    |= (FILES_H->{k} & RANKS_H->{5});
+    $green    |= (FILES_H->{k} & RANKS_H->{5});
         
     # knight2
-    $occupied |= (FILES->{l} & RANKS->{4});
-    $knights  |= (FILES->{l} & RANKS->{4});
-    $green    |= (FILES->{l} & RANKS->{4});
+    $occupied |= (FILES_H->{l} & RANKS_H->{4});
+    $knights  |= (FILES_H->{l} & RANKS_H->{4});
+    $green    |= (FILES_H->{l} & RANKS_H->{4});
     # pawn 
-    $occupied |= (FILES->{k} & RANKS->{4});
-    $pawns    |= (FILES->{k} & RANKS->{4});
-    $green    |= (FILES->{k} & RANKS->{4});
+    $occupied |= (FILES_H->{k} & RANKS_H->{4});
+    $pawns    |= (FILES_H->{k} & RANKS_H->{4});
+    $green    |= (FILES_H->{k} & RANKS_H->{4});
         
     # rook2
-    $occupied |= (FILES->{l} & RANKS->{3});
-    $rooks    |= (FILES->{l} & RANKS->{3});
-    $green    |= (FILES->{l} & RANKS->{3});
+    $occupied |= (FILES_H->{l} & RANKS_H->{3});
+    $rooks    |= (FILES_H->{l} & RANKS_H->{3});
+    $green    |= (FILES_H->{l} & RANKS_H->{3});
     # pawn 
-    $occupied |= (FILES->{k} & RANKS->{3});
-    $pawns    |= (FILES->{k} & RANKS->{3});
-    $green    |= (FILES->{k} & RANKS->{3});
+    $occupied |= (FILES_H->{k} & RANKS_H->{3});
+    $pawns    |= (FILES_H->{k} & RANKS_H->{3});
+    $green    |= (FILES_H->{k} & RANKS_H->{3});
 }
 
 ### copied from shift function in Stockfish
@@ -489,9 +544,9 @@ sub shift_BB {
     my ($bb, $direction) = @_;
     return  $direction == NORTH      ?  $bb                <<12 : $direction == SOUTH      ?  $bb                >>12
           : $direction == NORTH+NORTH?  $bb                <<24 : $direction == SOUTH+SOUTH?  $bb                >>24
-          : $direction == EAST       ? ($bb & ~FILES->{a}) << 1 : $direction == WEST       ? ($bb & ~FILES->{l}) >> 1
-          : $direction == NORTH_EAST ? ($bb & ~FILES->{a}) <<13 : $direction == NORTH_WEST ? ($bb & ~FILES->{l}) <<11
-          : $direction == SOUTH_EAST ? ($bb & ~FILES->{a}) >>11 : $direction == SOUTH_WEST ? ($bb & ~FILES->{l}) >>13
+          : $direction == EAST       ? ($bb & ~FILES_H->{a}) >> 1 : $direction == WEST       ? ($bb & ~FILES_H->{l}) << 1
+          : $direction == NORTH_EAST ? ($bb & ~FILES_H->{a}) <<13 : $direction == NORTH_WEST ? ($bb & ~FILES_H->{l}) <<11
+          : $direction == SOUTH_EAST ? ($bb & ~FILES_H->{a}) >>11 : $direction == SOUTH_WEST ? ($bb & ~FILES_H->{l}) >>13
           : 0;
 }
 
@@ -512,6 +567,20 @@ sub _removePiece {
 
     $frozenBB &= ~$pieceBB;
     $movingBB &= ~$pieceBB;
+}
+
+sub _removeColor {
+    my $piece = shift;
+
+    if ($piece < 200) {
+        _removePiece($white);
+    } elsif ($piece < 300) {
+        _removePiece($black);
+    } elsif ($piece < 400) {
+        _removePiece($red);
+    } else {
+        _removePiece($green);
+    }
 }
 
 sub setFrozen {
@@ -545,8 +614,30 @@ sub blockers {
     return 1;
 }
 
-### returns the color that moved and type of move
-sub isLegalMove {
+
+### returns of bitboard of all squares in that dir until we reach a blocker (your own pieces usually)
+sub blockersBB {
+    my ($color, $dirBB, $fromBB, $toBB) = @_;
+
+    my $returnBB = 0x0;
+    my $blockingBB = _piecesThem($color);
+
+    my $origBB = $fromBB;
+
+    while ($fromBB != $toBB) {
+        $fromBB = shift_BB($fromBB, $dirBB);
+        if (! ($fromBB & $movingBB) ){
+            $returnBB &= $fromBB;
+            # set guarding this square
+        } else {
+            # set attacking this square
+        }
+    }
+    return $blockingBB;
+}
+
+### takes input like a2b4 and turns it into fr_bb and to_bb
+sub parseMove {
     my $move = shift;
 
     my ($fr_f, $fr_r, $to_f, $to_r);
@@ -557,25 +648,64 @@ sub isLegalMove {
         return (NO_COLOR, MOVE_NONE, DIR_NONE, 0, 0);
     }
 
-    my $fr_rank = RANKS->{$fr_r};
-    my $fr_file = FILES->{$fr_f};
-    my $to_rank = RANKS->{$to_r};
-    my $to_file = FILES->{$to_f};
-    my $fr_bb = Math::BigInt->new($fr_rank & $fr_file);
-    my $to_bb = Math::BigInt->new($to_rank & $to_file);
+    my $fr_rank = RANKS_H->{$fr_r};
+    my $fr_file = FILES_H->{$fr_f};
+    my $to_rank = RANKS_H->{$to_r};
+    my $to_file = FILES_H->{$to_f};
+    my $fr_bb = $fr_rank & $fr_file;
+    my $to_bb = $to_rank & $to_file;
 
-    my $checkBlockers = 0;
+    return ($fr_bb, $to_bb, $fr_rank, $fr_file, $to_rank, $to_file);
+}
+### returns the color that moved and type of move
+sub isLegalMove {
+    my ($fr_bb, $to_bb, $fr_rank, $fr_file, $to_rank, $to_file) = @_;
+
+    ### todo can probably figure a faster way to do this
+    if (! defined($fr_rank)) {
+        for (0 .. 11) {
+            if (RANKS->[$_] & $fr_bb) {
+                $fr_rank = RANKS->[$_];
+                last;
+            } 
+        }
+    }
+    if (! defined($to_rank)) {
+        for (0 .. 11) {
+            if (RANKS->[$_] & $to_bb) {
+                $to_rank = RANKS->[$_];
+                last;
+            } 
+        }
+    }
+    if (! defined($fr_file)) {
+        for (0 .. 11) {
+            if (FILES->[$_] & $fr_bb) {
+                $fr_file = FILES->[$_];
+                last;
+            } 
+        }
+    }
+    if (! defined($to_file)) {
+        for (0 .. 11) {
+            if (FILES->[$_] & $to_bb) {
+                $to_file = FILES->[$_];
+                last;
+            } 
+        }
+    }
 
     my @noMove = (NO_COLOR, MOVE_NONE, DIR_NONE, $fr_bb, $to_bb);
+
+    my $checkBlockers = 0;
 
     if (! ($occupied & $fr_bb) ) {
         #print "from not occupied\n";
         return @noMove;
     }
-    my $color   = ($white & $fr_bb ? WHITE : $black & BLACK);
-    my $pawnDir = ($white & $fr_bb ? NORTH : SOUTH);
 
-    my $color, $pawnDir;
+    my $color;
+    my $pawnDir;
     if ($white & $fr_bb) {
         $color = WHITE;
         $pawnDir = NORTH;
@@ -592,27 +722,44 @@ sub isLegalMove {
 
     ### castles go before checking same color on to_bb
     if ($fr_bb & $kings) {
-        my ($bbK, $bbR, $bbQR);
+        my ($bbK, $bbR, $bbQR, $kingDir, $rookDir);
         if ($color == WHITE) {
             $bbK  = $whiteCastleK;
             $bbR  = $whiteCastleR;
             $bbQR = $whiteQCastleR;
-        } else {
+            $kingDir = EAST;
+            $rookDir = WEST;
+        } elsif ($color == BLACK) {
             $bbK  = $blackCastleK;
             $bbR  = $blackCastleR;
             $bbQR = $blackQCastleR;
+            $kingDir = EAST;
+            $rookDir = WEST;
+        } elsif ($color == RED) {
+            $bbK  = $redCastleK;
+            $bbR  = $redCastleR;
+            $bbQR = $redQCastleR;
+            $kingDir = SOUTH;
+            $rookDir = NORTH;
+        } elsif ($color == GREEN) {
+            $bbK  = $greenCastleK;
+            $bbR  = $greenCastleR;
+            $bbQR = $greenQCastleR;
+            $kingDir = SOUTH;
+            $rookDir = NORTH;
         }
 
         if ($fr_bb & $bbK){ 
             if ($to_bb & $bbR) { 
-                if (blockers(_piecesUs($color), EAST, $fr_bb, shift_BB($to_bb, WEST)) ){
+                if (blockers(_piecesUs($color), $kingDir, $fr_bb, shift_BB($to_bb, $rookDir)) ){
                     return ($color, MOVE_CASTLE_OO, DIR_NONE, $fr_bb, $to_bb);
                 } else {
                     return @noMove;
                 }
             }
             if ($to_bb & $bbQR) { 
-                if (blockers(_piecesUs($color), WEST, $fr_bb, shift_BB($to_bb, EAST)) ){
+                if (blockers(_piecesUs($color), $rookDir, $fr_bb, shift_BB($to_bb, $kingDir)) ){
+                    print "return OOO\n";
                     return ($color, MOVE_CASTLE_OOO, DIR_NONE, $fr_bb, $to_bb);
                 } else {
                     return @noMove;
@@ -628,8 +775,14 @@ sub isLegalMove {
 
     if ($fr_bb & $pawns) {
         my $pawnMoveType = MOVE_NORMAL;
-        if ($to_bb & RANKS->{'1'} || $to_bb & RANKS->{'8'}) {
-            $pawnMoveType = MOVE_PROMOTE;
+        if ($pawnDir == NORTH || $pawnDir == SOUTH) {
+            if ($to_bb & RANKS_H->{'1'} || $to_bb & RANKS_H->{'12'}) {
+                $pawnMoveType = MOVE_PROMOTE;
+            }
+        } else {
+            if ($to_bb & FILES_H->{'a'} || $to_bb & FILES_H->{'l'}) {
+                $pawnMoveType = MOVE_PROMOTE;
+            }
         }
         if (shift_BB($fr_bb, $pawnDir) & $to_bb) {
             if ($to_bb & $occupied) { 
@@ -639,19 +792,76 @@ sub isLegalMove {
         }
 
         # we dont worry about color for ranks because you can't move two that way anyway
-        if ((shift_BB($fr_bb, $pawnDir + $pawnDir) & $to_bb) && ($fr_bb & (RANKS->{2} | RANKS->{7})) ){
-            if ($to_bb & $occupied) {
-                return @noMove;
+        if ($pawnDir == NORTH || $pawnDir == SOUTH) {
+            if ((shift_BB($fr_bb, $pawnDir + $pawnDir) & $to_bb) && ($fr_bb & (RANKS_H->{2} | RANKS_H->{15})) ){
+                if ($to_bb & $occupied) {
+                    return @noMove;
+                }
+                return ($color, $pawnMoveType, $pawnDir, $fr_bb, $to_bb);
             }
-            return ($color, $pawnMoveType, $pawnDir, $fr_bb, $to_bb);
+        } else {
+            #if ((shift_BB($fr_bb, $pawnDir + $pawnDir) & $to_bb) && ($fr_bb & (FILES_H->{'b'} | FILES_H->{'k'})) ){
+            #if ((shift_BB($fr_bb, $pawnDir + $pawnDir) & $to_bb)){
+            if ((shift_BB(shift_BB($fr_bb, $pawnDir), $pawnDir) & $to_bb) && ($fr_bb & (FILES_H->{'b'} | FILES_H->{'k'})) ){
+                if ($to_bb & $occupied) {
+                    return @noMove;
+                }
+                return ($color, $pawnMoveType, $pawnDir, $fr_bb, $to_bb);
+            }
         }
         if ($to_bb & _piecesThem($color) ){
-            my $enemyCapturesE = shift_BB($to_bb, EAST);
-            my $enemyCapturesW = shift_BB($to_bb, WEST);
+            if (($fr_bb & (FILES_H->{'c'} & RANKS_H->{'2'}))
+                && $to_bb & (FILES_H->{'b'} & RANKS_H->{'3'}) 
+            ) {
+                return @noMove;
+            }
+            if (($fr_bb & (FILES_H->{'j'} & RANKS_H->{'2'}))
+                && $to_bb & (FILES_H->{'k'} & RANKS_H->{'3'}) 
+            ) {
+                return @noMove;
+            }
+
+            if (($fr_bb & (FILES_H->{'c'} & RANKS_H->{'11'}))
+                && $to_bb & (FILES_H->{'b'} & RANKS_H->{'10'}) 
+            ) {
+                return @noMove;
+            }
+            if (($fr_bb & (FILES_H->{'j'} & RANKS_H->{'11'}))
+                && $to_bb & (FILES_H->{'k'} & RANKS_H->{'10'}) 
+            ) {
+                return @noMove;
+            }
+
+            if (($fr_bb & (FILES_H->{'k'} & RANKS_H->{'3'}))
+                && $to_bb & (FILES_H->{'j'} & RANKS_H->{'2'}) 
+            ) {
+                return @noMove;
+            }
+            if (($fr_bb & (FILES_H->{'k'} & RANKS_H->{'10'}))
+                && $to_bb & (FILES_H->{'j'} & RANKS_H->{'11'}) 
+            ) {
+                return @noMove;
+            }
+
+            if (($fr_bb & (FILES_H->{'b'} & RANKS_H->{'3'}))
+                && $to_bb & (FILES_H->{'c'} & RANKS_H->{'2'}) 
+            ) {
+                return @noMove;
+            }
+            if (($fr_bb & (FILES_H->{'b'} & RANKS_H->{'10'}))
+                && $to_bb & (FILES_H->{'c'} & RANKS_H->{'11'}) 
+            ) {
+                return @noMove;
+            }
+            
+            my $offOne = ($pawnDir == NORTH || $pawnDir == SOUTH) ? EAST : NORTH;
+            my $offTwo = ($pawnDir == NORTH || $pawnDir == SOUTH) ? WEST : SOUTH;
+            my $enemyCapturesE = shift_BB($to_bb, $offOne);
+            my $enemyCapturesW = shift_BB($to_bb, $offTwo);
             if      (shift_BB($fr_bb, $pawnDir) & $enemyCapturesW){
-                return ($color, $pawnMoveType, $pawnDir + EAST, $fr_bb, $to_bb);
+                return ($color, $pawnMoveType, $pawnDir + $offOne, $fr_bb, $to_bb);
             } elsif (shift_BB($fr_bb, $pawnDir) & $enemyCapturesE){
-                return ($color, $pawnMoveType, $pawnDir + WEST, $fr_bb, $to_bb);
+                return ($color, $pawnMoveType, $pawnDir + $offTwo, $fr_bb, $to_bb);
             } else {
                 #print "can't take\n";
             }
@@ -780,6 +990,7 @@ sub _putPiece {
     my $p  = shift;
     my $BB = shift;
 
+    ### TODO get rid of variable
     my @BBs = _getBBsForPiece($p);
     foreach (@BBs) {
         $$_ |= $BB;
@@ -788,50 +999,32 @@ sub _putPiece {
 
 ### TODO make this more static in a hash or something
 sub _getBBsForPiece {
-    my $p = shift;
-    if ($p == BLACK_PAWN) {
-        return (\$occupied, \$pawns, \$black);
-    }
-    if ($p == WHITE_PAWN) {
-        return (\$occupied, \$pawns, \$white);
-    }
-
-    if ($p == BLACK_ROOK) {
-        return (\$occupied, \$rooks, \$black);
-    }
-    if ($p == WHITE_ROOK) {
-        return (\$occupied, \$rooks, \$white);
+    my $piece = shift;
+    my @return = (\$occupied);
+    if ($piece > 400) {
+        push @return, \$green;
+    } elsif ($piece > 300) {
+        push @return, \$red;
+    } elsif ($piece > 200) {
+        push @return, \$black;
+    } else {
+        push @return, \$white;
     }
 
-    if ($p == BLACK_BISHOP) {
-        return (\$occupied, \$bishops, \$black);
+    if ($piece % 100 == PAWN) {
+        push @return, \$pawns;
+    } elsif ($piece % 100 == ROOK) {
+        push @return, \$rooks;
+    } elsif ($piece % 100 == BISHOP) {
+        push @return, \$bishops;
+    } elsif ($piece % 100 == KNIGHT) {
+        push @return, \$knights;
+    } elsif ($piece % 100 == QUEEN) {
+        push @return, \$queens;
+    } elsif ($piece % 100 == KING) {
+        push @return, \$kings;
     }
-    if ($p == WHITE_BISHOP) {
-        return (\$occupied, \$bishops, \$white);
-    }
-
-    if ($p == BLACK_KNIGHT) {
-        return (\$occupied, \$knights, \$black);
-    }
-    if ($p == WHITE_KNIGHT) {
-        return (\$occupied, \$knights, \$white);
-    }
-
-    if ($p == BLACK_KING) {
-        return (\$occupied, \$kings, \$black);
-    }
-    if ($p == WHITE_KING) {
-        return (\$occupied, \$kings, \$white);
-    }
-
-    if ($p == BLACK_QUEEN) {
-        return (\$occupied, \$queens, \$black);
-    }
-    if ($p == WHITE_QUEEN) {
-        return (\$occupied, \$queens, \$white);
-    }
-
-    return ();
+    return @return;
 }
 
 sub _getPieceBB {
@@ -869,14 +1062,47 @@ sub _getPieceBB {
 sub _getPiece {
     my ($f, $r) = @_;
 
-    my $squareBB = RANKS->{$r} & FILES->{$f};
+    my $squareBB = RANKS_H->{$r} & FILES_H->{$f};
     return _getPieceBB($squareBB);
+}
+
+sub _getPieceXY {
+    my ($f, $r) = @_;
+
+    my $squareBB = RANKS->[$r] & FILES->[$f];
+    return _getPieceBB($squareBB);
+}
+sub _getPieceXY_ai {
+    #my ($f, $r) = @_;
+
+    #my $squareBB = RANKS->[$_[1]] & FILES->[$_[0]];
+    return _getPieceBB_ai(RANKS->[$_[1]] & FILES->[$_[0]]);
+}
+
+sub occupiedColor {
+    my $bb = shift;
+    if ( $bb & $white ) {
+        return WHITE;
+    } elsif ( $bb & $black ) {
+        return BLACK
+    } elsif ( $bb & $red ) {
+        return RED
+    } elsif ( $bb & $green ) {
+        return GREEN
+    }
+
+    return 0;
+}
+
+sub isMoving {
+    my $bb = shift;
+    return $bb & $movingBB;
 }
 
 sub _getBBat {
     my ($f, $r) = @_;
 
-    return RANKS->{$r} & FILES->{$f};
+    return RANKS_H->{$r} & FILES_H->{$f};
 }
 
 sub moveStep {
@@ -905,32 +1131,32 @@ sub move {
 sub getPieceDisplay {
     my $piece = shift;
     my $color =  "\033[0m";
-    if ($piece > 100) {
+    if ($piece > 200) {
         $color =  "\033[90m";
     }
-    if ($piece > 200) {
+    if ($piece > 300) {
         $color =  "\033[31m";
     }
-    if ($piece > 300) {
+    if ($piece > 400) {
         $color =  "\033[32m";
     }
     my $normal = "\033[0m";
-    if ($piece % 100 == WHITE_PAWN) {
+    if ($piece % 100 == PAWN) {
         return $color . 'P' . $normal;
     }
-    if ($piece % 100 == WHITE_ROOK) {
+    if ($piece % 100 == ROOK) {
         return $color . 'R' . $normal;
     }
-    if ($piece % 100 == WHITE_BISHOP) {
+    if ($piece % 100 == BISHOP) {
         return $color . 'B' . $normal;
     }
-    if ($piece % 100 == WHITE_KNIGHT) {
+    if ($piece % 100 == KNIGHT) {
         return $color . 'N' . $normal;
     }
-    if ($piece % 100 == WHITE_QUEEN) {
+    if ($piece % 100 == QUEEN) {
         return $color . 'Q' . $normal;
     }
-    if ($piece % 100 == WHITE_KING) {
+    if ($piece % 100 == KING) {
         return $color . 'K' . $normal;
     }
     return ' ';
@@ -938,16 +1164,18 @@ sub getPieceDisplay {
 
 sub pretty {
     my $board = '';
-    $board .= "\n   +---+---+---+---+---+---+---+---+---+---+---+---+\n";
-    foreach my $r ( qw(12 11 10 9 8 7 6 5 4 3 2 1) ) {
-        foreach my $f ( 'a' .. 'l' ) {
-            if ($f eq 'a'){ $board .= sprintf('%2s | ', $r); }
-            my $chr = getPieceDisplay(_getPiece($f, $r));
+    $board .= "\n    +---+---+---+---+---+---+---+---+---+---+---+---+\n";
+    foreach my $i ( 0 .. 11 ) {
+        my $r = 11-$i;
+        foreach my $f ( 0 .. 11 ) {
+            if ($f == 0){ $board .= " " . sprintf('%2s | ', $r + 1); }
+            
+            my $chr = getPieceDisplay(_getPieceXY($f, $r));
             $board .= "$chr | ";
         }
-        $board .= "\n   +---+---+---+---+---+---+---+---+---+---+---+---+\n";
+        $board .= "\n    +---+---+---+---+---+---+---+---+---+---+---+---+\n";
     }
-    $board .= "     a   b   c   d   e   f   g   h   i   j   k   l\n";
+    $board .= "      a   b   c   d   e   f   g   h   i   j   k   l\n";
     return $board;
 }
 
@@ -958,21 +1186,19 @@ sub prettyOccupied {
     return prettyBoard($occupied);
 }
 sub prettyBoardTest {
-    #my $bb = FILES->{'a'};
-    #my $bb = RANKS->{'1'};
-    my $bb = RANKS->{'1'} & FILES->{'c'};
-    #my $bb = RANKS->{'2'} | FILES->{'c'};
-    my $str = prettyBoard($bb);
-    my $bb2 = shift_BB($bb, NORTH);
-    $str .= prettyBoard($bb2);
+    #my $bb = FILES_H->{'a'};
+    #my $bb = RANKS_H->{'1'};
+    my $bb = RANKS_H->{'1'} & FILES_H->{'c'};
+    #my $bb = RANKS_H->{'2'} | FILES_H->{'c'};
+    my $str = prettyBoard($occupied);
+    #my $bb2 = shift_BB($bb, NORTH);
     return $str;
 }
 sub printAllBitboards {
     my $BB = shift;
     foreach my $r ( qw(12 11 10 9 8 7 6 5 4 3 2 1) ) {
         foreach my $f ( 'a' .. 'l' ) {
-            my $rf = RANKS->{$r} & FILES->{$f};
-            print "   '$rf' : '$f$r',\n";
+            my $rf = RANKS_H->{$r} & FILES_H->{$f};
         }
     }
 }
@@ -987,10 +1213,10 @@ sub prettyBoard {
         print "$&\n";
     }
     $board .= "\n   +---+---+---+---+---+---+---+---+---+---+---+---\n";
-    foreach my $r ( qw(12 11 10 9 8 7 6 5 4 3 2 1) ) {
-        foreach my $f ( 'a' .. 'l' ) {
-            if ($f eq 'a'){ $board .= sprintf('%2s | ', $r); }
-                my $rf = RANKS->{$r} & FILES->{$f};
+    foreach my $r ( 11 .. 0 ) {
+        foreach my $f ( 0 .. 11 ) {
+            if ($f eq 0){ $board .= sprintf('%2s | ', $r); }
+                my $rf = RANKS->[$r] & FILES->[$f];
             if ($BB & $rf) {
                 $board .= "X | ";
             } else {

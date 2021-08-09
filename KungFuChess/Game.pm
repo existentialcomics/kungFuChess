@@ -39,8 +39,12 @@ sub _init {
     $self->{mode} = $mode;   # 2way or 4way
     $self->{whiteAnonKey} = $whiteAnonKey;
     $self->{blackAnonKey} = $blackAnonKey;
+    $self->{redAnonKey} = $whiteAnonKey;
+    $self->{greenAnonKey} = $blackAnonKey;
+
     $self->{playersByAuth} = {};
     $self->{playersConn}   = {};
+
     $self->{isAiGame} = $isAiGame;
     $self->{readyToPlay}   = 0;
     $self->{auth}          = $auth;
@@ -48,17 +52,80 @@ sub _init {
     $self->{whitePlayer}   = undef;
     $self->{blackPlayer}   = undef;
 
+    $self->{white}->{alive} = 1;
+    $self->{black}->{alive} = 1;
+    if ($mode eq '4way') {
+        $self->{red}->{alive} = 1;
+        $self->{green}->{alive} = 1;
+    } else {
+        $self->{red}->{alive} = 0;
+        $self->{green}->{alive} = 0;
+    }
+
     $self->{whiteReady}    = 0;
     $self->{blackReady}    = 0;
     $self->{whiteRematchReady}  = 0;
     $self->{blackRematchPlayer} = 0;
-    $self->{whiteDraw}  = 0;
-    $self->{blackDraw} = 0;
+    $self->{white}->{draw} = 0;
+    $self->{black}->{draw} = 0;
+    $self->{red}->{draw}   = 0;
+    $self->{green}->{draw} = 0;
 
     $self->{gameLog} = [];
     $self->{gameStartTime} = time();
 
 	return 1;
+}
+
+### returns false for game is still active
+#   otherwise returns the score
+sub killPlayer {
+    my $self  = shift;
+    my $color = shift;
+    print "kill player $color\n";
+    if ($color eq 'both') {
+        $self->{black}->{alive} = 0;
+        $self->{white}->{alive} = 0;
+        $self->{red}->{alive} = 0;
+        $self->{green}->{alive} = 0;
+    } else {
+        $self->{$color}->{alive} = 0;
+    }
+    print Dumper($self->{white});
+    print Dumper($self->{black});
+    print Dumper($self->{green});
+    print Dumper($self->{red});
+
+    if ($self->{white}->{alive} + 
+        $self->{black}->{alive} + 
+        $self->{red}->{alive} + 
+        $self->{green}->{alive} <= 1
+    ) {
+        print "  kill player only one left\n";
+        if ($self->{mode} eq '4way') {
+            if ($self->{white}->{alive} == 1) {
+                return '1-0-0-0';
+            } elsif ($self->{black}->{alive} == 1) {
+                return '0-1-0-0';
+            } elsif ($self->{red}->{alive} == 1) {
+                return '0-0-1-0';
+            } elsif ($self->{green}->{alive} == 1) {
+                return '0-0-0-1';
+            } else { ### no one is alive, practice abort?
+                return '0-0-0-0';
+            }
+        } else {
+            if ($self->{white}->{alive} == 1) {
+                return '1-0';
+            } elsif ($self->{black}->{alive} == 1) {
+                return '0-1';
+            } else { ### no one is alive, practice abort?
+                return '0-0';
+            }
+        }
+        ### shouldn't get here
+    }
+    return 0;
 }
 
 sub setServerConnection {
@@ -122,9 +189,13 @@ sub playerRevokeDraw {
     my $color = $self->authMove($msg);
     if ($color){
         if ($color eq 'white'){
-            $self->{whiteDraw} = 0;
+            $self->{white}->{draw} = 0;
         } elsif($color eq 'black'){
-            $self->{blackDraw} = 0;
+            $self->{black}->{draw} = 0;
+        } elsif($color eq 'red'){
+            $self->{red}->{draw} = 0;
+        } elsif($color eq 'green'){
+            $self->{green}->{draw} = 0;
         }
     }
     return 0;
@@ -138,12 +209,31 @@ sub playerDraw {
     my $color = $self->authMove($msg);
     if ($color){
         if ($color eq 'white' || $color eq 'both'){
-            $self->{whiteDraw} = time();
+            $self->{white}->{draw} = time();
         } elsif($color eq 'black' || $color eq 'both'){
-            $self->{blackDraw} = time();
+            $self->{black}->{draw} = time();
+        } elsif($color eq 'red' || $color eq 'both'){
+            $self->{red}->{draw} = time();
+        } elsif($color eq 'green' || $color eq 'both'){
+            $self->{green}->{draw} = time();
         }
-        if ($self->{whiteDraw} && $self->{blackDraw}) {
-            return 1;
+        if ($self->{mode} eq '4way') {
+            if (   $self->{white}->{draw}
+                && $self->{black}->{draw}
+                && $self->{red}->{draw}
+                && $self->{green}->{draw}
+            ) {
+                return 
+                    ($self->{white}->{alive} ? '0.5' : '0') . '-' .
+                    ($self->{black}->{alive} ? '0.5' : '0') . '-' .
+                    ($self->{red}->{alive}   ? '0.5' : '0') . '-' .
+                    ($self->{green}->{alive} ? '0.5' : '0');
+            }
+
+        } else {
+            if ($self->{white}->{draw} && $self->{black}->{draw}) {
+                return '0.5-0.5';
+            }
         }
     }
     return 0;

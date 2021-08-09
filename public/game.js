@@ -424,8 +424,8 @@ var joinGame = function(){
 
 var resetGamePieces = function(){
     for(id in pieces){
-		pieces[id].image.x(getX(pieces[id].image.x()));
-		pieces[id].image.y(getY(pieces[id].image.y()));
+		pieces[id].image.x(getX(pieces[id].image.x(), pieces[id].image.y()));
+		pieces[id].image.y(getY(pieces[id].image.x(), pieces[id].image.y()));
     }
 	pieceLayer.draw();
 };
@@ -481,8 +481,8 @@ var game_reconnectMain = function() {
 
 sendMsg = function(msg) {
     if (msg.c != 'ping') {
-        //console.log("sending msg:");
-        //console.log(msg);
+        console.log("sending msg:");
+        console.log(msg);
     }
     msg.gameId = gameId;
     msg.auth = authId;
@@ -544,7 +544,7 @@ var handleMessage = function(msg) {
         var to   = getSquareFromBB(msg.to_bb);
 
         pieceFrom = piecesByBoardPos[from];
-        piecesByBoardPos[to]   = pieceFrom;
+        setPieceBoardPos(pieceFrom, to);
         piecesByBoardPos[from] = null;
     } else if (msg.c == 'stop'){ // when pieces collides and one is forced to stop
         let re = /([a-z])([0-9]{1,2})/;
@@ -573,23 +573,44 @@ var handleMessage = function(msg) {
         if (msg.moveType == 3) {        // OO
             var pieceFrom = piecesByBoardPos[from];
             var pieceTo   = piecesByBoardPos[to];
-            var y_king = rankToX[m_to[2]];
-            var x_king = parseInt(fileToY[m_to[1]]) - 1;
-            pieceFrom.move(x_king, y_king);
+            if (pieceFrom.color == 'red' || pieceFrom.color == 'green') {
+                var y_king = rankToX[m_to[2]] - 1;
+                var x_king = parseInt(fileToY[m_to[1]]);
+                pieceFrom.move(x_king, y_king);
 
-            var y_rook = rankToX[m_from[2]];
-            var x_rook = parseInt(fileToY[m_from[1]]) + 1;
-            pieceTo.move(x_rook, y_rook);
+                var y_rook = rankToX[m_from[2]] + 1;
+                var x_rook = parseInt(fileToY[m_from[1]]);
+                pieceTo.move(x_rook, y_rook);
+            } else {
+                var y_king = rankToX[m_to[2]];
+                var x_king = parseInt(fileToY[m_to[1]]) - 1;
+                pieceFrom.move(x_king, y_king);
+
+                var y_rook = rankToX[m_from[2]];
+                var x_rook = parseInt(fileToY[m_from[1]]) + 1;
+                pieceTo.move(x_rook, y_rook);
+            }
         } else if (msg.moveType == 4) { // OOO
             var pieceFrom = piecesByBoardPos[from];
             var pieceTo   = piecesByBoardPos[to];
-            var y_king = rankToX[m_to[2]];
-            var x_king = parseInt(fileToY[m_to[1]]) + 1;
-            pieceFrom.move(x_king, y_king);
 
-            var y_rook = rankToX[m_from[2]];
-            var x_rook = parseInt(fileToY[m_from[1]]) - 2;
-            pieceTo.move(x_rook, y_rook);
+            if (pieceFrom.color == 'red' || pieceFrom.color == 'green') {
+                var y_king = rankToX[m_to[2]] + 1;
+                var x_king = parseInt(fileToY[m_to[1]]);
+                pieceFrom.move(x_king, y_king);
+
+                var y_rook = rankToX[m_from[2]] - 2;
+                var x_rook = parseInt(fileToY[m_from[1]]);
+                pieceTo.move(x_rook, y_rook);
+            } else {
+                var y_king = rankToX[m_to[2]];
+                var x_king = parseInt(fileToY[m_to[1]]) + 1;
+                pieceFrom.move(x_king, y_king, 0.6667);
+
+                var y_rook = rankToX[m_from[2]];
+                var x_rook = parseInt(fileToY[m_from[1]]) - 2;
+                pieceTo.move(x_rook, y_rook);
+            }
         } else { // all others
             var pieceFrom = piecesByBoardPos[from];
             var y = rankToX[m_to[2]];
@@ -609,7 +630,7 @@ var handleMessage = function(msg) {
         if (piece.color == myColor || myColor == 'both'){
             newQueen.image.draggable(true);
         }
-        piecesByBoardPos[square] = newQueen;
+        setPieceBoardPos(newQueen, square);
 		pieceLayer.draw();
     } else if (msg.c == 'notready'){
         // happens when we join too quickly 
@@ -676,6 +697,10 @@ var handleMessage = function(msg) {
     } else if (msg.c == 'kill'){
         var square = getSquareFromBB(msg.bb);
         var piece  = piecesByBoardPos[square];
+        console.log(piece);
+        if (piece.type == 'king') {
+            killPlayer(piece.color);
+        }
 
         if (piece != null) {
             piece.image.destroy();
@@ -702,9 +727,29 @@ var handleMessage = function(msg) {
             'black',
             dt
         );
-    } else if (msg.c == 'playerlost') {
+    } else if (msg.c == 'serverDisconnect') {
         var dt = new Date();
         endGame();
+        addGameMessage(
+            "SYSTEM",
+            "game ended due to server error",
+            "red",
+            'black',
+            dt
+        );
+    } else if (msg.c == 'gameOver') {
+        var dt = new Date();
+        //endGame();
+        addGameMessage(
+            "SYSTEM",
+            "game over (" + msg.result + ")",
+            "red",
+            'black',
+            dt
+        );
+        endGame();
+    } else if (msg.c == 'playerlost') {
+        var dt = new Date();
         addGameMessage(
             "SYSTEM",
             msg.color + " has lost.",
@@ -723,42 +768,17 @@ var handleMessage = function(msg) {
             'black',
             dt
         );
-    } else if (msg.c == 'gameDrawn') {
-        var dt = new Date();
-        endGame();
-        addGameMessage(
-            "SYSTEM",
-            "The game has drawn.",
-            "red",
-            'black',
-            dt
-        );
-    } else if (msg.c == 'resign') {
-        var dt = new Date();
-        endGame();
-        addGameMessage(
-            "SYSTEM",
-            msg.color + " has resigned.",
-            "red",
-            'black',
-            dt
-        );
-    } else if (msg.c == 'abort') {
-        var dt = new Date();
-        endGame();
-        addGameMessage(
-            "SYSTEM",
-            "game has been aborted.",
-            "red",
-            'black',
-            dt
-        );
     } else {
         console.log("unknown msg recieved");
         console.debug(msg);
     }
-
 }
+
+var setPieceBoardPos = function(piece, square) {
+    piece.square = square;
+    piecesByBoardPos[square] = piece;
+    console.log(piecesByBoardPos);
+};
 
 var spawn = function(chr, square) {
         var piece;
@@ -806,7 +826,7 @@ var spawn = function(chr, square) {
                 pieces[piece.id].image.draggable(true);
             }
             var square = getPieceSquare(piece);
-            piecesByBoardPos[square] = piece;
+            setPieceBoardPos(piece, square);
 
             pieceLayer.draw();
         }
@@ -838,6 +858,25 @@ var startGame = function(){
     }
 }
 
+var killPlayer = function(color){
+    console.log("killing player " + color);
+    for(id in pieces){
+        piece = pieces[id];
+        console.log(piece);
+        if (piece != null && piece.color == color) {
+            console.log("destroying ... " + id);
+            piece.image.destroy();
+            if (piece.delayRect){
+                piece.delayRect.destroy();
+            }
+            delete pieces[id];
+            piecesByBoardPos[piece.square] = null;
+
+        }
+    }
+    pieceLayer.draw();
+}
+
 var endGame = function(){
     if (! replayMode) {
         $('#gameStatusWaitingToStart').hide();
@@ -854,8 +893,8 @@ var endGame = function(){
 
 var getBoardPos = function(pos){
     var bPos = {};
-    bPos.x = Math.floor(getX(pos.x) / width * boardSize);
-    bPos.y = Math.floor(getY(pos.y) / height * boardSize);
+    bPos.x = Math.floor(getX(pos.x, pos.y) / width * boardSize);
+    bPos.y = Math.floor(getY(pos.x, pos.y) / width * boardSize);
 	if (myColor == 'black'){
 		bPos.y++;
 	}
@@ -864,39 +903,39 @@ var getBoardPos = function(pos){
 
 var getPixelPos = function(pos){
     var bPos = {};
-    bPos.x = Math.floor(getX(pos.x) * width / boardSize);
-    bPos.y = Math.floor(getY(pos.y) * height / boardSize);
+    bPos.x = Math.floor(getX(pos.x, pos.y) * width / boardSize);
+    bPos.y = Math.floor(getY(pos.x, pos.y) * width / boardSize);
     return bPos;
 };
 
-var getX = function(x){
-	if (myColor == 'green'){
-		return height - y - (height / boardSize);
-	}
-	if (myColor == 'red'){
+var getX = function(x, y){
+    if (myColor == 'red'){
+        return height - y - (height / boardSize);
+    }
+    if (myColor == 'green'){
         return y;
-	}
+    }
 	return x;
 };
 
-var getY = function(y){
+var getY = function(x, y){
 	if (myColor == 'black'){
 		return height - y - (height / boardSize);
 	}
-	if (myColor == 'red'){
+    if (myColor == 'red'){
+        return height - x - (height / boardSize);
+    }
+    if (myColor == 'green'){
         return x;
-	}
-	if (myColor == 'green'){
-        return width - x - (width / boardSize);
-	}
+    }
 	return y;
 };
 
 var getPieceImage = function(x, y, image){
     var pieceImage = new Konva.Image({
         image: image,
-        x: x * width / boardSize,
-        y: getY(y * height / boardSize),
+        x: getX(x * width / boardSize, y * height / boardSize),
+        y: getY(x * width / boardSize, y * height / boardSize),
         width: width / boardSize,
         height: height / boardSize,
         draggable: false
@@ -916,6 +955,7 @@ var getPawn = function(x, y, color){
         pawnImage = blackPawn;
     }
     var piece = getPiece(x, y, color, pawnImage);
+    piece.type = 'pawn';
 
     piece.legalMove = function(x, y){
         var yDir = 1;
@@ -943,6 +983,7 @@ var getQueen = function(x, y, color){
         queenImage = blackQueen;
     }
     var piece = getPiece(x, y, color, queenImage);
+    piece.type = 'queen';
 
     piece.legalMove = function(x, y){
         if (x == 0){ return true; }
@@ -965,6 +1006,7 @@ var getKing = function(x, y, color){
         kingImage = blackKing;
     }
     var piece = getPiece(x, y, color, kingImage);
+    piece.type = 'king';
 
     piece.legalMove = function(x, y){
         if (x == 0){ return true; }
@@ -987,6 +1029,7 @@ var getRook = function(x, y, color){
         rookImage = blackRook;
     }
     var piece = getPiece(x, y, color, rookImage);
+    piece.type = 'rook';
 
     piece.legalMove = function(x, y){
         if (x == 0){ return true; }
@@ -1008,6 +1051,7 @@ var getBishop = function(x, y, color){
         bishopImage = blackBishop;
     }
     var piece = getPiece(x, y, color, bishopImage);
+    piece.type = 'bishop';
 
     piece.legalMove = function(x, y){
         if (Math.abs(x) == Math.abs(y)){ return true; }
@@ -1028,6 +1072,7 @@ var getKnight = function(x, y, color){
         knightImage = blackKnight;
     }
     var piece = getPiece(x, y, color, knightImage);
+    piece.type = 'knight';
 
     piece.legalMove = function(x, y){
         if (Math.abs(x) == 2 && Math.abs(y) == 1){ return true; }
@@ -1051,7 +1096,7 @@ var getPiece = function(x, y, color, image){
     piece.image_id = piece.image._id;
     piecesByImageId[piece.image_id] = piece;
 
-    piece.move = function(x, y){
+    piece.move = function(x, y, speedAdj = 1){
         //isLegal = this.legalMove(this.x - x, this.y - y);
         //if (!isLegal){
             //return false;
@@ -1073,12 +1118,12 @@ var getPiece = function(x, y, color, image){
             var x_dist = Math.abs(this.start_x - this.x);
             var y_dist = Math.abs(this.start_y - this.y);
             var longer_dist = (x_dist > y_dist ? x_dist : y_dist);
-            piece.anim_length =  (longer_dist * timerSpeed / 10) * 1000;
+            piece.anim_length =  (longer_dist * timerSpeed * speedAdj/ 10) * 1000;
             piece.anim = new Konva.Animation(function(frame) {
                 var new_x = (piece.start_x * width / boardSize) + ((piece.x - piece.start_x) * (frame.time / piece.anim_length) * width / boardSize);
                 var new_y = (piece.start_y * width / boardSize) + ((piece.y - piece.start_y) * (frame.time / piece.anim_length) * width / boardSize);
-                piece.image.setX(getX(new_x));
-                piece.image.setY(getY(new_y));
+                piece.image.setX(getX(new_x, new_y));
+                piece.image.setY(getY(new_x, new_y));
 
                 if ((frame.time > piece.anim_length)){
                     this.stop();
@@ -1110,8 +1155,8 @@ var getPiece = function(x, y, color, image){
 
     piece.setDelayTimer = function(timeToDelay) {
         var rect = new Konva.Rect({
-            x: getX(piece.x * width / boardSize),
-            y: getY(piece.y * width / boardSize),
+            x: getX(piece.x * width / boardSize, piece.y * width / boardSize),
+            y: getY(piece.x * width / boardSize, piece.y * width / boardSize),
             width: width / boardSize,
             //height: (height / boardSize) * (timeToDelay / timerRecharge),
             height: height / boardSize,
@@ -1125,7 +1170,7 @@ var getPiece = function(x, y, color, image){
             // TIMER
             duration: timeToDelay,
             height: 0,
-            y: (getY(piece.y * width / boardSize) + (width / boardSize)),
+            y: (getY(piece.x * width / boardSize, piece.y * width / boardSize) + (width / boardSize)),
         });
         piece.delayRect = rect;
         tween.play();
@@ -1137,8 +1182,8 @@ var getPiece = function(x, y, color, image){
     }
 
     piece.setImagePos = function(x, y){
-        piece.image.setX(getX(this.x * width / boardSize));
-        piece.image.setY(getY(this.y * width / boardSize));
+        piece.image.setX(getX(this.x * width / boardSize, this.y * width / boardSize));
+        piece.image.setY(getY(this.x * width / boardSize, this.y * width / boardSize));
         pieceLayer.draw();
     }
     return piece;

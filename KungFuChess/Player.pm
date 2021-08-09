@@ -271,7 +271,7 @@ sub _loadByRow {
     my $row = shift;
     
     if (! defined($row)) {
-        return undef;
+        return $self->_loadAnonymousUser();
     }
 
     my %excludedFields = (

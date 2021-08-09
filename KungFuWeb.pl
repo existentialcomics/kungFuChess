@@ -107,9 +107,7 @@ get '/admin/clear-inactive-games' => sub {
     foreach my $row (@$games) {
         my $gameId = $row->[0];
         if (! exists($currentGames{$gameId})){
-            endGame($gameId, 'server disconnect');
-            delete $currentGames{$gameId};
-            delete $games{$gameId};
+            endGame($gameId, 'clear inactive');
         }
     }
     $c->render('text' => "done");
@@ -145,7 +143,7 @@ post '/ajax/createChallenge' => sub {
     my $uid = undef;
     if ($gameType eq 'practice') {
                   # speed, type, open, rated, whiteId, blackId
-        $gameId = createGame($gamePlayerType, $gameSpeed, 0, ($user ? $user->{player_id} : ANON_USER), ($user ? $user->{player_id} : -1));
+        $gameId = createGame($gamePlayerType, $gameSpeed, 0, ($user ? $user->{player_id} : ANON_USER), ($user ? $user->{player_id} : -1), ($user ? $user->{player_id} : ANON_USER), ($user ? $user->{player_id} : -1));
         if (! $user) {
             app->db()->do("UPDATE games SET black_anon_key = white_anon_key WHERE game_id = ?", {}, $gameId);
         }
@@ -464,7 +462,6 @@ get '/forums/:topic/:postId' => sub {
     foreach my $comment (@$comments) {
         $comment->{player} = new KungFuChess::Player({ row => $comment }, app->db());
     }
-    print Dumper($comments);
     $c->stash('comments' => $comments);
 
     $c->render('template' => 'forumPost', format => 'html', handler => 'ep');
@@ -622,6 +619,9 @@ get '/game/:gameId' => sub {
     my $color = 'watch';
 
     my ($white, $black, $red, $green) = getPlayers($gameId);
+    print "dumpers:\n";
+    print Dumper($white);
+    print Dumper($red);
     $c->stash('whitePlayer' => $white);
     $c->stash('blackPlayer' => $black);
     $c->stash('redPlayer'   => $red);
@@ -739,6 +739,7 @@ sub getAnonymousUser {
 
 sub createGame {
     my ($mode, $speed, $rated, $white, $black, $red, $green) = @_;
+    app->log->debug("creating game with $mode, $speed, $rated, $white, $black, $red, $green\n");
 
     my $whiteUid = ($white == ANON_USER || $black == AI_USER ? create_uuid_as_string() : undef);
     my $blackUid = ($black == ANON_USER || $black == AI_USER ? create_uuid_as_string() : undef);
@@ -832,7 +833,7 @@ post '/register' => sub {
         return $c->render('template' => 'register', format => 'html', handler => 'ep');
     }
     $c->db()->do('INSERT INTO players (screenname, password, rating_standard, rating_lightning)
-            VALUES (?, ?, 1200, 1200)', {}, $u, encryptPassword($p));
+            VALUES (?, ?, 1400, 1400)', {}, $u, encryptPassword($p));
 
     if ($c->authenticate($u, encryptPassword($p))){
         my $user = $c->current_user();
@@ -890,8 +891,6 @@ websocket '/ws' => sub {
             my $gameId = $gamesByServerConn{$connId};
             if ($gameId) {
                 endGame($gameId, 'server disconnect');
-                delete $currentGames{$gameId};
-                delete $games{$gameId};
                 delete $gamesByServerConn{$connId};
                 app->log->debug("game connection closed $connId");
             }
@@ -935,7 +934,7 @@ websocket '/ws' => sub {
         return 0 if (! $msg->{gameId} );
         my $game = $currentGames{$msg->{gameId}};
         return 0 if (! $game);
-        app->log->debug('message game checked ' . $msg->{c});
+        #app->log->debug('message game checked ' . $msg->{c});
 
         if ($msg->{'c'} eq 'join'){
             $game->addConnection($connId, $self);
@@ -992,8 +991,6 @@ websocket '/ws' => sub {
             app->log->debug('move authed for ' . $color);
             $msg->{color} = $color;
 
-            print Dumper($msg);
-
             # pass the move request to the server
             # TODO pass the player's color to the server
             $game->serverBroadcast($msg);
@@ -1038,13 +1035,6 @@ websocket '/ws' => sub {
         } elsif ($msg->{'c'} eq 'forceDraw'){
             if (! gameauth($msg) ){ return 0; }
             endGame($msg->{gameId}, 'draw');
-
-            my $drawnMsg = {
-                'c' => 'gameDrawn'
-            };
-
-            $game->playerBroadcast($drawnMsg);
-            $game->serverBroadcast($drawnMsg);
         } elsif ($msg->{'c'} eq 'requestDraw'){
             my $color = $game->authMove($msg);
             return 0 if (!$color);
@@ -1054,7 +1044,7 @@ websocket '/ws' => sub {
                 endGame($msg->{gameId}, 'draw');
 
                 my $drawnMsg = {
-                    'c' => 'gameDrawn'
+                    'c' => 'requestDraw'
                 };
 
                 $game->playerBroadcast($drawnMsg);
@@ -1068,8 +1058,6 @@ websocket '/ws' => sub {
             return 0 if (!$color);
             return 0 if ($game->gameBegan());
 
-            $game->playerBroadcast($msg);
-            $game->serverBroadcast($msg);
             endGame($msg->{gameId}, 'aborted');
         } elsif ($msg->{'c'} eq 'resign'){
             my $color = $game->authMove($msg);
@@ -1079,25 +1067,21 @@ websocket '/ws' => sub {
             $game->playerBroadcast($msg);
             $game->serverBroadcast($msg);
 
-            my $result = '';
-            if ($color eq 'black'){
-                $result = 'black resigns';
-            } elsif ($color eq 'white'){
-                $result = 'white resigns';
+            my $score = $game->killPlayer($color);
+            print "resign player $color: $score\n";
+            if ($score) {
+                endGame($msg->{gameId}, 'resigned', $score);
             }
-            endGame($msg->{gameId}, $result);
         } elsif ($msg->{'c'} eq 'playerlost'){
             if (! gameauth($msg) ){ return 0; }
             print "\n\nPLAYERLOST \n\n";
             $game->playerBroadcast($msg);
 
-            my $result = '';
-            if ($msg->{color} eq 'black'){
-                $result = 'white wins';
-            } elsif ($msg->{color} eq 'white'){
-                $result = 'black wins';
+            my $score = $game->killPlayer($msg->{color});
+            print "kill player $msg->{color} $score\n";
+            if ($score) {
+                endGame($msg->{gameId}, 'king killed', $score);
             }
-            endGame($msg->{gameId}, $result);
         } elsif ($msg->{'c'} eq 'authkill'){
             if (! gameauth($msg) ){ return 0; }
 
@@ -1196,13 +1180,14 @@ sub updateRatings {
 
     app()->log->debug("updating ratings for $gameId, " . ($score ? 'score' : '(no score)'));
 
-    if (!$score || $score !~ m/\d-\d/) {
+    ### score must exist and look something like 1-0, 0.5-0.5, 1-0-0-0, etc
+    if (!$score || $score !~ m/^[01\.-]+$/) {
         app()->log->debug("invalid score.");
         return;
     }
-    my ($result, $bresult) = split('-', $score);
+    my ($result, $bresult, $cresult, $dresult) = split('-', $score);
 
-    my ($white, $black) = getPlayers($gameId);
+    my ($white, $black, $red, $green) = getPlayers($gameId);
 
     # k variable controls change rate
     my $k = 32;
@@ -1215,21 +1200,50 @@ sub updateRatings {
         return;
     }
     
-    # transformed rating (on a normal curve)
-    my $r1 = 10 ** ($white->{$ratingColumn} / 400);
-    my $r2 = 10 ** ($black->{$ratingColumn} / 400);
+    if ($cresult) { ### was a 4way game
+        # transformed rating (on a normal curve)
+        my $r1 = 10 ** ($white->{$ratingColumn} / 400);
+        my $r2 = 10 ** ($black->{$ratingColumn} / 400);
+        my $r3 = 10 ** ($red->{$ratingColumn} / 400);
+        my $r4 = 10 ** ($green->{$ratingColumn} / 400);
 
-    # expected score
-    my $e1 = $r1 / ($r1 + $r2);
-    my $e2 = $r2 / ($r1 + $r2);
+        # expected score -------- divide second part by two again??
+        my $e1 = $r1 / ($r1 + $r2 + $r3 + $r4);
+        my $e2 = $r2 / ($r1 + $r2 + $r3 + $r4);
+        my $e3 = $r3 / ($r1 + $r2 + $r3 + $r4);
+        my $e4 = $r4 / ($r1 + $r2 + $r3 + $r4);
 
-    my $whiteProv = $white->getProvisionFactor();
-    my $blackProv = $black->getProvisionFactor();
+        my $whiteProv = $white->getProvisionalFactor();
+        my $blackProv = $black->getProvisionalFactor();
+        my $redProv   = $black->getProvisionalFactor();
+        my $greenProv = $black->getProvisionalFactor();
 
-    $white->{$ratingColumn} = $white->{$ratingColumn} + $k * ($result - $e1);
-    $black->{$ratingColumn} = $black->{$ratingColumn} + $k * ((1 - $result) - $e2);
-    savePlayer($white, $result, $gameSpeed);
-    savePlayer($black, 1 - $result, $gameSpeed);
+        #### TODO adjust results based on all four results i.e. 0-0-0.5-0.5 vs all draws
+        $white->{$ratingColumn} = $white->{$ratingColumn} + $k * ($result - $e1);
+        $black->{$ratingColumn} = $black->{$ratingColumn} + $k * ($bresult - $e2);
+        $red->{$ratingColumn}   = $red->{$ratingColumn}   + $k * ($cresult - $e3);
+        $green->{$ratingColumn} = $green->{$ratingColumn} + $k * ($dresult - $e4);
+        savePlayer($white, $result,  $gameSpeed);
+        savePlayer($black, $bresult, $gameSpeed);
+        savePlayer($red  , $cresult, $gameSpeed);
+        savePlayer($green, $cresult, $gameSpeed);
+    } else {
+        # transformed rating (on a normal curve)
+        my $r1 = 10 ** ($white->{$ratingColumn} / 400);
+        my $r2 = 10 ** ($black->{$ratingColumn} / 400);
+
+        # expected score
+        my $e1 = $r1 / ($r1 + $r2);
+        my $e2 = $r2 / ($r1 + $r2);
+
+        my $whiteProv = $white->getProvisionalFactor();
+        my $blackProv = $black->getProvisionalFactor();
+
+        $white->{$ratingColumn} = $white->{$ratingColumn} + $k * ($result - $e1);
+        $black->{$ratingColumn} = $black->{$ratingColumn} + $k * ($bresult - $e2);
+        savePlayer($white, $result,  $gameSpeed);
+        savePlayer($black, $bresult, $gameSpeed);
+    }
 
     return ($white, $black);
 }
@@ -1237,16 +1251,7 @@ sub updateRatings {
 sub endGame {
     my $gameId = shift;
     my $result = shift;
-
-    my $score = undef;
-
-    if ($result eq 'black wins' || $result eq 'white resigns') {
-        $score = '0-1';
-    } elsif ($result eq 'white wins' || $result eq 'black resigns') {
-        $score = '1-0';
-    } elsif ($result eq 'draw' || $result eq 'forced draw') {
-        $score = '0.5-0.5';
-    }
+    my $score = shift;
 
     app->log->debug('ending game: ' . $gameId . ' to ' . $result);
 
@@ -1285,7 +1290,7 @@ sub endGame {
 
     my ($whiteStart, $blackStart) = getPlayers($gameId);
 
-    my ($whiteEnd, $blackEnd) =($whiteStart, $blackStart);
+    my ($whiteEnd, $blackEnd) = ($whiteStart, $blackStart);
     if ($rated) {
         ($whiteEnd, $blackEnd) = updateRatings($gameId, $gameSpeed, $score);   
     }
@@ -1328,10 +1333,18 @@ sub endGame {
     }
 
 
-    # TODO delete games by connection and anything else.
-    # if the connection is still active send the server 
-    # a msg to shut down.
-    #delete $games{$gameId}; ## we still need it to get positions etc
+    my $game = $currentGames{$gameId};
+    if ($game) {
+        my $msg = {
+            'c' => 'gameOver',
+            'result' => $result,
+            'score' => $score
+        };
+        $game->playerBroadcast($msg);
+        $game->serverBroadcast($msg);
+    }
+    delete $currentGames{$gameId};
+    delete $games{$gameId};
     return 1;
 }
 
@@ -1340,16 +1353,11 @@ sub getPlayers {
 
     my @row = app->db()->selectrow_array('SELECT white_player, black_player, red_player, green_player FROM games WHERE game_id = ?', {}, $gameId);
 
+    ### if their id is undef we get a guest player
     my $white = new KungFuChess::Player( { 'userId' => $row[0] }, app->db() );
     my $black = new KungFuChess::Player( { 'userId' => $row[1] }, app->db() );
-    my $red   = undef;
-    my $green = undef;
-    if ($row[2]) {
-        $red = new KungFuChess::Player( { 'userId' => $row[2] }, app->db() );
-    }
-    if ($row[3]) {
-        $red = new KungFuChess::Player( { 'userId' => $row[2] }, app->db() );
-    }
+    my $red = new KungFuChess::Player(   { 'userId' => $row[2] }, app->db() );
+    my $green = new KungFuChess::Player( { 'userId' => $row[3] }, app->db() );
 
     return ($white, $black, $red, $green);
 }
@@ -1450,22 +1458,24 @@ sub getPlayerById {
 sub savePlayer {
     my $player = shift;
     my $result = shift;
+    my $gameSpeed = shift;
     my $gameType = shift;
 
     app->log->debug("saving player rating $player->{player_id} $player->{rating_standard}, $player->{rating_lightning}");
-    my $sth = app->db()->prepare('UPDATE players SET rating_standard = ?, rating_lightning = ? WHERE player_id = ?' );
-    $sth->execute($player->{rating_standard}, $player->{rating_lightning}, $player->{player_id});
+    my $sth = app->db()->prepare('UPDATE players SET rating_standard = ?, rating_lightning = ?, rating_standard_4way = ?, rating_lightning_4way = ? WHERE player_id = ?' );
+    $sth->execute($player->{rating_standard}, $player->{rating_lightning}, $player->{rating_standard_4way}, $player->{rating_lightning_4way}, $player->{player_id});
 
-    if (defined($result) && ($gameType eq 'standard' || $gameType eq 'lightning') ) {
+    if (defined($result) && ($gameSpeed eq 'standard' || $gameSpeed eq 'lightning') ) {
         my $resultColumn = '';
-        my $playedColumn = "games_played_$gameType";
+        my $playedColumn = "games_played_$gameSpeed";
+        my $fourWay = ($gameType eq '4way' ? '_4way' : '');
 
         if ($result == 1) {
-            $resultColumn = "games_won_$gameType";
+            $resultColumn = "games_won_$gameSpeed" . $fourWay;
         } elsif ($result == 0.5) {
-            $resultColumn = "games_drawn_$gameType";
+            $resultColumn = "games_drawn_$gameSpeed" . $fourWay;
         } elsif ($result == 0) {
-            $resultColumn = "games_lost_$gameType";
+            $resultColumn = "games_lost_$gameSpeed" . $fourWay;
         } else {
             app->log->debug("UNKNOWN result! $result");
         }
@@ -1619,14 +1629,20 @@ sub matchPool {
         my ($player_id, $matched_game) = @gameMatch;
         if ($matched_game) {
             my @gameRow = app->db()->selectrow_array(
-                'SELECT status, white_player, black_player FROM games WHERE game_id = ?',
+                'SELECT status, white_player, black_player, green_player, red_player FROM games WHERE game_id = ?',
                 {},
                 $matched_game
             );
             
-            my ($gameStatus, $blackPlayer, $whitePlayer) = @gameRow;
-            print "\nmatched game $matched_game: $gameStatus, $blackPlayer, $whitePlayer\n\n";
-            if ($gameStatus eq 'waiting to begin' && ($blackPlayer == $player->{'player_id'} || $whitePlayer == $player->{'player_id'}) ) {
+            my ($gameStatus, $blackPlayer, $whitePlayer, $greenPlayer, $redPlayer) = @gameRow;
+            print "\nmatched game $matched_game: $gameStatus, $blackPlayer, $whitePlayer, $greenPlayer, $redPlayer\n\n";
+            if ($gameStatus eq 'waiting to begin' &&
+                ($blackPlayer == $player->{'player_id'}
+                    || $whitePlayer == $player->{'player_id'}
+                    || $redPlayer == $player->{'player_id'}
+                    || $greenPlayer == $player->{'player_id'}
+                )
+            ) {
                 print "returning $matched_game\n";
                 return $matched_game;
             } else { ### the matched game is over or obsolete
@@ -1636,6 +1652,7 @@ sub matchPool {
     }
 
     ### now we try to find if any player matched them.
+    my $needed = $gameType eq '4way' ? 3 : 1;
     my $matchSql = 
         'SELECT p.player_id FROM pool p
             LEFT JOIN players pl ON p.player_id = pl.player_id
@@ -1643,19 +1660,26 @@ sub matchPool {
             AND in_matching_pool = 1
             AND game_speed = ?
             AND last_ping > NOW() - INTERVAL 3 SECOND
-            ORDER BY abs(? - ' . $ratingColumn . ') limit 1';
-    my @playerMatchedRow = app->db()->selectrow_array(
+            ORDER BY abs(? - ' . $ratingColumn . ') LIMIT ' . $needed;
+    my $playerMatchedRow = app->db()->selectall_arrayref(
         $matchSql,
         {},
         $player->{'player_id'}, $gameSpeed, $player->{$ratingColumn}
     );
 
-    if (@playerMatchedRow) {
-        my $playerMatchedId = $playerMatchedRow[0];
-                  # speed, rated, whiteId, blackId
-        my $gameId = createGame($gameType, $gameSpeed, 1, $player->{'player_id'}, $playerMatchedId);
+    if ($#{$playerMatchedRow} + 1 >= $needed) {
+        print "found match!\n";
+        my $playerMatchedId = $playerMatchedRow->[0][0];
+        my $playerMatchedId2 = ($gameType eq '4way' ? $playerMatchedRow->[1][0] : undef);
+        my $playerMatchedId3 = ($gameType eq '4way' ? $playerMatchedRow->[2][0] : undef);
+                  # speed, rated, whiteId, blackId, redId, greenId
+        my $gameId = createGame($gameType, $gameSpeed, 1, $player->{'player_id'}, $playerMatchedId, $playerMatchedId2, $playerMatchedId3);
 
-        app->db()->do('UPDATE pool SET matched_game = ? WHERE player_id IN (?, ?)', {}, $gameId, $player->{'player_id'}, $playerMatchedId);
+        if ($gameType eq '4way') {
+            app->db()->do('UPDATE pool SET matched_game = ? WHERE player_id IN (?, ?, ?, ?)', {}, $gameId, $player->{'player_id'}, $playerMatchedId, $playerMatchedId2, $playerMatchedId3);
+        } else {
+            app->db()->do('UPDATE pool SET matched_game = ? WHERE player_id IN (?, ?)', {}, $gameId, $player->{'player_id'}, $playerMatchedId);
+        }
 
         return $gameId;
     }

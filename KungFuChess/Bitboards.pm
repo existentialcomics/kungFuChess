@@ -216,12 +216,14 @@ my $white     = 0x0000000000000000;
 my $black     = 0x0000000000000000;
 my $occupied  = 0x0000000000000000;
 my $enPassant = 0x0000000000000000;
+
 my $whiteCastleK  = RANKS->[0] & FILES->[4];
-my $blackCastleK  = RANKS->[7] & FILES->[4];
 my $whiteCastleR  = RANKS->[0] & FILES->[7];
-my $blackCastleR  = RANKS->[7] & FILES->[7];
 my $whiteQCastleR = RANKS->[0] & FILES->[0];
+my $blackCastleK  = RANKS->[7] & FILES->[4];
+my $blackCastleR  = RANKS->[7] & FILES->[7];
 my $blackQCastleR = RANKS->[7] & FILES->[0];
+
 ### kungfuChess specific: frozen pieces waiting to move and currently moving 
 my $frozenBB = 0x0000000000000000;
 my $movingBB = 0x0000000000000000;
@@ -408,6 +410,16 @@ sub _removePiece {
     $movingBB &= ~$pieceBB;
 }
 
+sub _removeColor {
+    my $piece = shift;
+
+    if ($piece < 200) {
+        _removePiece($white);
+    } elsif ($piece < 300) {
+        _removePiece($black);
+    }
+}
+
 sub _removePiece_ai {
     #my $pieceBB = shift;
 
@@ -480,6 +492,7 @@ sub blockersBB {
 sub parseMove {
     my $move = shift;
 
+    print "parse move $move\n";
     my ($fr_f, $fr_r, $to_f, $to_r);
     if ($move =~ m/^([a-z])([0-9]{1,2})([a-z])([0-9]{1,2})$/) {
         ($fr_f, $fr_r, $to_f, $to_r) = ($1, $2, $3, $4);

@@ -27,7 +27,7 @@
                     </label>
                 </div>
                 <div class="form-radio">
-                    <input class="form-radio-input" type="radio" name="gamePlayersType" id="4wayRatingRadio" value="4way" disabled>
+                    <input class="form-radio-input" type="radio" name="gamePlayersType" id="4wayRatingRadio" value="4way">
                     <label class="form-radio-label" for="4wayRatingRadio">
                         4way
                     </label>
@@ -54,7 +54,7 @@
                     </label>
                 </div>
                 <div class="form-radio">
-                    <input class="form-radio-input" type="radio" name="gameType" id="lightningRatingRadio" value="ai">
+                    <input class="form-radio-input" type="radio" name="gameType" id="lightningRatingRadio" value="ai" disabled>
                     <label class="form-radio-label" for="lightningRatingRadio">
                         Against AI
                     </label>

@@ -2,13 +2,33 @@
 
 <div class="container bg-light card">
 
+  <div class="row">
+    <div class="col-sm">
+        Username
+    </div>
+    <div class="col-sm">
+        Title
+    </div>
+    <div class="col-sm">
+        Preview
+    </div>
+  </div>
+
 <% foreach my $post (@{$posts}){ %>
+  <div class="row">
+    <div class="col-sm">
     %= include '_user', 'user' => $post
+    </div>
+    <div class="col-sm">
     <a href = "/forums/<%= $topic %>/<%= $post->{forum_post_id} %>">
         <%= $post->{post_title} %>
     </a><br />
+    </div>
+    <div class="col-sm">
     <%= $post->{preview} %>
-    <hr>
+    </div>
+  </div>
+  <hr>
 <% } %>
 
 <a href="?page=<%= $page - 1 %>">prev</a><a href="?page=<%= $page + 1 %>">next</a><a href="/forums/<%= $topic %>/post">Create topic</a>

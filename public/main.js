@@ -163,24 +163,70 @@ function checkPool(originalThread = false) {
 //$(document).ready(function () {
 $(function () {
     $("#enter-pool-standard").click(function() {
-        if (checkPoolRunning && checkPoolGameSpeed == 'standard') {
+        if (checkPoolRunning
+            && checkPoolGameSpeed == 'standard'
+            && checkPoolGameType  == '2way'
+        ) {
             cancelCheckPool = true;
             $(this).html('Standard Pool');
         } else {
             $(this).html('Standard Pool<br /><span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>');
             $("#enter-pool-lightning").html('Lighting Pool');
-            checkPoolGameSpeed = 'standard'
+            $("#enter-pool-4way-standard").html('Standard 4way Pool');
+            $("#enter-pool-4way-lightning").html('Lighting 4way Pool');
+            checkPoolGameSpeed = 'standard';
+            checkPoolGameType  = '2way';
             checkPool();
         }
     });
     $("#enter-pool-lightning").click(function() {
-        if (checkPoolRunning && checkPoolGameSpeed == 'lightning') {
+        if (checkPoolRunning
+            && checkPoolGameSpeed == 'lightning'
+            && checkPoolGameType  == '2way'
+        ) {
             cancelCheckPool = true;
             $(this).html('Lightning Pool');
         } else {
             $(this).html('Lightning Pool<br /><span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>');
             $("#enter-pool-standard").html('Standard Pool');
-            checkPoolGameSpeed = 'lightning'
+            $("#enter-pool-4way-standard").html('Standard 4way Pool');
+            $("#enter-pool-4way-lightning").html('Lighting 4way Pool');
+            checkPoolGameSpeed = 'lightning';
+            checkPoolGameType  = '2way';
+            checkPool();
+        }
+    });
+    $("#enter-pool-4way-standard").click(function() {
+        if (checkPoolRunning
+            && checkPoolGameSpeed == 'standard'
+            && checkPoolGameType  == '4way'
+        ) {
+            cancelCheckPool = true;
+            $(this).html('Standard 4way Pool');
+        } else {
+            $(this).html('Standard 4way Pool<br /><span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>');
+            $("#enter-pool-standard").html('Standard Pool');
+            $("#enter-pool-lightning").html('Lighting Pool');
+            $("#enter-pool-4way-lightning").html('Lighting 4way Pool');
+            checkPoolGameSpeed = 'standard';
+            checkPoolGameType  = '4way';
+            checkPool();
+        }
+    });
+    $("#enter-pool-4way-lightning").click(function() {
+        if (checkPoolRunning
+            && checkPoolGameSpeed == 'lightning'
+            && checkPoolGameType  == '4way'
+        ) {
+            cancelCheckPool = true;
+            $(this).html('Lightning 4way Pool');
+        } else {
+            $(this).html('Lightning 4way Pool<br /><span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>');
+            $("#enter-pool-standard").html('Standard Pool');
+            $("#enter-pool-lightning").html('Lighting Pool');
+            $("#enter-pool-4way-standard").html('Standard 4way Pool');
+            checkPoolGameSpeed = 'lightning';
+            checkPoolGameType  = '4way';
             checkPool();
         }
     });
