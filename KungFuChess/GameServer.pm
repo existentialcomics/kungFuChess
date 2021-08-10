@@ -560,6 +560,7 @@ sub moveIfLegal {
                     'fr_bb' => $fr_bb,
                 };
                 $self->send($msg);
+                return ; ## return early because there is no more movement
             } else {
                 if ($themColor != 0) { ## enemy exists
                     $self->killPieceBB($moving_to_bb);
@@ -572,6 +573,23 @@ sub moveIfLegal {
                     'to_bb'  => $moving_to_bb
                 };
                 $self->send($msgStep);
+
+                if ($themColor != 0) { ## enemy exists
+                    $self->{"stoptimer_$moving_to_bb"} = AnyEvent->timer(
+                        after => $self->{pieceSpeed},
+                        cb => sub {
+                            print "delay authstop\n";
+                            my $msg = {
+                                'c' => 'authstop',
+                                'color' => $self->{color},
+                                'fr_bb' => $moving_to_bb,
+                            };
+                            $self->send($msg);
+                            delete $self->{"stoptimer_$moving_to_bb"};
+                        }
+                    );
+                    return ; ## return early because there is no more movement
+                }
             }
 
             if ($moveType == KungFuChess::Bitboards::MOVE_PROMOTE) {

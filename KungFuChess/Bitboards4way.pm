@@ -601,7 +601,7 @@ sub unsetMoving {
 }
 
 sub blockers {
-    my ($blockingBB, $dirBB, $fromBB, $toBB) = @_;
+    my ($blockingBB, $dirBB, $fromBB, $toBB, $depth) = @_;
 
     while ($fromBB != $toBB) {
         $fromBB = shift_BB($fromBB, $dirBB);
@@ -609,6 +609,12 @@ sub blockers {
             if ($fromBB == 0)           { return 0; } ### of the board
             if ($fromBB >  MAX_BITBOARD){ return 0; } ### of the board
             if ($fromBB & $blockingBB)  { return 0; }
+
+            ### we may want to only have the piece immediately in front block
+            if (defined($depth) ){
+                $depth--;
+                if ($depth == 0) { $blockingBB = 0; }
+            }
         }
     }
     return 1;
@@ -769,9 +775,9 @@ sub isLegalMove {
     }
 
     ### if the same color is on the square
-    if (_piecesUs($color) & $to_bb){
-        return @noMove;
-    }
+    #if (_piecesUs($color) & $to_bb){
+        #return @noMove;
+    #}
 
     if ($fr_bb & $pawns) {
         my $pawnMoveType = MOVE_NORMAL;
@@ -936,7 +942,7 @@ sub _legalRooks {
         return (NO_COLOR, MOVE_NONE, DIR_NONE, $fr_bb, $to_bb);
     }
     ###
-    if (blockers(_piecesUs($color), $dir, $fr_bb, $to_bb) ){
+    if (blockers(_piecesUs($color), $dir, $fr_bb, $to_bb, 1) ){
         return ($color, MOVE_NORMAL, $dir, $fr_bb, $to_bb);
     }
     return (NO_COLOR, MOVE_NONE, $dir, $fr_bb, $to_bb);
@@ -964,7 +970,7 @@ sub _legalBishops {
             $dir = NORTH_WEST;
         }
     }
-    if (blockers(_piecesUs($color), $dir, $fr_bb, $to_bb) ){
+    if (blockers(_piecesUs($color), $dir, $fr_bb, $to_bb, 1) ){
         return ($color, MOVE_NORMAL, $dir, $fr_bb, $to_bb);
     }
     return (NO_COLOR, MOVE_NONE, $dir, $fr_bb, $to_bb);
