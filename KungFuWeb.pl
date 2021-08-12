@@ -619,9 +619,6 @@ get '/game/:gameId' => sub {
     my $color = 'watch';
 
     my ($white, $black, $red, $green) = getPlayers($gameId);
-    print "dumpers:\n";
-    print Dumper($white);
-    print Dumper($red);
     $c->stash('whitePlayer' => $white);
     $c->stash('blackPlayer' => $black);
     $c->stash('redPlayer'   => $red);

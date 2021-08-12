@@ -18,6 +18,8 @@ use constant ({
 
     DIR_NONE =>  0,
     NORTH =>  12,
+    ### warning! I think EAST actually goes west and WEST goes east, fix it yourself it's open source lol
+    # also these numbers correspond to the bitshifts but they aren't actually used like that.
     EAST  =>  1,
     SOUTH => -12,
     WEST  => -1,
@@ -544,7 +546,7 @@ sub shift_BB {
     my ($bb, $direction) = @_;
     return  $direction == NORTH      ?  $bb                <<12 : $direction == SOUTH      ?  $bb                >>12
           : $direction == NORTH+NORTH?  $bb                <<24 : $direction == SOUTH+SOUTH?  $bb                >>24
-          : $direction == EAST       ? ($bb & ~FILES_H->{a}) >> 1 : $direction == WEST       ? ($bb & ~FILES_H->{l}) << 1
+          : $direction == EAST       ? ($bb & ~FILES_H->{a}) << 1 : $direction == WEST       ? ($bb & ~FILES_H->{l}) >> 1
           : $direction == NORTH_EAST ? ($bb & ~FILES_H->{a}) <<13 : $direction == NORTH_WEST ? ($bb & ~FILES_H->{l}) <<11
           : $direction == SOUTH_EAST ? ($bb & ~FILES_H->{a}) >>11 : $direction == SOUTH_WEST ? ($bb & ~FILES_H->{l}) >>13
           : 0;
@@ -663,7 +665,84 @@ sub parseMove {
 
     return ($fr_bb, $to_bb, $fr_rank, $fr_file, $to_rank, $to_file);
 }
-### returns the color that moved and type of move
+
+sub getPawnDir {
+    my $bb = shift;
+
+    my $pawnDir;
+    if ($white & $bb) {
+        $pawnDir = NORTH;
+    } elsif ($black & $bb) {
+        $pawnDir = SOUTH;
+    } elsif ($red & $bb) {
+        $pawnDir = WEST;
+    } elsif ($green & $bb) {
+        $pawnDir = EAST;
+    }
+    return $pawnDir;
+}
+
+sub getReverseDir {
+    my $dir = shift;
+    if ($dir == NORTH) {
+        return SOUTH;
+    } elsif ($dir == SOUTH) {
+        return NORTH;
+    } elsif ($dir == EAST) {
+        return WEST;
+    } elsif ($dir == WEST) {
+        return EAST;
+    }
+    return undef;
+}
+
+sub getEnPassantKills {
+    my $fr_bb = shift;
+    my $to_bb = shift;
+
+    my @kill_bbs;
+    if  ($to_bb & RANKS_H->{3})  { ### white
+        if (shift_BB($to_bb, NORTH) & $pawns & $white) {
+            push @kill_bbs, shift_BB($to_bb, NORTH);
+        }
+    }
+    if ($to_bb & RANKS_H->{10})  { ### black
+        if (shift_BB($to_bb, SOUTH) & $pawns & $black) {
+            push @kill_bbs, shift_BB($to_bb, SOUTH);
+        }
+    }
+    if ($to_bb & FILES_H->{'j'}) { ### green
+        if (shift_BB($to_bb, EAST) & $pawns & $green) {
+            push @kill_bbs, shift_BB($to_bb, EAST);
+        }
+    } 
+    if ($to_bb & FILES_H->{'c'}) { ### red
+        if (shift_BB($to_bb, WEST) & $pawns & $red) {
+            push @kill_bbs, shift_BB($to_bb, WEST);
+        }
+    }
+
+    return @kill_bbs;
+}
+
+sub clearEnPassant {
+    my $fr_bb = shift;
+    if (! ($fr_bb & $pawns) { return undef; }
+
+    if  ($fr_bb & RANKS_H->{4})  { ### white
+       $enPassant &= ~shift_BB($fr_bb, SOUTH);
+    }
+    if ($fr_bb & RANKS_H->{9})  { ### black
+       $enPassant &= ~shift_BB($fr_bb, NORTH);
+    }
+    if ($fr_bb & FILES_H->{'i'}) { ### green
+       $enPassant &= ~shift_BB($fr_bb, WEST);
+    } 
+    if ($fr_bb & FILES_H->{'d'}) { ### red
+       $enPassant &= ~shift_BB($fr_bb, EAST);
+    }
+}
+
 sub isLegalMove {
     my ($fr_bb, $to_bb, $fr_rank, $fr_file, $to_rank, $to_file) = @_;
 
@@ -803,19 +882,39 @@ sub isLegalMove {
                 if ($to_bb & $occupied) {
                     return @noMove;
                 }
+                # piece between
+                if (shift_BB($fr_bb, $pawnDir) & $occupied) {
+                    return @noMove;
+                }
+                # activate en_passant bb, warning:
+                # this activates on checking for legal move only.
+                # in the app we are expected to moveIfLegal so fine?
+                # GameServer is expected to clear this when timer runs out.
+                $enPassant |= shift_BB($to_bb, getReverseDir($pawnDir));
+                print "enPassant- $enPassant\n";
+
                 return ($color, $pawnMoveType, $pawnDir, $fr_bb, $to_bb);
             }
         } else {
-            #if ((shift_BB($fr_bb, $pawnDir + $pawnDir) & $to_bb) && ($fr_bb & (FILES_H->{'b'} | FILES_H->{'k'})) ){
-            #if ((shift_BB($fr_bb, $pawnDir + $pawnDir) & $to_bb)){
             if ((shift_BB(shift_BB($fr_bb, $pawnDir), $pawnDir) & $to_bb) && ($fr_bb & (FILES_H->{'b'} | FILES_H->{'k'})) ){
                 if ($to_bb & $occupied) {
                     return @noMove;
                 }
+                # piece between
+                if (shift_BB($fr_bb, $pawnDir) & $occupied) {
+                    return @noMove;
+                }
+                # activate en_passant bb, warning:
+                # this activates on checking for legal move only.
+                # in the app we are expected to moveIfLegal so fine?
+                # GameServer is expected to clear this when timer runs out.
+                $enPassant |= shift_BB($to_bb, getReverseDir($pawnDir));
+                print "enPassant: $enPassant\n";
+
                 return ($color, $pawnMoveType, $pawnDir, $fr_bb, $to_bb);
             }
         }
-        if ($to_bb & _piecesThem($color) ){
+        if ($to_bb & (_piecesThem($color) | $enPassant) ){
             if (($fr_bb & (FILES_H->{'c'} & RANKS_H->{'2'}))
                 && $to_bb & (FILES_H->{'b'} & RANKS_H->{'3'}) 
             ) {
@@ -864,15 +963,18 @@ sub isLegalMove {
             my $offTwo = ($pawnDir == NORTH || $pawnDir == SOUTH) ? WEST : SOUTH;
             my $enemyCapturesE = shift_BB($to_bb, $offOne);
             my $enemyCapturesW = shift_BB($to_bb, $offTwo);
+            if ($to_bb & $enPassant){
+                $pawnMoveType = MOVE_EN_PASSANT;
+            }
+            my $enemyCapturesE = shift_BB($to_bb, $offOne);
+            my $enemyCapturesW = shift_BB($to_bb, $offTwo);
+
             if      (shift_BB($fr_bb, $pawnDir) & $enemyCapturesW){
                 return ($color, $pawnMoveType, $pawnDir + $offOne, $fr_bb, $to_bb);
             } elsif (shift_BB($fr_bb, $pawnDir) & $enemyCapturesE){
                 return ($color, $pawnMoveType, $pawnDir + $offTwo, $fr_bb, $to_bb);
-            } else {
-                #print "can't take\n";
             }
         }
-        ### TODO en passant check frozen squares
         return @noMove;
     }
     if ($fr_bb & $knights) {
@@ -1208,6 +1310,7 @@ sub printAllBitboards {
         }
     }
 }
+
 sub prettyBoard {
     my $BB = shift;
     my $board = "BB: " . $BB . "\n";;

@@ -517,7 +517,40 @@ sub parseMove {
     return ($fr_bb, $to_bb, $fr_rank, $fr_file, $to_rank, $to_file);
 }
 
-### returns the color that moved and type of move (takes fr_bb and to_bb)
+sub getPawnDir {
+    my $bb = shift;
+    return ($white & $bb ? NORTH : SOUTH);
+}
+
+sub getReverseDir {
+    my $dir = shift;
+    return $dir == NORTH ? SOUTH : NORTH;
+}
+
+sub getEnPassantKills {
+    my $fr_bb = shift;
+    my $to_bb = shift;
+
+    my $usColor = occupiedColor($fr_bb);
+    my $pawnDir = getPawnDir($fr_bb);
+    my $reverse = getReverseDir($pawnDir);
+    my $kill_bb = shift_BB($to_bb, $reverse);
+
+    return ($kill_bb);
+}
+
+sub clearEnPassant {
+    my $fr_bb = shift;
+
+    if (! ($fr_bb & $pawns) { return undef; }
+    my $usColor = occupiedColor($fr_bb);
+    my $pawnDir = getPawnDir($fr_bb);
+    my $reverse = getReverseDir($pawnDir);
+    my $clear_bb = shift_BB($fr_bb, $reverse);
+
+    $enPassant &= ~$clear_bb;
+}
+
 sub isLegalMove {
     my ($fr_bb, $to_bb, $fr_rank, $fr_file, $to_rank, $to_file) = @_;
 
@@ -563,8 +596,7 @@ sub isLegalMove {
         return @noMove;
     }
     my $color   = ($white & $fr_bb ? WHITE : BLACK);
-    my $pawnDir = ($white & $fr_bb ? NORTH : SOUTH);
-
+    my $pawnDir = getPawnDir($fr_bb);
 
     ### castles go before checking same color on to_bb
     if ($fr_bb & $kings) {
@@ -619,20 +651,31 @@ sub isLegalMove {
             if ($to_bb & $occupied) {
                 return @noMove;
             }
+            # piece between
+            if (shift_BB($fr_bb, $pawnDir) & $occupied) {
+                return @noMove;
+            }
+            # activate en_passant bb, warning:
+            # this activates on checking for legal move only.
+            # in the app we are expected to moveIfLegal so fine?
+            # GameServer is expected to clear this when timer runs out.
+            $enPassant |= shift_BB($to_bb, getReverseDir($pawnDir));
+
             return ($color, $pawnMoveType, $pawnDir, $fr_bb, $to_bb);
         }
-        if ($to_bb & _piecesThem($color) ){
+        if ($to_bb & (_piecesThem($color) | $enPassant) ){
+            if ($to_bb & $enPassant){
+                $pawnMoveType = MOVE_EN_PASSANT;
+            }
             my $enemyCapturesE = shift_BB($to_bb, EAST);
             my $enemyCapturesW = shift_BB($to_bb, WEST);
+
             if      (shift_BB($fr_bb, $pawnDir) & $enemyCapturesW){
                 return ($color, $pawnMoveType, $pawnDir + EAST, $fr_bb, $to_bb);
             } elsif (shift_BB($fr_bb, $pawnDir) & $enemyCapturesE){
                 return ($color, $pawnMoveType, $pawnDir + WEST, $fr_bb, $to_bb);
-            } else {
-                #print "can't take\n";
             }
         }
-        ### TODO en passant check frozen squares
         return @noMove;
     }
     if ($fr_bb & $knights) {

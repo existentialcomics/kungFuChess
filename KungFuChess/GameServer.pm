@@ -509,7 +509,9 @@ sub moveIfLegal {
         # so we cannot proceed or strange things will happen!
         # only for normal moves
         if (($moveType == KungFuChess::Bitboards::MOVE_NORMAL || 
-             $moveType == KungFuChess::Bitboards::MOVE_PROMOTE ) 
+             $moveType == KungFuChess::Bitboards::MOVE_PROMOTE ||
+             $moveType == KungFuChess::Bitboards::MOVE_EN_PASSANT 
+         ) 
          && (! defined($self->{activeMoves}->{$fr_bb})) ) {
             return undef;
         }
@@ -518,8 +520,19 @@ sub moveIfLegal {
 
         my $done = 0;
         my $nextMoveSpeed = $self->{pieceSpeed};
+
+        if ($moveType == KungFuChess::Bitboards::MOVE_EN_PASSANT) {
+            my @kill_bbs = KungFuChess::Bitboards::getEnPassantKills($fr_bb, $to_bb);
+            ### if 4way it is possible to kill two!
+            foreach my $kill_bb (@kill_bbs) {
+                $self->killPieceBB($kill_bb);
+                KungFuChess::Bitboards::_removePiece($kill_bb);
+            }
+        }
+
         if ($moveType == KungFuChess::Bitboards::MOVE_NORMAL || 
-            $moveType == KungFuChess::Bitboards::MOVE_PROMOTE 
+            $moveType == KungFuChess::Bitboards::MOVE_PROMOTE || 
+            $moveType == KungFuChess::Bitboards::MOVE_EN_PASSANT 
         ) {
             my $moving_to_bb = 0;
             ### for DIR_NONE it means we want to move directly there (King)
@@ -741,7 +754,9 @@ sub moveIfLegal {
             $self->{timeoutCBs}->{$to_bb} = AnyEvent->timer(
                 after => $self->{pieceRecharge} + $nextMoveSpeed,
                 cb => sub {
+                    KungFuChess::Bitboards::clearEnPassant($to_bb);
                     # TODO replicate in Bitboards
+                    #KungFuChess::Bitboards::unsetFrozen($to_bb);
                     delete $self->{timeoutSquares}->{$to_bb};
                     delete $self->{timeoutCBs}->{$to_bb};
                 }
