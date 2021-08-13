@@ -106,9 +106,9 @@ sub getBestVictory {
     my $gameType = shift;
 
     my @row = $self->{dbh}->selectrow_array(
-        "SELECT MAX(opponent_rating_before)
+        "SELECT MAX(rating_before)
             FROM game_log
-            WHERE player_id = ?
+            WHERE opponent_id = ?
             AND game_type = ?
             AND result = 'win'
             AND rated = 1",
@@ -127,9 +127,9 @@ sub getWorstDefeat {
     my $gameType = shift;
 
     my @row = $self->{dbh}->selectrow_array(
-        "SELECT MIN(opponent_rating_before)
+        "SELECT MIN(rating_before)
             FROM game_log
-            WHERE player_id = ?
+            WHERE opponent_id = ?
             AND game_type = ?
             AND result = 'loss'
             AND rated = 1",
