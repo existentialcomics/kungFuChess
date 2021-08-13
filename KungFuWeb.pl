@@ -46,6 +46,7 @@ my %globalConnectionsByAuth = ();
 
 ## hash of game id by connections and which players are in
 my %playerGamesByServerConn = ();
+my %gameConnections = ();
 
 app->log->debug('connecting to db...');
 app->plugin('database', { 
@@ -895,6 +896,7 @@ websocket '/ws' => sub {
             } else {
                 $game->removeConnection($connId);
                 delete $playerGamesByServerConn{$connId};
+                delete $gameConnections{$gameId};
                 app->log->debug("game connection closed $connId");
             }
         } else {
@@ -920,6 +922,19 @@ websocket '/ws' => sub {
                 $globalConnectionsByAuth{$msg->{userAuthToken}} = $self;
                 app->db()->do('UPDATE players SET last_seen = NOW() WHERE auth_token = ?', {}, $msg->{userAuthToken});
             }
+        } elsif ($msg->{'c'} eq 'chat') {
+            my $player = new KungFuChess::Player({auth_token => $msg->{auth}}, app->db());
+            print "chat msg:\n";
+            print Dumper($msg);
+            print "----\n";
+            $msg->{'message'} = escape_html($msg->{'message'});
+            $msg->{'author'}  = escape_html( ($player ? $player->{screenname} : "anonymous") );
+
+            $msg->{'color'} = $player->getBelt();
+            app->log->debug("chat msg recieved");
+            foreach my $conn (values %{$gameConnections{$gameId}}) {
+                $conn->send(encode_json($msg));
+            }
         }
 
         #app->log->debug('message about to be game checked ' . $msg->{c});
@@ -931,6 +946,7 @@ websocket '/ws' => sub {
 
         if ($msg->{'c'} eq 'join'){
             $game->addConnection($connId, $self);
+            $gameConnections{$gameId}->{$connId} = $self;
             $playerGamesByServerConn{$connId} = $msg->{gameId};
 
             if ($game->serverReady()) {
@@ -992,12 +1008,6 @@ websocket '/ws' => sub {
                     $game->playerBroadcast($commandMsg);
                 }
             } else {
-                $msg->{'message'} = escape_html($msg->{'message'});
-                $msg->{'author'}  = escape_html( ($player ? $player->{screenname} : "anonymous") );
-
-                $msg->{'color'} = $player->getBelt();
-                app->log->debug("chat msg recieved");
-                $game->playerBroadcast($msg);
             }
         } elsif ($msg->{'c'} eq 'readyToBegin'){
             my $return = $game->playerReady($msg);
@@ -1292,14 +1302,14 @@ sub endGame {
 
     app->log->debug('ending game: ' . $gameId . ' to ' . $result);
 
-    my @gameRow = app->db()->selectrow_array("SELECT status, game_speed, rated FROM games WHERE game_id = ?", {}, $gameId);
+    my @gameRow = app->db()->selectrow_array("SELECT status, game_speed, game_type, rated FROM games WHERE game_id = ?", {}, $gameId);
 
     if (! @gameRow ) {
         app->debug("  game doesn't exist so it cannot be ended!! $gameId");
         return 0;
     }
 
-    my ($status, $gameSpeed, $rated) = @gameRow;
+    my ($status, $gameSpeed, $gameType, $rated) = @gameRow;
 
     app->db()->do("DELETE FROM pool WHERE matched_game = ?", {}, $gameId);
 
@@ -1332,38 +1342,38 @@ sub endGame {
         ($whiteEnd, $blackEnd) = updateRatings($gameId, $gameSpeed, $score);   
     }
 
-    if ($result eq 'white wins' || $result eq 'black wins' || $result eq 'draw') {
+    print "updating game log....$score\n";
+    if ($score && $score =~ m/^[01\.-]+$/) {
+        print " updating now\n";
         ### write to game log for both players
         if ($whiteStart->{player_id}) {
             app->db()->do('INSERT INTO game_log
-                (game_id, player_id, opponent_id, game_type, result, rating_before, rating_after, opponent_rating_before, opponent_rating_after, rated)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', {},
+                (game_id, player_id, opponent_id, game_speed, game_type, result, rating_before, rating_after, rated)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)', {},
                 $gameId,
                 $whiteStart->{player_id},
                 $blackStart->{player_id},
                 $gameSpeed,
-                ($result eq 'draw' ? 'draw' : ($result eq 'white wins' ? 'win' : 'loss') ),
+                $gameType,
+                ($result eq 'draw' ? 'draw' : ($result eq '1-0' ? 'win' : 'loss') ),
                 $whiteStart->{"rating_$gameSpeed"},
                 $whiteEnd->{"rating_$gameSpeed"},
-                $blackStart->{"rating_$gameSpeed"},
-                $blackEnd->{"rating_$gameSpeed"},
                 $rated
             );
         }
 
         if ($blackStart->{player_id}) {
             app->db()->do('INSERT INTO game_log
-                (game_id, player_id, opponent_id, game_type, result, rating_before, rating_after, opponent_rating_before, opponent_rating_after, rated)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', {},
+                (game_id, player_id, opponent_id, game_speed, game_type, result, rating_before, rating_after, rated)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)', {},
                 $gameId,
                 $blackStart->{player_id},
                 $whiteStart->{player_id},
                 $gameSpeed,
-                ($result eq 'draw' ? 'draw' : ($result eq 'white wins' ? 'loss' : 'win') ),
+                $gameType,
+                ($result eq 'draw' ? 'draw' : ($result eq '1-0' ? 'loss' : 'win') ),
                 $blackStart->{"rating_$gameSpeed"},
                 $blackEnd->{"rating_$gameSpeed"},
-                $whiteStart->{"rating_$gameSpeed"},
-                $whiteEnd->{"rating_$gameSpeed"},
                 1
             );
         }
