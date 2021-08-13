@@ -718,7 +718,6 @@ var handleMessage = function(msg) {
 		}
         setTimeout(startGame, 3000)
     } else if (msg.c == 'chat') {
-        input.removeAttr('disabled'); // let the user write another message
         var dt = new Date();
         addGameMessage(
             msg.author,
@@ -757,7 +756,19 @@ var handleMessage = function(msg) {
             'black',
             dt
         );
+    } else if (msg.c == 'refresh') {
+        location.reload();
+    } else if (msg.c == 'systemMsg') {
+        var dt = new Date();
+        addGameMessage(
+            "SYSTEM",
+            msg.msg,
+            "red",
+            'black',
+            dt
+        );
     } else if (msg.c == 'requestDraw') {
+        var dt = new Date();
         if (msg.color == myColor) {
 
         }
@@ -1344,6 +1355,7 @@ input.keydown(function(e) {
  * Add message to the chat window
  */
 function addGameMessage(author, message, color, textcolor, dt) {
+    input.removeAttr('disabled'); // let the user write another message
     game_chatContent.append('<p><span style="color:' + color + '">' + author + '</span><span style="font-size: 12px;color:grey"> ' +
             + (dt.getHours() < 10 ? '0' + dt.getHours() : dt.getHours()) + ':'
             + (dt.getMinutes() < 10 ? '0' + dt.getMinutes() : dt.getMinutes())
@@ -1353,6 +1365,9 @@ function addGameMessage(author, message, color, textcolor, dt) {
 
 //$(document).ready(function () {
 $(function () {
+    chatLog.forEach(function (logMsg) {
+        handleMessage(logMsg.msg);
+    });
     $("#abortGame").click(function() {
         var msg = {
             "c" : "abort"

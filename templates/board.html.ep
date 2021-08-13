@@ -129,6 +129,11 @@
     } catch (e) {
         gameLog = [];
     }
+    try {
+        chatLog = JSON.parse('<%== $chatLog %>');
+    } catch (e) {
+        chatLog = [];
+    }
 </script>
 
 <script src="/pieces/pieces.js"></script>

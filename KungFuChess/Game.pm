@@ -72,6 +72,7 @@ sub _init {
     $self->{green}->{draw} = 0;
 
     $self->{gameLog} = [];
+    $self->{chatLog} = [];
     $self->{gameStartTime} = time();
 
 	return 1;
@@ -283,6 +284,13 @@ sub playerBroadcast {
 		$player->send(encode_json $msg);
 	}
 
+    if ($msg->{c} eq 'chat') {
+        push (@{$self->{chatLog}},
+        {
+            'time' => time(),
+            'msg' => $msg
+        });
+    }
     if (! $excludeFromLog{$msg->{c}}) {
         push (@{$self->{gameLog}}, 
         {

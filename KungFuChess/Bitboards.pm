@@ -542,7 +542,7 @@ sub getEnPassantKills {
 sub clearEnPassant {
     my $fr_bb = shift;
 
-    if (! ($fr_bb & $pawns) { return undef; }
+    if (! ($fr_bb & $pawns) ){ return undef; }
     my $usColor = occupiedColor($fr_bb);
     my $pawnDir = getPawnDir($fr_bb);
     my $reverse = getReverseDir($pawnDir);

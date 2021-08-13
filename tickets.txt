@@ -1,9 +1,5 @@
 game log in profile
 game info box
-log of chat
-better msging when the game times out. draw? no contest?
 rematch for anon practice games doens't work
 rematch for 4way
-switch seats
 you can castle even if you've moved
-en passant

@@ -100,16 +100,11 @@ app->plugin('authentication' => {
             return undef;
         },
 });
+clearInactiveGames();
 
 get '/admin/clear-inactive-games' => sub {
     my $c = shift;
-    my $games = app->db()->selectall_arrayref("SELECT game_id from games WHERE status = 'active'");
-    foreach my $row (@$games) {
-        my $gameId = $row->[0];
-        if (! exists($currentGames{$gameId})){
-            endGame($gameId, 'clear inactive');
-        }
-    }
+    clearInactiveGames();
     $c->render('text' => "done");
     return;
 };
@@ -631,6 +626,7 @@ get '/game/:gameId' => sub {
 
     $c->stash('positionGameMsgs' => $gameRow->{final_position});
     $c->stash('gameLog'          => $gameRow->{game_log});
+    $c->stash('chatLog'          => ($game ? encode_json($game->{chatLog}) : undef));
     $c->stash('gameStatus'       => $gameRow->{status});
     my ($timerSpeed, $timerRecharge) = getPieceSpeed($gameRow->{game_speed});
     $c->stash('gameSpeed'     => $gameRow->{game_speed});
@@ -953,12 +949,56 @@ websocket '/ws' => sub {
             }
         } elsif ($msg->{'c'} eq 'chat'){
             my $player = new KungFuChess::Player({auth_token => $msg->{auth}}, app->db());
-            $msg->{'message'} = escape_html($msg->{'message'});
-            $msg->{'author'}  = escape_html( ($player ? $player->{screenname} : "anonymous") );
 
-            $msg->{'color'} = $player->getBelt();
-            app->log->debug("chat msg recieved");
-            $game->playerBroadcast($msg);
+            if ($msg->{'message'} =~ m/^\/(\S+)(?:\s(.*))?/) {
+                my $command = $1;
+                my $args    = $2;
+                if ($command eq 'switch') {
+                    print "command switch\n";
+                    my $color = $game->authMove($msg);
+                    my ($colorSrc, $colorDst) = split(' ', $args);
+                    print "colors: $colorSrc $colorDst vs $color\n";
+                    if ($colorSrc eq $color) {
+                        if ($colorDst eq 'white' || $colorDst eq 'black') {
+                            my @players1 = app()->db->selectrow_array("SELECT ${colorSrc}_player, status FROM games WHERE game_id = ? limit 1", {}, $game->{id});
+                            my @players2 = app()->db->selectrow_array("SELECT ${colorDst}_player, status FROM games WHERE game_id = ? limit 1", {}, $game->{id});
+                            if ($players1[1] eq 'waiting to begin') {
+                                app()->db->do("UPDATE games SET ${colorSrc}_player = ? WHERE game_id = ? limit 1", {}, $players2[0], $game->{id});
+                                app()->db->do("UPDATE games SET ${colorDst}_player = ? WHERE game_id = ? limit 1", {}, $players1[0], $game->{id});
+                                my $commandMsg = {
+                                    'c' => 'refresh'
+                                };
+                                $game->playerBroadcast($commandMsg);
+                            } else {
+                                my $sysMsg = {
+                                    'c'   => 'systemMsg', 
+                                    'msg' => 'Cannot switch once game has begun'
+                                };
+                                $game->playerBroadcast($sysMsg);
+                            }
+                        }
+                    } else {
+                        my $commandMsg = {
+                            'c' => 'systemMsg',
+                            'msg' => 'you can only change your own color'
+                        };
+                        $game->playerBroadcast($commandMsg);
+                    }
+                } else {
+                    my $commandMsg = {
+                        'c' => 'systemMsg',
+                        'msg' => 'unknown command.'
+                    };
+                    $game->playerBroadcast($commandMsg);
+                }
+            } else {
+                $msg->{'message'} = escape_html($msg->{'message'});
+                $msg->{'author'}  = escape_html( ($player ? $player->{screenname} : "anonymous") );
+
+                $msg->{'color'} = $player->getBelt();
+                app->log->debug("chat msg recieved");
+                $game->playerBroadcast($msg);
+            }
         } elsif ($msg->{'c'} eq 'readyToBegin'){
             my $return = $game->playerReady($msg);
             app->log->debug("ready to begin msg");
@@ -1389,6 +1429,16 @@ sub getActiveGames {
     );
 
     return $games;
+}
+
+sub clearInactiveGames {
+    my $games = app->db()->selectall_arrayref("SELECT game_id from games WHERE status = 'active'");
+    foreach my $row (@$games) {
+        my $gameId = $row->[0];
+        if (! exists($currentGames{$gameId})){
+            endGame($gameId, 'clear inactive');
+        }
+    }
 }
 
 sub getActivePlayers {

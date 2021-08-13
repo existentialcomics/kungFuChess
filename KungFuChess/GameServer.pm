@@ -81,16 +81,16 @@ my @MOVES_K = (@MOVES_B, @MOVES_R);
 $| = 1;
 
 sub new {
-	my $class = shift;
+    my $class = shift;
 
-	my $self = {};
-	bless( $self, $class );
+    my $self = {};
+    bless( $self, $class );
 
-	if ($self->_init(@_)){
-		return $self;
-	} else {
-		return undef;
-	}
+    if ($self->_init(@_)){
+        return $self;
+    } else {
+        return undef;
+    }
 }
 
 # http://wbec-ridderkerk.nl/html/UCIProtocol.html
@@ -165,12 +165,12 @@ sub writeStockfishMsg {
 }
 
 sub _init {
-	my $self = shift;
-	my $gameKey = shift;
-	my $authKey = shift;
-	my $speed = shift;
-	my $mode = shift;
-	my $ai = shift;
+    my $self = shift;
+    my $gameKey = shift;
+    my $authKey = shift;
+    my $speed = shift;
+    my $mode = shift;
+    my $ai = shift;
 
     print "game key: $gameKey, authkey: $authKey, speed: $speed, mode: $mode\n";
     
@@ -185,8 +185,8 @@ sub _init {
         $self->{files} = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
     }
 
-	$self->{gamekey} = $gameKey;
-	$self->{authkey} = $authKey;
+    $self->{gamekey} = $gameKey;
+    $self->{authkey} = $authKey;
 
     ### currently animating moves
     $self->{activeMoves}    = {};
@@ -217,7 +217,7 @@ sub _init {
         warn "unknown game speed $speed\n";
     }
 
-	$self->{board} = {};
+    $self->{board} = {};
     $self->{boardMap} = [
         [ undef, undef, undef, undef, undef, undef, undef, undef ],
         [ undef, undef, undef, undef, undef, undef, undef, undef ],
@@ -230,57 +230,57 @@ sub _init {
         [ undef, undef, undef, undef, undef, undef, undef, undef ]
     ];
 
-	my $client = AnyEvent::WebSocket::Client->new(
+    my $client = AnyEvent::WebSocket::Client->new(
         ssl_no_verify => 1,   
     );
 
-	$client->connect("ws://localhost:3000/ws")->cb(sub {
-		# make $connection an our variable rather than
-		# my so that it will stick around.  Once the
-		# connection falls out of scope any callbacks
-		# tied to it will be destroyed.
-		my $hs = shift;
-		our $connection = eval { $hs->recv };
-		$self->{conn} = $connection;
-		if($@) {
-		 # handle error...
-		 warn $@;
-		 return;
-		}
-		   
-		my $msg = {
-		   'c' => 'authjoin',
-		};
-		$self->send($msg);
+    $client->connect("ws://localhost:3000/ws")->cb(sub {
+        # make $connection an our variable rather than
+        # my so that it will stick around.  Once the
+        # connection falls out of scope any callbacks
+        # tied to it will be destroyed.
+        my $hs = shift;
+        our $connection = eval { $hs->recv };
+        $self->{conn} = $connection;
+        if($@) {
+         # handle error...
+         warn $@;
+         return;
+        }
+           
+        my $msg = {
+           'c' => 'authjoin',
+        };
+        $self->send($msg);
 
-		$self->setupInitialBoard();
+        $self->setupInitialBoard();
 
-		# recieve message from the websocket...
-		$connection->on(each_message => sub {
-			# $connection is the same connection object
-			# $message isa AnyEvent::WebSocket::Message
-			my($connection, $message) = @_;
-			my $msg = $message->body;
-			my $msgJSON = decode_json($msg);
-			$self->handleMessage($msgJSON, $connection);
-		});
+        # recieve message from the websocket...
+        $connection->on(each_message => sub {
+            # $connection is the same connection object
+            # $message isa AnyEvent::WebSocket::Message
+            my($connection, $message) = @_;
+            my $msg = $message->body;
+            my $msgJSON = decode_json($msg);
+            $self->handleMessage($msgJSON, $connection);
+        });
 
-		# handle a closed connection...
-		$connection->on(finish => sub {
-			# $connection is the same connection object
-			my($connection) = @_;
-			AnyEvent->condvar->send;
+        # handle a closed connection...
+        $connection->on(finish => sub {
+            # $connection is the same connection object
+            my($connection) = @_;
+            AnyEvent->condvar->send;
             if ($self->{stockfishPid}) { system("kill $self->{stockfishPid}"); }
-			exit;
-		});
+            exit;
+        });
 
-		# close the connection (either inside or
-		# outside another callback)
-		# $connection->close;
+        # close the connection (either inside or
+        # outside another callback)
+        # $connection->close;
 
-	});
+    });
 
-	$self->{client} = $client;
+    $self->{client} = $client;
 
     if ($ai) {
         #$self->{aiStates}->{uciok} = 0;
@@ -303,46 +303,46 @@ sub _init {
             }
         );
     }
-	AnyEvent->condvar->recv;
-	print "GAME ENDING\n";
+    AnyEvent->condvar->recv;
+    print "GAME ENDING\n";
 }
 
 sub setupInitialBoard {
-	my $self = shift;
+    my $self = shift;
     KungFuChess::Bitboards::setupInitialPosition();
 }
 
 sub handleMessage {
-	my $self = shift;
-	my ($msg, $conn) = @_;
+    my $self = shift;
+    my ($msg, $conn) = @_;
 
-	if ($msg->{c} eq 'join'){
-		$self->sendAllGamePieces();
-	} elsif ($msg->{c} eq 'playerjoin'){
-		$self->sendAllGamePieces();
-	} elsif ($msg->{c} eq 'move'){
+    if ($msg->{c} eq 'join'){
+        $self->sendAllGamePieces();
+    } elsif ($msg->{c} eq 'playerjoin'){
+        $self->sendAllGamePieces();
+    } elsif ($msg->{c} eq 'move'){
         if ($msg->{move}) {
             $self->moveIfLegal($msg->{color}, $msg->{move});
         } elsif($msg->{fr_bb}) {
             $self->moveIfLegal($msg->{color}, $msg->{fr_bb}, $msg->{to_bb});
         }
-	} elsif ($msg->{c} eq 'gameOver'){
+    } elsif ($msg->{c} eq 'gameOver'){
         gameOver();
-	} elsif ($msg->{c} eq 'gameBegins'){
+    } elsif ($msg->{c} eq 'gameBegins'){
         print "game begins\n";
         # to prevent autodraw from coming up right away
         my $startTime = time() + $msg->{seconds};
         foreach my $piece ($self->getPieces()) {
             $piece->{readyToMove} = $startTime;
         }
-	} elsif ($msg->{c} eq 'requestDraw'){
+    } elsif ($msg->{c} eq 'requestDraw'){
         if ($self->checkForForceDraw) {
             my $drawMsg = {
                 'c' => 'forceDraw'
             };
             $self->send($drawMsg);
         }
-	}
+    }
 }
 
 sub checkForForceDraw {
@@ -352,9 +352,9 @@ sub checkForForceDraw {
 
 ### TODO possible to send the bitboards themselves and have js decode
 sub sendAllGamePieces {
-	my $self = shift;
+    my $self = shift;
     my $returnOnly = shift;
-	my $conn = $self->{conn};
+    my $conn = $self->{conn};
 
     print KungFuChess::Bitboards::pretty();
     my @msgs = ();
@@ -413,8 +413,8 @@ sub endGame {
 }
 
 sub send {
-	my $self = shift;
-	my $msg  = shift;
+    my $self = shift;
+    my $msg  = shift;
 
     ### this ensures bitboards are sent as strings
     #   some BB are too big for javascript and will
@@ -423,9 +423,9 @@ sub send {
     if ($msg->{'fr_bb'}) { $msg->{'fr_bb'} = "$msg->{'fr_bb'}"; }
     if ($msg->{'to_bb'}) { $msg->{'to_bb'} = "$msg->{'to_bb'}"; }
 
-	$msg->{auth} = $self->{authkey};
-	$msg->{gameId} = $self->{gamekey};
-	return $self->{conn}->send(encode_json $msg);
+    $msg->{auth} = $self->{authkey};
+    $msg->{gameId} = $self->{gamekey};
+    return $self->{conn}->send(encode_json $msg);
 }
 
 sub moveNotation {
@@ -470,10 +470,10 @@ sub moveNotation {
 }
 
 sub moveIfLegal {
-	my $self = shift;
+    my $self = shift;
 
-	my $color = shift;
-	my $move  = shift;
+    my $color = shift;
+    my $move  = shift;
     my $to_move = shift;
 
     ### TODO premove
@@ -504,15 +504,21 @@ sub moveIfLegal {
         my ($self, $func, $fr_bb, $to_bb, $dir, $startTime, $moveType, $piece) = @_;
 
         my $next_fr_bb = 0;
+        print "moveStep $fr_bb, $to_bb, $dir\n";
+        print KungFuChess::Bitboards::pretty();
 
         # something else has deleted our active move marker, probably because the piece was killed.
         # so we cannot proceed or strange things will happen!
         # only for normal moves
-        if (($moveType == KungFuChess::Bitboards::MOVE_NORMAL || 
-             $moveType == KungFuChess::Bitboards::MOVE_PROMOTE ||
-             $moveType == KungFuChess::Bitboards::MOVE_EN_PASSANT 
-         ) 
-         && (! defined($self->{activeMoves}->{$fr_bb})) ) {
+        if (
+            ($moveType == KungFuChess::Bitboards::MOVE_NORMAL || 
+                $moveType == KungFuChess::Bitboards::MOVE_PROMOTE ||
+                $moveType == KungFuChess::Bitboards::MOVE_EN_PASSANT 
+            ) 
+            &&
+            (! defined($self->{activeMoves}->{$fr_bb}) || $self->{activeMoves}->{$fr_bb}->{to_bb} != $to_bb)
+        ) {
+            print "undefined activeMove someone killed us\n";
             return undef;
         }
         # remove the active move from the old space
@@ -526,7 +532,6 @@ sub moveIfLegal {
             ### if 4way it is possible to kill two!
             foreach my $kill_bb (@kill_bbs) {
                 $self->killPieceBB($kill_bb);
-                KungFuChess::Bitboards::_removePiece($kill_bb);
             }
         }
 
@@ -551,43 +556,46 @@ sub moveIfLegal {
                 return 0;
             }
             my $themColor = KungFuChess::Bitboards::occupiedColor($moving_to_bb);
+
+            ### enemy collision
             if ($themColor != 0 && $themColor != $usColor) {
+                print "collision detected\n";
+                ### active collision
                 if (exists($self->{activeMoves}->{$moving_to_bb})) {
+                    print "  active move detected at $moving_to_bb\n";
                     my $themStartTime = $self->{activeMoves}->{$moving_to_bb}->{start_time};
                     if ($themStartTime < $startTime) {
+                        print "     and so we must die\n";
                         ### the place we are moving has a piece that started before
                         ### so we get killed.
                         $self->killPieceBB($fr_bb);
-                        KungFuChess::Bitboards::_removePiece($fr_bb);
 
                         return 1;
+                    } else {
+                        print "    THEY die\n";
+                        $self->killPieceBB($moving_to_bb);
+
+                        KungFuChess::Bitboards::move($fr_bb, $moving_to_bb);
+                        my $msgStep = {
+                            'c' => 'authmovestep',
+                            'color'  => $self->{color},
+                            'fr_bb'  => $fr_bb,
+                            'to_bb'  => $moving_to_bb
+                        };
+                        $self->send($msgStep);
                     }
-                }
-            }
-
-            if ($themColor == $usColor) { ## we hit ourselves, stop!
-                ### message that animates a move on the board
-                my $msg = {
-                    'c' => 'authstop',
-                    'color' => $self->{color},
-                    'fr_bb' => $fr_bb,
-                };
-                $self->send($msg);
-                return ; ## return early because there is no more movement
-            } else {
-                if ($themColor != 0) { ## enemy exists
+                } else { ### we hit a stopped enemy
+                    print "hitting stopped enmey\n";
                     $self->killPieceBB($moving_to_bb);
-                }
-                KungFuChess::Bitboards::move($fr_bb, $moving_to_bb);
-                my $msgStep = {
-                    'c' => 'authmovestep',
-                    'color'  => $self->{color},
-                    'fr_bb'  => $fr_bb,
-                    'to_bb'  => $moving_to_bb
-                };
-                $self->send($msgStep);
+                    KungFuChess::Bitboards::move($fr_bb, $moving_to_bb);
+                    my $msgStep = {
+                        'c' => 'authmovestep',
+                        'color'  => $self->{color},
+                        'fr_bb'  => $fr_bb,
+                        'to_bb'  => $moving_to_bb
+                    };
+                    $self->send($msgStep);
 
-                if ($themColor != 0) { ## enemy exists
                     $self->{"stoptimer_$moving_to_bb"} = AnyEvent->timer(
                         after => $self->{pieceSpeed},
                         cb => sub {
@@ -603,6 +611,26 @@ sub moveIfLegal {
                     );
                     return ; ## return early because there is no more movement
                 }
+            } elsif ($themColor == $usColor) { ## we hit ourselves, stop!
+                print "hitting ourselves\n";
+                ### message that animates a move on the board
+                my $msg = {
+                    'c' => 'authstop',
+                    'color' => $self->{color},
+                    'fr_bb' => $fr_bb,
+                };
+                $self->send($msg);
+                return ; ## return early because there is no more movement
+            } else { ### moving into a free space
+                print "moving to free space...\n";
+                KungFuChess::Bitboards::move($fr_bb, $moving_to_bb);
+                my $msgStep = {
+                    'c' => 'authmovestep',
+                    'color'  => $self->{color},
+                    'fr_bb'  => $fr_bb,
+                    'to_bb'  => $moving_to_bb
+                };
+                $self->send($msgStep);
             }
 
             if ($moveType == KungFuChess::Bitboards::MOVE_PROMOTE) {
@@ -639,7 +667,6 @@ sub moveIfLegal {
             $nextMoveSpeed = $self->{pieceSpeed};
         } elsif ($moveType == KungFuChess::Bitboards::MOVE_PUT_PIECE) {
             $self->killPieceBB($to_bb);
-            KungFuChess::Bitboards::_removePiece($to_bb);
 
             my $msgSpawn = {
                 'c' => 'authunsuspend',
@@ -791,6 +818,8 @@ sub killPieceBB {
 
     ### mark that it is no longer active, stopping any movement
     my $piece = KungFuChess::Bitboards::_getPieceBB($bb);
+    print "   deleting activeMove $bb\n";
+    delete $self->{activeMoves}->{$bb};
     if ($piece) {
         my $killMsg = {
             'c'  => 'authkill',
@@ -810,6 +839,7 @@ sub killPieceBB {
             $self->send($msg);
         }
     }
+    KungFuChess::Bitboards::_removePiece($bb);
 }
 
 sub gameOver() {
@@ -857,15 +887,15 @@ sub getFENstring {
 }
 
 sub getPiece {
-	my $self = shift;
-	my $pieceId = shift;
+    my $self = shift;
+    my $pieceId = shift;
 
-	return $self->{board}->{$pieceId};
+    return $self->{board}->{$pieceId};
 }
 
 sub getPieces {
-	my $self = shift;
-	my @pieces = values %{$self->{board}};
+    my $self = shift;
+    my @pieces = values %{$self->{board}};
 
     return @pieces;
 }

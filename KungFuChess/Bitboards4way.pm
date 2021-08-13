@@ -727,7 +727,7 @@ sub getEnPassantKills {
 
 sub clearEnPassant {
     my $fr_bb = shift;
-    if (! ($fr_bb & $pawns) { return undef; }
+    if (! ($fr_bb & $pawns) ) { return undef; }
 
     if  ($fr_bb & RANKS_H->{4})  { ### white
        $enPassant &= ~shift_BB($fr_bb, SOUTH);
