@@ -1,5 +1,6 @@
 var checkPoolRunning = false;
 var checkPoolGameSpeed = gameSpeed;
+var checkPoolGameType  = gameType;
 var cancelCheckPool = false;
 
 var rematchPoolRunning = false;
@@ -13,37 +14,6 @@ if (gameType == '4way') {
     files = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
 }
 
-function checkPool(originalThread = false) {
-    if (cancelCheckPool) {
-        checkPoolRunning = false;
-        cancelCheckPool = false;
-        return ;
-    }
-    var setInterval = originalThread;
-    if (checkPoolRunning == false) {
-        checkPoolRunning = true;
-        setInterval = true;
-    }
-    $.ajax({
-        type : 'GET',
-        url  : '/ajax/pool/' + checkPoolGameSpeed,
-        dataType : 'json',
-        success : function(data){
-            var jsonRes = data;
-            if (jsonRes.hasOwnProperty('gameId')) {
-                window.location.replace('/game/' + jsonRes.gameId);
-            }
-            if (setInterval) {
-                intervalPlayer = setTimeout(
-                    function() {
-                        checkPool(true);
-                    },
-                    2000
-                );
-            }
-        }
-    });
-}
 
 function rematchPool(originalThread = false) {
     if (cancelRematchPool) {
@@ -87,6 +57,7 @@ $(function () {
         } else {
             $(this).html('Enter Pool<br /><span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>');
             checkPoolGameSpeed = gameSpeed;
+            checkPoolGameType  = gameType;
             checkPool();
         }
     });
@@ -833,6 +804,8 @@ var spawn = function(chr, square) {
             piece.id = maxPieceId++;
             pieceLayer.add(piece.image);
             pieces[piece.id] = piece;
+            console.log("piece color:");
+            console.log(piece.color);
             if (piece.color == myColor || myColor == 'both'){
                 pieces[piece.id].image.draggable(true);
             }
@@ -906,8 +879,14 @@ var getBoardPos = function(pos){
     var bPos = {};
     bPos.x = Math.floor(getX(pos.x, pos.y) / width * boardSize);
     bPos.y = Math.floor(getY(pos.x, pos.y) / width * boardSize);
+
+    // don't really understand why this is needed but whatever
 	if (myColor == 'black'){
 		bPos.y++;
+	}
+	if (myColor == 'red'){
+		bPos.y++;
+		bPos.x++;
 	}
     return bPos;
 };

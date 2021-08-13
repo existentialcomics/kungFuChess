@@ -1603,19 +1603,22 @@ sub enterUpdatePool {
     }
 
     my $gameSpeed       = (exists($options->{gameSpeed}) ? $options->{gameSpeed} : 1);
+    my $gameType        = (exists($options->{gameType}) ? $options->{gameType} : '2way');
     my $rated           = (exists($options->{rated}) ? $options->{rated} : 1);
     my $privateKey      = (exists($options->{privateKey}) ? $options->{privateKey} : undef);
     my $challengePlayer = (exists($options->{challengePlayerId}) ? $options->{challengePlayerId} : 1);
 
-    my $sth = app->db()->prepare('INSERT INTO pool (player_id, game_speed, rated, last_ping) VALUES (?, ?, ?, NOW())
-        ON DUPLICATE KEY UPDATE game_speed = ?, rated = ?, last_ping = NOW(), in_matching_pool = 1, private_game_key = NULL, open_to_public = 1
+    my $sth = app->db()->prepare('INSERT INTO pool (player_id, game_speed, game_type, rated, last_ping) VALUES (?, ?, ?, ?, NOW())
+        ON DUPLICATE KEY UPDATE game_speed = ?, game_type = ?, rated = ?, last_ping = NOW(), in_matching_pool = 1, private_game_key = NULL, open_to_public = 1
     ');
     $sth->execute(
         $player->{'player_id'},
         $gameSpeed,
+        $gameType,
         $rated,
         ### updates
         $gameSpeed,
+        $gameType,
         $rated
     );
 }
