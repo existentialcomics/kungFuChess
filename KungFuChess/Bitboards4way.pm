@@ -571,7 +571,21 @@ sub _removePiece {
     $movingBB &= ~$pieceBB;
 }
 
-sub _removeColor {
+sub _removeColorByName {
+    my $colorName = shift;
+    print "remove by name $colorName\n";
+    if ($colorName eq 'white') {
+        _removePiece($white);
+    } elsif($colorName eq 'black') {
+        _removePiece($black);
+    } elsif($colorName eq 'red') {
+        _removePiece($red);
+    } elsif($colorName eq 'green') {
+        _removePiece($green);
+    }
+}
+
+sub _removeColorByPiece {
     my $piece = shift;
 
     if ($piece < 200) {

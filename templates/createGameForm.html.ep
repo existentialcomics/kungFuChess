@@ -34,27 +34,27 @@
                 </div>
                 <label for="colFormLabelLg" class="col col-form-label col-form-label-lg">Game Type</label>
                 <div class="form-radio">
-                    <input class="form-radio-input" type="radio" name="gameType" id="standardRatingRadio" value="rated" 
+                    <input class="form-radio-input" type="radio" name="gameMode" id="standardRatingRadio" value="rated" 
                         <% if ($user && $user->{player_id} != -1){ %> checked <% } else { %> disabled <% } %>>
                     <label class="form-radio-label" for="standardRatingRadio">
                         Rated
                     </label>
                 </div>
                 <div class="form-radio">
-                    <input class="form-radio-input" type="radio" name="gameType" id="lightningRatingRadio" value="unrated" 
+                    <input class="form-radio-input" type="radio" name="gameMode" id="lightningRatingRadio" value="unrated" 
                         <% if (!($user && $user->{player_id} != -1)){ %> checked <% } %> >
                     <label class="form-radio-label" for="lightningRatingRadio">
                         Unrated
                     </label>
                 </div>
                 <div class="form-radio">
-                    <input class="form-radio-input" type="radio" name="gameType" id="lightningRatingRadio" value="practice">
+                    <input class="form-radio-input" type="radio" name="gameMode" id="lightningRatingRadio" value="practice">
                     <label class="form-radio-label" for="lightningRatingRadio">
                         Practice
                     </label>
                 </div>
                 <div class="form-radio">
-                    <input class="form-radio-input" type="radio" name="gameType" id="lightningRatingRadio" value="ai" disabled>
+                    <input class="form-radio-input" type="radio" name="gameMode" id="lightningRatingRadio" value="ai" disabled>
                     <label class="form-radio-label" for="lightningRatingRadio">
                         Against AI
                     </label>

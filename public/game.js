@@ -665,6 +665,16 @@ var handleMessage = function(msg) {
                 myPing = timestamp - msg.timestamp;
             }
         }
+    } else if (msg.c == 'resign'){
+        var dt = new Date();
+        addGameMessage(
+            "SYSTEM",
+            msg.color + " resigns.",
+            "red",
+            'black',
+            dt
+        );
+        killPlayer(msg.color);
     } else if (msg.c == 'kill'){
         var square = getSquareFromBB(msg.bb);
         var piece  = piecesByBoardPos[square];

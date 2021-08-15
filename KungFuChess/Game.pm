@@ -64,8 +64,9 @@ sub _init {
 
     $self->{whiteReady}    = 0;
     $self->{blackReady}    = 0;
-    $self->{whiteRematchReady}  = 0;
-    $self->{blackRematchPlayer} = 0;
+    $self->{redReady}      = 0;
+    $self->{greenReady}    = 0;
+
     $self->{white}->{draw} = 0;
     $self->{black}->{draw} = 0;
     $self->{red}->{draw}   = 0;
@@ -168,8 +169,17 @@ sub playerReady {
         if($color eq 'black' || $color eq 'both' || $self->{isAiGame}){
             $self->{blackReady} = time();
         }
-        if ($self->{whiteReady} && $self->{blackReady}) {
-            $self->{readyToPlay} = ($self->{whiteReady} > $self->{blackReady} ? $self->{whiteReady} : $self->{blackReady}) + 3;
+        if($color eq 'red'   || $color eq 'both' || $self->{isAiGame}){
+            $self->{redReady} = time();
+        }
+        if($color eq 'green'   || $color eq 'both' || $self->{isAiGame}){
+            $self->{greenReady} = time();
+        }
+        if (
+            (($self->{redReady} && $self->{greenReady}) || ($self->{mode} ne '4way'))
+            && ($self->{whiteReady} && $self->{blackReady})
+        ) {
+            $self->{readyToPlay} = time + 3;
             my $msg = {
                 'c' => 'gameBegins',
                 'seconds' => 3

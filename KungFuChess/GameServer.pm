@@ -329,12 +329,16 @@ sub handleMessage {
     } elsif ($msg->{c} eq 'gameOver'){
         gameOver();
     } elsif ($msg->{c} eq 'gameBegins'){
+
+    } elsif ($msg->{c} eq 'gameBegins'){
         print "game begins\n";
         # to prevent autodraw from coming up right away
         my $startTime = time() + $msg->{seconds};
         foreach my $piece ($self->getPieces()) {
             $piece->{readyToMove} = $startTime;
         }
+    } elsif ($msg->{c} eq 'resign'){
+            KungFuChess::Bitboards::_removeColorByName($msg->{color});
     } elsif ($msg->{c} eq 'requestDraw'){
         if ($self->checkForForceDraw) {
             my $drawMsg = {
@@ -827,7 +831,7 @@ sub killPieceBB {
         };
         $self->send($killMsg);
         if ($piece % 100 == KungFuChess::Bitboards::KING) {
-            KungFuChess::Bitboards::_removeColor($piece);
+            KungFuChess::Bitboards::_removeColorByPiece($piece);
             my $color =
                 $piece < 200 ? 'white' :
                 $piece < 300 ? 'black' :
