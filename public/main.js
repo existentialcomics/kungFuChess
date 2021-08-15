@@ -156,6 +156,20 @@ function checkPool(originalThread = false) {
                     2000
                 );
             }
+        },
+        error : function(data){
+            var jsonRes = data;
+            if (jsonRes.hasOwnProperty('gameId')) {
+                window.location.replace('/game/' + jsonRes.gameId);
+            }
+            if (setInterval) {
+                intervalPlayer = setTimeout(
+                    function() {
+                        checkPool(true);
+                    },
+                    2000
+                );
+            }
         }
     });
 }

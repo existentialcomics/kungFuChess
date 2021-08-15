@@ -91,10 +91,14 @@ $(window).resize(function(){
 
 var blackLastSeen = null;
 var whiteLastSeen = null;
+var redLastSeen = null;
+var greenLastSeen = null;
 
 var myPing = null;
 var blackPing = null;
 var whitePing = null;
+var redPing = null;
+var greenPing = null;
 
 var boardLayer = new Konva.Layer();
 var pieceLayer = new Konva.Layer();
@@ -382,6 +386,28 @@ var updateTimeStamps = function(){
         }
         $("#whiteOnline").removeClass('offline');
     }
+
+    if (redLastSeen == null || timestamp - redLastSeen > 3000) {
+        $("#redOnline").addClass('offline');
+        $("#redOnline").removeClass('online');
+    } else {
+        $("#redOnline").addClass('online');
+        if (redPing) {
+            $("#redOnline").attr("title", redPing + " ms");
+        }
+        $("#redOnline").removeClass('offline');
+    }
+
+    if (greenLastSeen == null || timestamp - greenLastSeen > 3000) {
+        $("#greenOnline").addClass('offline');
+        $("#greenOnline").removeClass('online');
+    } else {
+        $("#greenOnline").addClass('online');
+        if (greenPing) {
+            $("#greenOnline").attr("title", greenPing + " ms");
+        }
+        $("#greenOnline").removeClass('offline');
+    }
 };
 
 var joinGame = function(){
@@ -662,6 +688,22 @@ var handleMessage = function(msg) {
             updateTimeStamps();
             // i sent this message so the ping timestamp is mine
             if (myColor == 'white') {
+                myPing = timestamp - msg.timestamp;
+            }
+        } else if (msg.color = 'white') {
+            redPing = msg.ping;
+            redLastSeen = timestamp;
+            updateTimeStamps();
+            // i sent this message so the ping timestamp is mine
+            if (myColor == 'red') {
+                myPing = timestamp - msg.timestamp;
+            }
+        } else if (msg.color = 'green') {
+            greenPing = msg.ping;
+            greenLastSeen = timestamp;
+            updateTimeStamps();
+            // i sent this message so the ping timestamp is mine
+            if (myColor == 'green') {
                 myPing = timestamp - msg.timestamp;
             }
         }

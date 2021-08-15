@@ -826,14 +826,14 @@ sub isLegalMove {
             $bbK  = $whiteCastleK;
             $bbR  = $whiteCastleR;
             $bbQR = $whiteQCastleR;
-            $kingDir = EAST;
-            $rookDir = WEST;
+            $kingDir = WEST;
+            $rookDir = EAST;
         } elsif ($color == BLACK) {
             $bbK  = $blackCastleK;
             $bbR  = $blackCastleR;
             $bbQR = $blackQCastleR;
-            $kingDir = EAST;
-            $rookDir = WEST;
+            $kingDir = WEST;
+            $rookDir = EAST;
         } elsif ($color == RED) {
             $bbK  = $redCastleK;
             $bbR  = $redCastleR;
@@ -858,7 +858,6 @@ sub isLegalMove {
             }
             if ($to_bb & $bbQR) { 
                 if (blockers(_piecesUs($color), $rookDir, $fr_bb, shift_BB($to_bb, $kingDir)) ){
-                    print "return OOO\n";
                     return ($color, MOVE_CASTLE_OOO, DIR_NONE, $fr_bb, $to_bb);
                 } else {
                     return @noMove;

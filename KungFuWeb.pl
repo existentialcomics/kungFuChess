@@ -180,16 +180,21 @@ get '/ajax/rematch' => sub {
 
     my $myId = undef;
     my $challengeId = undef;
+    my $color = undef;
     if ($gameRow->{white_player} eq $user->{player_id}) {
         $myId        = $gameRow->{white_player};
         $challengeId = $gameRow->{black_player};
+        $color = 'white';
     } elsif ($gameRow->{black_player} eq $user->{player_id}) {
         $myId        = $gameRow->{black_player};
         $challengeId = $gameRow->{white_player};
+        $color = 'black';
     } elsif ($gameRow->{red_player} eq $user->{player_id}) {
         $myId        = $gameRow->{red_player};
+        $color = 'red';
     } elsif ($gameRow->{green_player} eq $user->{player_id}) {
         $myId        = $gameRow->{green_player};
+        $color = 'green';
     } else {
         my $returnError = {
             'error' => 'player not in the game issuing rematch',
@@ -234,10 +239,8 @@ get '/ajax/rematch' => sub {
             );
             if ($existingRematch) {
                 if ($existingRematch->{matched_game}) {
-                    print "setting game id\n";
                     $gameId = $existingRematch->{matched_game};
                 } else {
-                    print "existnig rematch for $user->{player_id}\n";
                     ### we are already in the rematch
                     if ($user->{player_id} eq $existingRematch->{player_id} || 
                         $user->{player_id} eq $existingRematch->{challenge_player_id} || 
@@ -348,6 +351,15 @@ get '/ajax/rematch' => sub {
             my $row = app->db()->selectrow_arrayref("SELECT white_anon_key FROM games WHERE game_id = ?", {}, $gameId);
             $return->{anonKey} = $row->[0];
         }
+    }
+    my $msg = {
+        'c' => 'rematch',
+        'color' => $color
+    };
+
+    my $count = 0;
+    foreach my $conn (values %{$gameConnections{$origGameId}}) {
+        $conn->send(encode_json($msg));
     }
     $c->render('json' => $return );
 };
@@ -995,8 +1007,6 @@ websocket '/ws' => sub {
         delete $globalConnections{$connId};
     });
 
-    my $gameId = "";
-
     $self->on(message => sub {
         my ($self, $msg) = @_;
         eval {
@@ -1018,8 +1028,10 @@ websocket '/ws' => sub {
             $msg->{'author'}  = escape_html( ($player ? $player->{screenname} : "anonymous") );
 
             $msg->{'color'} = $player->getBelt();
-            app->log->debug("chat msg recieved");
-            foreach my $conn (values %{$gameConnections{$gameId}}) {
+            app->log->debug("chat msg recieved for $msg->{gameId}");
+            foreach my $conn (values %{$gameConnections{$msg->{gameId}}}) {
+                app->log->debug("chat msg ->send()");
+
                 $conn->send(encode_json($msg));
             }
         }
@@ -1033,7 +1045,7 @@ websocket '/ws' => sub {
 
         if ($msg->{'c'} eq 'join'){
             $game->addConnection($connId, $self);
-            $gameConnections{$gameId}->{$connId} = $self;
+            $gameConnections{$msg->{gameId}}->{$connId} = $self;
             $playerGamesByServerConn{$connId} = $msg->{gameId};
 
             if ($game->serverReady()) {

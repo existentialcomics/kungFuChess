@@ -169,15 +169,15 @@ sub _init {
     my $gameKey = shift;
     my $authKey = shift;
     my $speed = shift;
-    my $mode = shift;
+    my $gameType = shift;
     my $ai = shift;
 
-    print "game key: $gameKey, authkey: $authKey, speed: $speed, mode: $mode\n";
+    print "game key: $gameKey, authkey: $authKey, speed: $speed, gameType: $gameType\n";
     
     my $cfg = new Config::Simple('kungFuChess.cnf');
     $self->{config} = $cfg;
-    $self->{mode} = $mode;
-    if ($self->{mode} eq '4way') {
+    $self->{gameType} = $gameType;
+    if ($self->{gameType} eq '4way') {
         $self->{ranks} = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12'];
         $self->{files} = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l'];
     } else {
@@ -688,14 +688,29 @@ sub moveIfLegal {
             KungFuChess::Bitboards::_removePiece($to_bb);
             $moveType = KungFuChess::Bitboards::MOVE_PUT_PIECE;
 
-            my $rook_moving_to = ($colorbit == KungFuChess::Bitboards::WHITE || $colorbit == KungFuChess::Bitboards::BLACK ?
-                KungFuChess::Bitboards::shift_BB($fr_bb, KungFuChess::Bitboards::EAST) :
-                KungFuChess::Bitboards::shift_BB($fr_bb, KungFuChess::Bitboards::SOUTH)
-            );
-            my $king_moving_to = ($colorbit == KungFuChess::Bitboards::WHITE || $colorbit == KungFuChess::Bitboards::BLACK ?
-                KungFuChess::Bitboards::shift_BB($to_bb, KungFuChess::Bitboards::WEST) :
-                KungFuChess::Bitboards::shift_BB($to_bb, KungFuChess::Bitboards::NORTH)
-            );
+            my $rook_moving_to = 0;
+            if ($colorbit == KungFuChess::Bitboards::WHITE || $colorbit == KungFuChess::Bitboards::BLACK) {
+                ### 4way bitboards are messed up and EAST and WEST are switched. Actually seems to effect nothing else.
+                if ($self->{gameType} eq '4way') {
+                    print "4way castle dected rook OO\n";
+                    $rook_moving_to = KungFuChess::Bitboards::shift_BB($fr_bb, KungFuChess::Bitboards::WEST);
+                } else {
+                    $rook_moving_to = KungFuChess::Bitboards::shift_BB($fr_bb, KungFuChess::Bitboards::EAST);
+                }
+            } else {
+                $rook_moving_to = KungFuChess::Bitboards::shift_BB($fr_bb, KungFuChess::Bitboards::SOUTH);
+            }
+            my $king_moving_to = 0;
+            if ($colorbit == KungFuChess::Bitboards::WHITE || $colorbit == KungFuChess::Bitboards::BLACK) {
+                if ($self->{gameType} eq '4way') {
+                    $king_moving_to = KungFuChess::Bitboards::shift_BB($to_bb, KungFuChess::Bitboards::EAST);
+                    print "4way castle dected king\n";
+                } else {
+                    $king_moving_to = KungFuChess::Bitboards::shift_BB($to_bb, KungFuChess::Bitboards::WEST);
+                }
+            } else {
+                $king_moving_to = KungFuChess::Bitboards::shift_BB($to_bb, KungFuChess::Bitboards::NORTH);
+            }
             my $msgSus1 = {
                 'c' => 'authsuspend',
                 'fr_bb'  => $fr_bb,
@@ -730,18 +745,34 @@ sub moveIfLegal {
 
             my $rook_moving_to = 0;
             if ($colorbit == KungFuChess::Bitboards::WHITE || $colorbit == KungFuChess::Bitboards::BLACK) {
-                $rook_moving_to = KungFuChess::Bitboards::shift_BB(
-                    KungFuChess::Bitboards::shift_BB($fr_bb, KungFuChess::Bitboards::WEST),
-                    KungFuChess::Bitboards::WEST);
+                ### 4way bitboards are messed up and EAST and WEST are switched. Actually seems to effect nothing else.
+                if ($self->{gameType} eq '4way') {
+                    print "4way castle dected\n";
+                    $rook_moving_to = KungFuChess::Bitboards::shift_BB(
+                        KungFuChess::Bitboards::shift_BB($fr_bb, KungFuChess::Bitboards::EAST),
+                        KungFuChess::Bitboards::EAST);
+                } else {
+                    $rook_moving_to = KungFuChess::Bitboards::shift_BB(
+                        KungFuChess::Bitboards::shift_BB($fr_bb, KungFuChess::Bitboards::WEST),
+                        KungFuChess::Bitboards::WEST);
+                }
             } else {
                 $rook_moving_to = KungFuChess::Bitboards::shift_BB(
                     KungFuChess::Bitboards::shift_BB($fr_bb, KungFuChess::Bitboards::NORTH),
                     KungFuChess::Bitboards::NORTH);
             }
-            my $king_moving_to = ($colorbit == KungFuChess::Bitboards::WHITE || $colorbit == KungFuChess::Bitboards::BLACK ?
-                KungFuChess::Bitboards::shift_BB($to_bb, KungFuChess::Bitboards::EAST) :
-                KungFuChess::Bitboards::shift_BB($to_bb, KungFuChess::Bitboards::SOUTH)
-            );
+            my $king_moving_to = 0;
+            if ($colorbit == KungFuChess::Bitboards::WHITE || $colorbit == KungFuChess::Bitboards::BLACK) {
+                ### 4way bitboards are messed up and EAST and WEST are switched. Actually seems to effect nothing else.
+                if ($self->{gameType} eq '4way') {
+                    print "4way castle dected king\n";
+                    $king_moving_to = KungFuChess::Bitboards::shift_BB($to_bb, KungFuChess::Bitboards::WEST);
+                } else {
+                    $king_moving_to = KungFuChess::Bitboards::shift_BB($to_bb, KungFuChess::Bitboards::EAST);
+                }
+            } else {
+                $king_moving_to = KungFuChess::Bitboards::shift_BB($to_bb, KungFuChess::Bitboards::SOUTH);
+            }
             my $msgSus1 = {
                 'c' => 'authsuspend',
                 'fr_bb'  => $fr_bb,
