@@ -603,18 +603,27 @@ get '/ajax/matchGame/:uid' => sub {
     my $user = $c->current_user();
 
     my $gameId = matchGameUid($user, $c->stash('uid'));
+    if ($gameId){ print "matchGameUID: $gameId\n";}
 
     if ($gameId) {
-        my $json = {};
-        $json->{'gameId'} = $gameId;
-        if (!$user) {
-            my @row = app->db()->selectrow_array('SELECT white_anon_key FROM games WHERE game_id = ?', {}, $gameId);
-            if (@row) {
-                $json->{'anonKey'} = $row[0];
+        ### they are matched, but the game is not ready to start
+        if ($gameId == -1) {
+            my $json = {
+                'uid' => $c->stash('uid')
+            };
+            $c->render('json' => $json);
+        } else {
+            my $json = {};
+            $json->{'gameId'} = $gameId;
+            if (!$user) {
+                my @row = app->db()->selectrow_array('SELECT white_anon_key FROM games WHERE game_id = ?', {}, $gameId);
+                if (@row) {
+                    $json->{'anonKey'} = $row[0];
+                }
             }
-        }
 
-        $c->render('json' => $json);
+            $c->render('json' => $json);
+        }
     } else {
         $c->render('json' => { 'msg' => "Game Not Found" } );
     }
@@ -655,9 +664,12 @@ get '/ajax/openGames' => sub {
     my $openGames = getOpenGames();
     $c->stash('myGame' => $myGame);
     my @games = @{$openGames};
-    my @grep = grep { $_->{player_id} != $myGame->{player_id} } @games;
-
-    $c->stash('openGames' => \@grep);
+    if ($myGame) {
+        my @grep = grep { $_->{player_id} != $myGame->{player_id} } @games;
+        $c->stash('openGames' => \@grep);
+    } else {
+        $c->stash('openGames' => \@games);
+    }
     $c->stash('uid' => $uid);
 
     my %return = ();
@@ -1638,13 +1650,33 @@ sub getMyOpenGame {
 
     ### TODO if not anon user delete other games
     my $myGame = app->db()->selectrow_hashref('
-        SELECT p.matched_game, p.player_id, p.rated, p.private_game_key, p.game_speed, p.open_to_public,
-               py.rating_standard, py.rating_lightning, py.screenname, p.in_matching_pool
-        FROM pool p LEFT JOIN players py ON p.player_id = py.player_id
-            WHERE p.player_id = ?
+        SELECT
+            p.player_id,
+            p.rated,
+            p.private_game_key,
+            p.game_speed,
+            p.game_type,
+            p.matched_game,
+            py.rating_standard,
+            py.rating_lightning,
+            py.screenname,
+            py2.rating_standard as rating2_standard,
+            py2.rating_lightning as rating2_lightning,
+            py2.screenname as screenname2,
+            py3.rating_standard as rating3_standard,
+            py3.rating_lightning as rating3_lightning,
+            py3.screenname as screenname3
+        FROM pool p
+        LEFT JOIN players py ON p.player_id = py.player_id
+        LEFT JOIN players py2 ON p.challenge_player_id = py2.player_id
+        LEFT JOIN players py3 ON p.challenge_player_2_id = py3.player_id
+            WHERE (p.player_id = ? OR challenge_player_id = ? OR challenge_player_2_id = ? OR challenge_player_3_id = ?)
             AND p.private_game_key = ?
         ',
         { 'Slice' => {} },
+        $playerId,
+        $playerId,
+        $playerId,
         $playerId,
         $uid
     );
@@ -1664,8 +1696,25 @@ sub getMyOpenGame {
 
 sub getOpenGames {
     my $poolRows = app->db()->selectall_arrayref('
-        SELECT p.player_id, p.rated, p.private_game_key, p.game_speed, py.rating_standard, py.rating_lightning, py.screenname
-        FROM pool p LEFT JOIN players py ON p.player_id = py.player_id
+        SELECT
+            p.player_id,
+            p.rated,
+            p.private_game_key,
+            p.game_speed,
+            p.game_type,
+            py.rating_standard,
+            py.rating_lightning,
+            py.screenname,
+            py2.rating_standard as rating2_standard,
+            py2.rating_lightning as rating2_lightning,
+            py2.screenname as screenname2,
+            py3.rating_standard as rating3_standard,
+            py3.rating_lightning as rating3_lightning,
+            py3.screenname as screenname3
+        FROM pool p
+        LEFT JOIN players py ON p.player_id = py.player_id
+        LEFT JOIN players py2 ON p.challenge_player_id = py2.player_id
+        LEFT JOIN players py3 ON p.challenge_player_2_id = py3.player_id
             WHERE in_matching_pool = 0
             AND last_ping > NOW() - INTERVAL 4 SECOND
             AND open_to_public = 1
@@ -1729,6 +1778,7 @@ sub matchGameUid {
     my $uid = shift;
 
     my $playerId = ($player ? $player->{player_id} : -1);
+    print "\n\n    match player $playerId\n\n";
 
     my $poolRow = app->db()->selectrow_hashref('SELECT * FROM pool WHERE private_game_key = ?',
         { 'Slice' => {} },
@@ -1741,11 +1791,47 @@ sub matchGameUid {
         if ($poolRow->{rated} && $playerId == -1) {
             return undef;
         }
-                  # speed, open, rated, whiteId, blackId
-        my $gameId = createGame($poolRow->{game_type}, $poolRow->{game_speed}, $poolRow->{rated}, $playerId, $poolRow->{player_id});
+        if ($poolRow->{game_type} eq '4way') {
+            print "4way\n";
+            ### check if this player is already matched to the game.
+            if (
+                ($poolRow->{player_id} eq $playerId) || 
+                ($poolRow->{challenge_player_id} && $poolRow->{challenge_player_id} eq $playerId) ||
+                ($poolRow->{challenge_player_2_id} && $poolRow->{challenge_player_2_id} eq $playerId) ||
+                ($poolRow->{challenge_player_3_id} && $poolRow->{challenge_player_3_id} eq $playerId)
+            ) {
+                print " already in player ids\n";
+                # undef or game_id
+                return ($poolRow->{matched_game_id} ? $poolRow->{matched_game_id} : -1);
+            }
+            if (! $poolRow->{challenge_player_id}) {
+                app->db()->do('UPDATE pool SET challenge_player_id = ? WHERE private_game_key = ?', {}, $playerId, $uid);
+                return -1; ### special signal that we just added
+            } elsif (! $poolRow->{challenge_player_2_id} ) {
+                app->db()->do('UPDATE pool SET challenge_player_2_id = ? WHERE private_game_key = ?', {}, $playerId, $uid);
+                return -1; ### special signal that we just added
+            } elsif (! $poolRow->{challenge_player_3_id} ) {
+                ### we are the last to join, make the game.
+                my $gameId = createGame(
+                    $poolRow->{game_type},
+                    $poolRow->{game_speed},
+                    $poolRow->{rated},
+                    $poolRow->{player_id},
+                    $poolRow->{challenge_player_id},
+                    $poolRow->{challenge_player_2_id},
+                    $playerId
+                );
+                app->db()->do('UPDATE pool SET matched_game = ?, challenge_player_3_id = ? WHERE private_game_key = ?', {}, $gameId, $playerId, $uid);
+                return $gameId;
+            }
 
-        app->db()->do('UPDATE pool SET matched_game = ? WHERE private_game_key = ?', {}, $gameId, $uid);
-        return $gameId;
+        } else {
+            # speed, open, rated, whiteId, blackId
+            my $gameId = createGame($poolRow->{game_type}, $poolRow->{game_speed}, $poolRow->{rated}, $playerId, $poolRow->{player_id});
+
+            app->db()->do('UPDATE pool SET matched_game = ? WHERE private_game_key = ?', {}, $gameId, $uid);
+            return $gameId;
+        }
     }
 }
 
@@ -1755,7 +1841,19 @@ sub cancelGameUid {
 
     my $playerId = ($player ? $player->{player_id} : -1);
 
-    app->db()->do('DELETE FROM pool WHERE player_id = ? AND private_game_key = ?', {}, $playerId, $uid);
+    my $poolRow = app->db()->selectrow_hashref('SELECT * FROM pool WHERE private_game_key = ?',
+        { 'Slice' => {} },
+        $uid
+    );
+    if ($poolRow->{player_id} eq $playerId) {
+        app->db()->do('DELETE FROM pool WHERE player_id = ? AND private_game_key = ?', {}, $playerId, $uid);
+    } elsif ($poolRow->{challenge_player_id} eq $playerId) {
+        app->db()->do('UPDATE pool SET challenge_player_id = NULL WHERE private_game_key = ?', {}, $uid);
+    } elsif ($poolRow->{challenge_player_2_id} eq $playerId) {
+        app->db()->do('UPDATE pool SET challenge_player_2_id = NULL WHERE private_game_key = ?', {}, $uid);
+    } elsif ($poolRow->{challenge_player_3_id} eq $playerId) {
+        app->db()->do('UPDATE pool SET challenge_player_3_id = NULL WHERE private_game_key = ?', {}, $uid);
+    }
 
     return 1;
 }

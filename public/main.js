@@ -39,9 +39,11 @@ function getOpenGames(originalThread = false) {
                     } else {
                         window.location.replace('/game/' + jsonRes.matchedGame);
                     }
+                } else if (jsonRes.hasOwnProperty('uid')) {
+                    console.log('has uid in match games we matched but didnt create');
+                    currentGameUid = jsonRes.uid;
                 } else {
                     $('#openGamesContent').html(jsonRes.body);
-                    //console.log("no gameId in jsonRes");
                 }
                 if (setInterval == true) {
                     intervalOpenGames = setTimeout(
@@ -330,6 +332,8 @@ $(function () {
                     } else {
                         window.location.replace('/game/' + jsonRes.gameId);
                     }
+                } else if (jsonRes.hasOwnProperty('uid')) {
+                    currentGameUid = jsonRes.uid;
                 } else {
                     //console.log("no gameId in jsonRes");
                 }
@@ -520,9 +524,9 @@ function escapeHtml(html){
  */
 function addChatMessage(author, message, usercolor, textcolor, dt) {
     chatContent = $('#global-chat-log');
-    chatContent.append('<p><span class="' + usercolor + 'beltColor">' + author + '</span><span style="font-size: 12px;color:grey"> ' +
+    chatContent.append('<span class="' + usercolor + 'beltColor">' + author + '</span><span style="font-size: 12px;color:grey"> ' +
             + (dt.getHours() < 10 ? '0' + dt.getHours() : dt.getHours()) + ':'
             + (dt.getMinutes() < 10 ? '0' + dt.getMinutes() : dt.getMinutes())
-            + '</span>&nbsp;&nbsp;<span class="color:' + textcolor + '">' + escapeHtml(message) + '</span>' + '</p>');
+            + '</span>&nbsp;&nbsp;<span class="color:' + textcolor + '">' + escapeHtml(message) + '</span>' + '<br />');
     chatContent.scrollTop = chatContent.scrollHeight;
 }

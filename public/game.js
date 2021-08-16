@@ -387,6 +387,7 @@ var updateTimeStamps = function(){
         $("#whiteOnline").removeClass('offline');
     }
 
+    console.log("red: " + redLastSeen);
     if (redLastSeen == null || timestamp - redLastSeen > 3000) {
         $("#redOnline").addClass('offline');
         $("#redOnline").removeClass('online');
@@ -682,7 +683,7 @@ var handleMessage = function(msg) {
             if (myColor == 'black') {
                 myPing = timestamp - msg.timestamp;
             }
-        } else if (msg.color = 'white') {
+        } else if (msg.color == 'white') {
             whitePing = msg.ping;
             whiteLastSeen = timestamp;
             updateTimeStamps();
@@ -690,7 +691,7 @@ var handleMessage = function(msg) {
             if (myColor == 'white') {
                 myPing = timestamp - msg.timestamp;
             }
-        } else if (msg.color = 'white') {
+        } else if (msg.color == 'red') {
             redPing = msg.ping;
             redLastSeen = timestamp;
             updateTimeStamps();
@@ -698,7 +699,7 @@ var handleMessage = function(msg) {
             if (myColor == 'red') {
                 myPing = timestamp - msg.timestamp;
             }
-        } else if (msg.color = 'green') {
+        } else if (msg.color == 'green') {
             greenPing = msg.ping;
             greenLastSeen = timestamp;
             updateTimeStamps();
@@ -1387,10 +1388,10 @@ input.keydown(function(e) {
  */
 function addGameMessage(author, message, color, textcolor, dt) {
     input.removeAttr('disabled'); // let the user write another message
-    game_chatContent.append('<p><span style="color:' + color + '">' + author + '</span><span style="font-size: 12px;color:grey"> ' +
+    game_chatContent.append('<span style="color:' + color + '">' + author + '</span><span style="font-size: 12px;color:grey"> ' +
             + (dt.getHours() < 10 ? '0' + dt.getHours() : dt.getHours()) + ':'
             + (dt.getMinutes() < 10 ? '0' + dt.getMinutes() : dt.getMinutes())
-            + '</span> ' + message + '</p>');
+            + '</span> ' + message + '<br />');
     game_chatContent.scrollTop = game_chatContent.scrollHeight;
 }
 

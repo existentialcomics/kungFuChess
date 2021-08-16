@@ -7,10 +7,20 @@
     <table id='my-games-table' class='table table-hover'>
     <tr class='cancel-game-row' id="my-game-row" style='cursor: pointer;' data-href='/ajax/cancelGame/<%= $myGame->{private_game_key} %>'>
         <td>
-            <%= $myGame->{open_to_public} ? "Public" : "Private" %>
+            <%= $myGame->{screenname} %>
+            <% if ($myGame->{screenname2}) { %><%= $myGame->{screenname2} %><% } %>
+            <% if ($myGame->{screenname3}) { %><%= $myGame->{screenname3} %><% } %>
+        </td>
+        <td>
+            <%= $myGame->{ 'rating_' . $myGame->{'game_speed'}} %>
+            <% if ($myGame->{'rating2_' . $myGame->{'game_speed'}}) { %><%= $myGame->{'rating2_' . $myGame->{'game_speed'}} %><% } %>
+            <% if ($myGame->{'rating3_' . $myGame->{'game_speed'}}) { %><%= $myGame->{'rating3_' . $myGame->{'game_speed'}} %><% } %>
         </td>
         <td>
             <%= $myGame->{game_speed} %>
+        </td>
+        <td>
+            <%= $myGame->{game_type} %>
         </td>
         <td>
             <%= ($myGame->{rated} ? 'rated' : 'unrated') %>
@@ -27,6 +37,7 @@
             <th>Rating</th>
             <th>Speed</th>
             <th>Type</th>
+            <th>Rated</th>
         </thead>
 
         <tbody>
@@ -36,12 +47,19 @@
             <tr class='join-game-row' style='cursor: pointer;' data-href='/ajax/matchGame/<%= $game->{private_game_key} %>'>
                 <td>
                     <%= $game->{screenname} %>
+                    <% if ($game->{screenname2}) { %><%= $game->{screenname2} %><% } %>
+                    <% if ($game->{screenname3}) { %><%= $game->{screenname3} %><% } %>
                 </td>
                 <td>
                     <%= $game->{ 'rating_' . $game->{'game_speed'}} %>
+                    <% if ($game->{'rating2_' . $game->{'game_speed'}}) { %><%= $game->{'rating2_' . $game->{'game_speed'}} %><% } %>
+                    <% if ($game->{'rating3_' . $game->{'game_speed'}}) { %><%= $game->{'rating3_' . $game->{'game_speed'}} %><% } %>
                 </td>
                 <td>
                     <%= $game->{game_speed} %>
+                </td>
+                <td>
+                    <%= $game->{game_type} %>
                 </td>
                 <td>
                     <%= ($game->{rated} ? 'rated' : 'unrated') %>

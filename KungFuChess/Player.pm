@@ -4,6 +4,7 @@ use strict; use warnings;
 package KungFuChess::Player;
 use JSON::XS;
 use UUID::Tiny ':std';
+use Data::Dumper;
 
 sub new {
 	my $class = shift;
@@ -46,10 +47,10 @@ sub _init {
 
 sub getProvisionalFactor {
     my $self = shift;
-    my $gameType = shift;
+    my $gameSpeed = shift;
 
-    my $gamesPlayed = $self->getGamesPlayed($gameType);
-    if ($self->getGamesPlayed($gameType) > 20) {
+    my $gamesPlayed = $self->getGamesPlayed($gameSpeed);
+    if ($self->getGamesPlayed($gameSpeed) > 20) {
         return 0;
     }
     return ($gamesPlayed / 20);
@@ -57,19 +58,19 @@ sub getProvisionalFactor {
 
 sub getBelt {
     my $self = shift;
-    my $gameType = shift;
+    my $gameSpeed = shift;
 
     if ($self->{is_anon}) { return 'green'; }
 
-    if (!$gameType) { $gameType = 'standard'; }
+    if (!$gameSpeed) { $gameSpeed = 'standard'; }
 
-    if (! defined( $self->{'rating_' . $gameType})) { 
+    if (! defined( $self->{'rating_' . $gameSpeed})) { 
         return undef;
     }
-    my $rating = $self->{'rating_' . $gameType};
+    my $rating = $self->{'rating_' . $gameSpeed};
 
     # provisional belt
-    if ($self->getGamesPlayed($gameType) < 20) {
+    if ($self->getGamesPlayed($gameSpeed) < 20) {
         return 'green';
     }
 
@@ -83,9 +84,9 @@ sub getBelt {
 
 sub getRating {
     my $self = shift;
-    my $gameType = shift;
+    my $gameSpeed = shift;
 
-    return $self->{'rating_' . $gameType};
+    return $self->{'rating_' . $gameSpeed};
 }
 
 sub getJsonMsg {
@@ -103,167 +104,183 @@ sub getJsonMsg {
 
 sub getBestVictory {
     my $self = shift;
-    my $gameType = shift;
+    my $gameSpeed = shift;
 
     my @row = $self->{dbh}->selectrow_array(
         "SELECT MAX(rating_before)
             FROM game_log
             WHERE opponent_id = ?
+            AND game_speed = ?
             AND game_type = ?
             AND result = 'win'
             AND rated = 1",
         {},
         $self->{player_id},
-        $gameType
+        $gameSpeed,
+        '2way'
     );
 
-    $self->{'best_victory' . $gameType} = $row[0];
+    $self->{'best_victory' . $gameSpeed} = $row[0];
 
-    return $self->{'best_victory' . $gameType};
+    return $self->{'best_victory' . $gameSpeed};
 }
 
 sub getWorstDefeat {
     my $self = shift;
-    my $gameType = shift;
+    my $gameSpeed = shift;
 
     my @row = $self->{dbh}->selectrow_array(
         "SELECT MIN(rating_before)
             FROM game_log
             WHERE opponent_id = ?
+            AND game_speed = ?
             AND game_type = ?
             AND result = 'loss'
             AND rated = 1",
         {},
         $self->{player_id},
-        $gameType
+        $gameSpeed,
+        '2way'
     );
 
-    $self->{'worst_defeat' . $gameType} = $row[0];
+    $self->{'worst_defeat' . $gameSpeed} = $row[0];
 
-    return $self->{'worst_defeat' . $gameType};
+    return $self->{'worst_defeat' . $gameSpeed};
 }
 
 sub getHighestRating {
     my $self = shift;
-    my $gameType = shift;
+    my $gameSpeed = shift;
 
     my @row = $self->{dbh}->selectrow_array(
         "SELECT MAX(rating_after)
             FROM game_log
             WHERE player_id = ?
+            AND game_speed = ?
             AND game_type = ?
             AND rated = 1",
         {},
         $self->{player_id},
-        $gameType
+        $gameSpeed,
+        '2way'
     );
 
-    $self->{'highest_rating' . $gameType} = $row[0];
+    $self->{'highest_rating' . $gameSpeed} = $row[0];
 
-    return $self->{'highest_rating' . $gameType};
+    return $self->{'highest_rating' . $gameSpeed};
 }
 
 sub getLowestRating {
     my $self = shift;
-    my $gameType = shift;
+    my $gameSpeed = shift;
 
     my @row = $self->{dbh}->selectrow_array(
         "SELECT MIN(rating_after)
             FROM game_log
             WHERE player_id = ?
+            AND game_speed = ?
             AND game_type = ?
             AND rated = 1",
         {},
         $self->{player_id},
-        $gameType
+        $gameSpeed,
+        '2way'
     );
 
-    $self->{'lowwest_rating' . $gameType} = $row[0];
+    $self->{'lowwest_rating' . $gameSpeed} = $row[0];
 
-    return $self->{'lowwest_rating' . $gameType};
+    return $self->{'lowwest_rating' . $gameSpeed};
 }
 
 sub getGamesDrawn {
     my $self = shift;
-    my $gameType = shift;
+    my $gameSpeed = shift;
 
     my @row = $self->{dbh}->selectrow_array(
         "SELECT COUNT(*) as games_won
             FROM game_log
             WHERE player_id = ?
+            AND game_speed = ?
             AND game_type = ?
             AND result = 'draw'
             AND rated = 1",
         {},
         $self->{player_id},
-        $gameType
+        $gameSpeed,
+        '2way'
     );
 
-    $self->{'games_won_' . $gameType} = $row[0];
+    $self->{'games_won_' . $gameSpeed} = $row[0];
 
-    return $self->{'games_won_' . $gameType};
+    return $self->{'games_won_' . $gameSpeed};
 }
 
 sub getGamesLost {
     my $self = shift;
-    my $gameType = shift;
+    my $gameSpeed = shift;
 
     my @row = $self->{dbh}->selectrow_array(
         "SELECT COUNT(*) as games_won
             FROM game_log
             WHERE player_id = ?
+            AND game_speed = ?
             AND game_type = ?
             AND result = 'loss'
             AND rated = 1",
         {},
         $self->{player_id},
-        $gameType
+        $gameSpeed,
+        '2way'
     );
 
-    $self->{'games_won_' . $gameType} = $row[0];
+    $self->{'games_won_' . $gameSpeed} = $row[0];
 
-    return $self->{'games_won_' . $gameType};
+    return $self->{'games_won_' . $gameSpeed};
 }
 
 sub getGamesWon {
     my $self = shift;
-    my $gameType = shift;
+    my $gameSpeed = shift;
 
     my @row = $self->{dbh}->selectrow_array(
         "SELECT COUNT(*) as games_won
             FROM game_log
             WHERE player_id = ?
+            AND game_speed = ?
             AND game_type = ?
             AND result = 'win'
             AND rated = 1",
         {},
         $self->{player_id},
-        $gameType
+        $gameSpeed,
+        '2way'
     );
 
-    $self->{'games_won_' . $gameType} = $row[0];
+    $self->{'games_won_' . $gameSpeed} = $row[0];
 
-    return $self->{'games_won_' . $gameType};
+    return $self->{'games_won_' . $gameSpeed};
 }
 
 sub getGamesPlayed {
     my $self = shift;
-    my $gameType = shift;
+    my $gameSpeed = shift;
 
     my @row = $self->{dbh}->selectrow_array(
         "SELECT COUNT(*) as games_played 
             FROM game_log
             WHERE player_id = ?
+            AND game_speed = ?
             AND game_type = ?
             AND rated = 1",
         {},
         $self->{player_id},
-        $gameType
+        $gameSpeed,
+        '2way'
     );
 
-    $self->{'games_played_' . $gameType} = $row[0];
+    $self->{'games_played_' . $gameSpeed} = $row[0];
 
-    return $self->{'games_played_' . $gameType};
+    return $self->{'games_played_' . $gameSpeed};
 }
 
 sub _loadByRow {
