@@ -117,6 +117,16 @@ get '/' => sub {
     $c->stash('user' => $user);
     my $games = getActiveGames();
     $c->stash('games' => $games);
+    my $chatLog = app->db()->selectall_arrayref(
+        "SELECT chat_log.*, p.screenname FROM chat_log
+            LEFT JOIN players p ON chat_log.player_id = p.player_id
+            WHERE game_id IS NULL
+            ORDER BY chat_log_id
+            DESC limit 100",
+        { 'Slice' => {} }
+    );
+    $c->stash('chatLog' => $chatLog ? encode_json \@{$chatLog} : '[]');
+
     $c->render('template' => 'home', format => 'html', handler => 'ep');
 };
 
@@ -404,6 +414,10 @@ post '/ajax/chat' => sub {
                 'message'   => $message
             };
 
+            app->db()->do('INSERT INTO chat_log (comment_text, player_id, post_time) VALUES (?,?,NOW())', {},
+                $msg->{'message'},
+                $user->{player_id}
+            );
             $msg->{'color'} = $user->getBelt();
             globalBroadcast($msg);
         } else {
@@ -754,7 +768,7 @@ get '/game/:gameId' => sub {
         if ($white->{player_id} == -1) {
             my @row = app->db()->selectrow_array('SELECT white_anon_key FROM games WHERE game_id = ?', {}, $gameId);
             if (@row) {
-                $matchedKey = ($row[0] eq $c->param('anonKey'));
+                $matchedKey = ($row[0] && $row[0] eq $c->param('anonKey'));
             }
         }
         if ($white->{player_id} == $user->{player_id} && $matchedKey){
@@ -767,7 +781,7 @@ get '/game/:gameId' => sub {
         if ($black->{player_id} == -1) {
             my @row = app->db()->selectrow_array('SELECT black_anon_key FROM games WHERE game_id = ?', {}, $gameId);
             if (@row) {
-                $matchedKey = ($row[0] eq $c->param('anonKey'));
+                $matchedKey = ($row[0] && $row[0] eq $c->param('anonKey'));
             }
         }
         if ($black->{player_id} == $user->{player_id} && $matchedKey){
@@ -780,7 +794,7 @@ get '/game/:gameId' => sub {
         if ($red->{player_id} == -1) {
             my @row = app->db()->selectrow_array('SELECT red_anon_key FROM games WHERE game_id = ?', {}, $gameId);
             if (@row) {
-                $matchedKey = ($row[0] eq $c->param('anonKey'));
+                $matchedKey = ($row[0] && $row[0] eq $c->param('anonKey'));
             }
         }
         if ($red->{player_id} == $user->{player_id} && $matchedKey){
@@ -793,7 +807,7 @@ get '/game/:gameId' => sub {
         if ($green->{player_id} == -1) {
             my @row = app->db()->selectrow_array('SELECT green_anon_key FROM games WHERE game_id = ?', {}, $gameId);
             if (@row) {
-                $matchedKey = ($row[0] eq $c->param('anonKey'));
+                $matchedKey = ($row[0] && $row[0] eq $c->param('anonKey'));
             }
         }
         if ($green->{player_id} == $user->{player_id} && $matchedKey){
@@ -1040,10 +1054,14 @@ websocket '/ws' => sub {
             $msg->{'author'}  = escape_html( ($player ? $player->{screenname} : "anonymous") );
 
             $msg->{'color'} = $player->getBelt();
+            app->db()->do('INSERT INTO chat_log (comment_text, player_id, game_id, post_time) VALUES (?,?,NOW())', {},
+                $msg->{'message'},
+                $msg->{gameId},
+                $player->{player_id}
+            );
+
             app->log->debug("chat msg recieved for $msg->{gameId}");
             foreach my $conn (values %{$gameConnections{$msg->{gameId}}}) {
-                app->log->debug("chat msg ->send()");
-
                 $conn->send(encode_json($msg));
             }
         }

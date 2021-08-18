@@ -80,4 +80,8 @@
     </div>
 </div>
 
+<script>
+    var chatLog = JSON.parse('<%== $chatLog %>');
+</script>
+
 %= include 'footer'

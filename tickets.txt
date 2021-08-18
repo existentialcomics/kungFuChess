@@ -4,3 +4,5 @@ rematch for anon practice games doens't work
 you can castle even if you've moved
 show rematch requests
 4way ratings working
+fix replays?
+begin removing things from Game.pm into database

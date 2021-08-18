@@ -528,5 +528,20 @@ function addChatMessage(author, message, usercolor, textcolor, dt) {
             + (dt.getHours() < 10 ? '0' + dt.getHours() : dt.getHours()) + ':'
             + (dt.getMinutes() < 10 ? '0' + dt.getMinutes() : dt.getMinutes())
             + '</span>&nbsp;&nbsp;<span class="color:' + textcolor + '">' + escapeHtml(message) + '</span>' + '<br />');
-    chatContent.scrollTop = chatContent.scrollHeight;
+    $("#global-chat-log").scrollTop($("#global-chat-log")[0].scrollHeight);
 }
+
+//$(document).ready(function () {
+$(function () {
+    chatLog.slice().reverse().forEach(function (msg) {
+        var unix = Date.parse(msg.post_time);
+        var dt   = new Date(unix);
+        addChatMessage(
+            msg.screenname,
+            msg.comment_text, 
+            (msg.color ? msg.color : 'green'),
+            'black',
+            dt
+        );
+    });
+});

@@ -1,0 +1,49 @@
+%= include 'header'
+
+<script src="/konva.min.js"></script>
+<script src="/jquery-3.2.min.js"></script>
+
+<div class="container bg-light card">
+    <div class="row">
+        <div class="col-3">
+            This is a tutorial.
+        </div>
+        <div id="boardContainer" class="col-6">
+            <div id="container">
+            <!-- javascript puts pieces here -->
+            </div>
+        </div>
+        <div class="col-3">
+            <span id="topPlayer"><%= $whitePlayer->{screenname} %></span>
+            <span id=rating><%= $whitePlayer->{rating_standard} %></span>
+            <br />
+            Game has ended.
+            <br />
+            <span id="bottomPlayer"><%= $blackPlayer->{screenname} %></span>
+            <span id=rating><%= $blackPlayer->{rating_standard} %></span>
+        </div>
+    </div>
+</div>
+
+
+<script>
+    var whitePlayer = JSON.parse('<%== $whitePlayer->getJsonMsg() %>');
+    var blackPlayer = JSON.parse('<%== $blackPlayer->getJsonMsg() %>');
+    var redPlayer   = JSON.parse('<%== $whitePlayer->getJsonMsg() %>');
+    var greenPlayer = JSON.parse('<%== $blackPlayer->getJsonMsg() %>');
+	var gameId   = "<%= $gameId %>";
+    var myColor  = "<%= $color %>";
+	var authId   = "xxx";
+	var anonKey   = "xxx";
+	var timerSpeed    = "1";
+	var timerRecharge = "1";
+    var gameBegan = true;
+	var color   = "watch";
+    var initialMessages = JSON.parse('<%== $positionGameMsgs %>');
+</script>
+
+<script src="/pieces/pieces.js"></script>
+<script src="/game.js"></script>
+<script src="/main.js"></script>
+
+%= include 'footer'
