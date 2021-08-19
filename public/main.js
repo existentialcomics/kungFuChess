@@ -399,7 +399,10 @@ $(function () {
   
     // global chat in lobby
     $('#global-chat-input').bind("enterKey",function(e){
-        var dataPost = { 'message' : $(this).val() };
+        var dataPost = {
+            'message' : $(this).val(),
+            'uid' : currentGameUid,
+        };
         $(this).val('');
         $.ajax({
             type : 'POST',
@@ -480,6 +483,8 @@ var bindEvents = function(ws_conn) {
                     dt
                 );
             }
+        } else if (msg.c == 'invite'){
+            showInvite(msg.uid, msg.screenname, msg.gameSpeed, msg.gameType, msg.rated);
         } 
     }
 
@@ -519,6 +524,12 @@ function escapeHtml(html){
     return p.innerHTML;
 }
 
+function showInvite(uid, screenname, gameSpeed, gameType, rated) {
+    chatContent = $('#global-chat-log');
+    chatContent.append('<a href="/matchGame/' + uid + '">' + screenname + ' invited you to a game (' + gameType + ' ' + gameSpeed + ' ' + (rated ? 'rated' : 'unrated') + ') click to accept</a><br />');
+    $("#global-chat-log").scrollTop($("#global-chat-log")[0].scrollHeight);
+}
+
 /**
  * Add message to the chat window
  */
@@ -527,7 +538,7 @@ function addChatMessage(author, message, usercolor, textcolor, dt) {
     chatContent.append('<span class="' + usercolor + 'beltColor">' + author + '</span><span style="font-size: 12px;color:grey"> ' +
             + (dt.getHours() < 10 ? '0' + dt.getHours() : dt.getHours()) + ':'
             + (dt.getMinutes() < 10 ? '0' + dt.getMinutes() : dt.getMinutes())
-            + '</span>&nbsp;&nbsp;<span class="color:' + textcolor + '">' + escapeHtml(message) + '</span>' + '<br />');
+            + '</span>&nbsp;&nbsp;<span style="color:' + textcolor + '">' + escapeHtml(message) + '</span>' + '<br />');
     $("#global-chat-log").scrollTop($("#global-chat-log")[0].scrollHeight);
 }
 

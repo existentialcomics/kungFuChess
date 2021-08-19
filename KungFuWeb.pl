@@ -117,6 +117,8 @@ get '/' => sub {
     $c->stash('user' => $user);
     my $games = getActiveGames();
     $c->stash('games' => $games);
+    my $activeTab = $c->req->param('activeTab') ? $c->req->param('activeTab') : 'pool';
+    $c->stash('activeTab' => $activeTab);
     my $chatLog = app->db()->selectall_arrayref(
         "SELECT chat_log.*, p.screenname FROM chat_log
             LEFT JOIN players p ON chat_log.player_id = p.player_id
@@ -240,7 +242,6 @@ get '/ajax/rematch' => sub {
         );
 
         if ($gameRow->{game_type} eq '4way') {
-            print "4way challenge\n";
             my $existingRematch = app->db()->selectrow_hashref(
                 'SELECT * FROM pool
                 WHERE private_game_key = ?
@@ -280,7 +281,6 @@ get '/ajax/rematch' => sub {
                         } elsif (! $existingRematch->{challenge_player_3_id}) {
                             ### we are the last to rematch so we are now ready to play.
                             $gameId = createGame($gameRow->{game_type}, $gameRow->{game_speed}, $gameRow->{rated}, $gameRow->{white_player}, $gameRow->{black_player}, $gameRow->{red_player}, $gameRow->{green_player});
-                            print "\n\n\n\n\n\nMATCHED new game: $gameId\n\n\n\n";
                             app->db()->do( 'UPDATE pool SET challenge_player_3_id = ?, matched_game = ?, last_ping = NOW()
                                 WHERE private_game_key = ?',
                                 {},
@@ -401,7 +401,28 @@ post '/ajax/chat' => sub {
                 $return{'message'} = 'delivery failed, user offline';
             }
         } elsif ($message =~ m#^/invite\s(.*)#) {
-
+            my $screenname = $1;
+            my $myGame = getMyOpenGame($user, $c->req->param('uid'));
+            if ($myGame && $c->req->param('uid')) {
+                my $msg = {
+                    'c' => 'invite',
+                    'screenname' => $user->{screenname},
+                    'gameSpeed'  => $myGame->{game_speed},
+                    'gameType'   => $myGame->{game_type},
+                    'rated'      => $myGame->{rated},
+                    'uid'        => $c->req->param('uid')
+                };
+                my $success = screennameBroadcast($msg, $screenname);
+                if ($success == -1) {
+                    $return{'message'} = 'delivery failed, unknown screenname';
+                } elsif ($success == 0) {
+                    $return{'message'} = 'delivery failed, user offline';
+                } else {
+                    $return{'message'} = "Invited $screenname to your game.";
+                }
+            } else {
+                $return{'message'} = "You must have an open game to send invites.";
+            }
         } else {
             $return{'message'} = "Unknown command";
         }
@@ -612,12 +633,27 @@ get '/profile/:screenname' => sub {
     return $c->render('template' => 'profile', format => 'html', handler => 'ep');
 };
 
+get '/matchGame/:uid' => sub {
+    my $c = shift;
+    my $user = $c->current_user();
+
+    my $gameId = matchGameUid($user, $c->stash('uid'));
+
+    if (! $gameId ) {
+        $c->stash('error' => 'Game not found.');
+        $c->redirect_to("/");
+    } elsif ($gameId == -1) {
+        $c->redirect_to('/?activeTab=openGames');
+    }
+
+    $c->redirect_to('/game/' . $gameId);
+};
+
 get '/ajax/matchGame/:uid' => sub {
     my $c = shift;
     my $user = $c->current_user();
 
     my $gameId = matchGameUid($user, $c->stash('uid'));
-    if ($gameId){ print "matchGameUID: $gameId\n";}
 
     if ($gameId) {
         ### they are matched, but the game is not ready to start
@@ -1796,7 +1832,6 @@ sub matchGameUid {
     my $uid = shift;
 
     my $playerId = ($player ? $player->{player_id} : -1);
-    print "\n\n    match player $playerId\n\n";
 
     my $poolRow = app->db()->selectrow_hashref('SELECT * FROM pool WHERE private_game_key = ?',
         { 'Slice' => {} },
@@ -1810,7 +1845,6 @@ sub matchGameUid {
             return undef;
         }
         if ($poolRow->{game_type} eq '4way') {
-            print "4way\n";
             ### check if this player is already matched to the game.
             if (
                 ($poolRow->{player_id} eq $playerId) || 
@@ -1818,7 +1852,6 @@ sub matchGameUid {
                 ($poolRow->{challenge_player_2_id} && $poolRow->{challenge_player_2_id} eq $playerId) ||
                 ($poolRow->{challenge_player_3_id} && $poolRow->{challenge_player_3_id} eq $playerId)
             ) {
-                print " already in player ids\n";
                 # undef or game_id
                 return ($poolRow->{matched_game_id} ? $poolRow->{matched_game_id} : -1);
             }

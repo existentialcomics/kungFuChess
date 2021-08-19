@@ -26,10 +26,10 @@ CREATE TABLE `chat_log` (
   `chat_log_id` int(11) NOT NULL AUTO_INCREMENT,
   `game_id` int(11) DEFAULT NULL,
   `comment_text` text NOT NULL,
-  `player_id` int(11) NOT NULL,
+  `player_id` int(11) DEFAULT NULL,
   `post_time` datetime NOT NULL,
   PRIMARY KEY (`chat_log_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+) ENGINE=InnoDB AUTO_INCREMENT=57 DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -79,15 +79,17 @@ CREATE TABLE `game_log` (
   `game_id` int(11) NOT NULL,
   `player_id` int(11) NOT NULL,
   `opponent_id` int(11) NOT NULL,
-  `game_type` enum('standard','lightning') NOT NULL,
+  `opponent_2_id` int(11) DEFAULT NULL,
+  `opponent_3_id` int(11) DEFAULT NULL,
+  `game_speed` enum('standard','lightning') NOT NULL,
+  `game_type` enum('2way','4way') NOT NULL,
   `result` enum('win','draw','loss') NOT NULL,
   `rating_before` int(11) DEFAULT NULL,
   `rating_after` int(11) DEFAULT NULL,
-  `opponent_rating_before` int(11) DEFAULT NULL,
-  `opponent_rating_after` int(11) DEFAULT NULL,
   `rated` tinyint(4) NOT NULL DEFAULT '1',
+  `time_ended` datetime DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`game_log_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=201 DEFAULT CHARSET=latin1;
+) ENGINE=InnoDB AUTO_INCREMENT=259 DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -122,7 +124,7 @@ CREATE TABLE `games` (
   `final_position` text,
   `game_log` text,
   PRIMARY KEY (`game_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=893 DEFAULT CHARSET=latin1;
+) ENGINE=InnoDB AUTO_INCREMENT=1200 DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!50003 SET @saved_cs_client      = @@character_set_client */ ;
 /*!50003 SET @saved_cs_results     = @@character_set_results */ ;
@@ -217,7 +219,7 @@ CREATE TABLE `players` (
   `default_maximum_rating` int(11) DEFAULT '200',
   PRIMARY KEY (`player_id`),
   UNIQUE KEY `screenname` (`screenname`)
-) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=latin1;
+) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -231,7 +233,7 @@ CREATE TABLE `pool` (
   `player_id` int(11) NOT NULL,
   `rated` tinyint(4) NOT NULL DEFAULT '1',
   `entered_pool` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `last_ping` timestamp NOT NULL DEFAULT '0000-00-00 00:00:00',
+  `last_ping` timestamp NOT NULL DEFAULT '1970-01-01 08:00:00',
   `matched_game` int(11) DEFAULT NULL,
   `in_matching_pool` tinyint(4) NOT NULL DEFAULT '1',
   `open_to_public` tinyint(4) NOT NULL DEFAULT '1',
@@ -239,6 +241,8 @@ CREATE TABLE `pool` (
   `game_speed` enum('standard','lightning') NOT NULL DEFAULT 'standard',
   `game_type` enum('2way','4way') NOT NULL DEFAULT '2way',
   `challenge_player_id` int(11) DEFAULT NULL,
+  `challenge_player_2_id` int(11) DEFAULT NULL,
+  `challenge_player_3_id` int(11) DEFAULT NULL,
   UNIQUE KEY `player_id` (`player_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
@@ -252,4 +256,4 @@ CREATE TABLE `pool` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2021-08-06  9:42:19
+-- Dump completed on 2021-08-18 22:46:46

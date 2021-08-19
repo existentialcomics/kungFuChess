@@ -26,20 +26,13 @@
                   </button>
                   <div class="collapse navbar-collapse" id="navBarGames">
                     <div class="navbar-nav">
-                      <a class="nav-item nav-link active" id="showPool" href="#">Matching Pools</a>
-                      <a class="nav-item nav-link" id="showOpenGames" href="#">Open Games</a>
-                      <a class="nav-item nav-link" id="showActiveGames" href="#">Watch</a>
+                      <a class="nav-item nav-link <% if($activeTab eq 'pool') { %>active<% } %>" id="showPool" href="#">Matching Pools</a>
+                      <a class="nav-item nav-link <% if($activeTab eq 'openGames') { %>active<% } %>" id="showOpenGames" href="#">Open Games</a>
+                      <a class="nav-item nav-link <% if($activeTab eq 'activeGames') { %>active<% } %>" id="showActiveGames" href="#">Watch</a>
                     </div>
                   </div>
              </nav>
-            <div id='openGamesContent' class='card shadow-m' style="display:none;">
-            </div>
-            <div id='activeGamesContent' class='card shadow-m' style="display:none;">
-            </div>
-            <div id='createGameFormDiv' class='card shadow-m' style="display:none;">
-                %= include 'createGameForm'
-            </div>
-            <div id='pool-matching'>
+            <div id='pool-matching' style='<% if($activeTab ne 'pool') { %>display:none;<% } %>'>
                 <% if ($user && $user->{player_id} != -1) { %>
                 <a class="btn-block btn btn-primary p-4" id="enter-pool-standard" role="button">
                     Standard Pool
@@ -57,6 +50,13 @@
                 You must be logged in to enter the quick matching pools. You can still create games from the "Open Games" tab.
                 %= include 'loginForm'
                 <% } %>
+            </div>
+            <div id='openGamesContent' class='card shadow-m' style="<% if($activeTab ne 'openGames') { %>display:none;<% } %>">
+            </div>
+            <div id='activeGamesContent' class='card shadow-m' style="<% if($activeTab ne 'activeGames') { %>display:none;<% } %>">
+            </div>
+            <div id='createGameFormDiv' class='card shadow-m' style="display:none;">
+                %= include 'createGameForm'
             </div>
         </div>
 
@@ -82,6 +82,12 @@
 
 <script>
     var chatLog = JSON.parse('<%== $chatLog %>');
+    <% if ($activeTab eq 'openGames') { %>
+    getOpenGames();
+    <% } %>
+    <% if ($activeTab eq 'openGames') { %>
+    getActiveGames();
+    <% } %>
 </script>
 
 %= include 'footer'
