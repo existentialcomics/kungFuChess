@@ -310,6 +310,11 @@ sub playerBroadcast {
     }
 }
 
+sub resetRecording() {
+    my $self = shift;
+    $self->{gameLog} = [];
+}
+
 sub addPlayer {
     my $self = shift;
     my ($user, $color) = @_;

@@ -329,8 +329,6 @@ sub handleMessage {
     } elsif ($msg->{c} eq 'gameOver'){
         gameOver();
     } elsif ($msg->{c} eq 'gameBegins'){
-
-    } elsif ($msg->{c} eq 'gameBegins'){
         print "game begins\n";
         # to prevent autodraw from coming up right away
         my $startTime = time() + $msg->{seconds};
@@ -355,6 +353,7 @@ sub checkForForceDraw {
 }
 
 ### TODO possible to send the bitboards themselves and have js decode
+### also figure out a way to send these to only the person that needs it
 sub sendAllGamePieces {
     my $self = shift;
     my $returnOnly = shift;

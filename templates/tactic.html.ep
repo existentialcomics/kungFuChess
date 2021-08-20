@@ -1,0 +1,20 @@
+%= include 'header'
+
+<div class="container bg-light" id='homeContent'>
+    <div class="bg-light" style="width: 450px; float:right">
+        <video controls width="450">
+            <source src="<%= $video %>" type="video/webm">
+            Sorry, your browser doesn't support embedded videos.
+        </video>
+    </div>
+    <div style="height:440px">
+        <h3>Tactic: <%= $name %></h3>
+        <p><%= $description %></p>
+    </div>
+    <div>
+        <a href="/learn">Back to the tactics list</a>
+    </div>
+</div>
+
+
+%= include 'footer'

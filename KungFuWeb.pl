@@ -132,6 +132,131 @@ get '/' => sub {
     $c->render('template' => 'home', format => 'html', handler => 'ep');
 };
 
+get '/learn' => sub {
+    my $c = shift;
+
+    my $user = $c->current_user();
+    $c->stash('user' => $user);
+
+    $c->render('template' => 'learn', format => 'html', handler => 'ep');
+};
+
+get '/tactics/beginner/dodge' => sub {
+    my $c = shift;
+
+    my $user = $c->current_user();
+    $c->stash('user' => $user);
+
+    $c->stash('video' => '/dodge.webm');
+    $c->stash('name' => 'Dodge');
+    $c->stash('description' => 'One of the key features of KungFu Chess is the ability to dodge incoming attacks. Especially on slower games, it is very dangers to attack pieces that are not in their recharge state, especially from long range. This makes is so pieces that are recharging are often the only pieces vulnerable to attack, so be very careful not to move into vulnerable positions, and if there is an attack on a strong pieces, always be ready to quickly dodge it.');
+
+    $c->render('template' => 'tactic', format => 'html', handler => 'ep');
+};
+
+get '/tactics/beginner/anticipate' => sub {
+    my $c = shift;
+
+    my $user = $c->current_user();
+    $c->stash('user' => $user);
+
+    $c->stash('video' => '/anticipate.webm');
+    $c->stash('name' => 'Anticipate');
+    $c->stash('description' => 'When you see a piece moving, it is very important to try to work out which spot your opponent is attempting to land on, so you can potentially set up an attack on that spot before they reach it, allowing you to capture the piece before it is able to move again. In the video, you can see the bishap making long move to g4. However, white anticipates this, particually once they move into the f5 square, which is already gaurded. This allows white to move a pawn forward to attach the expected square. Against a skilled opponent, you should not only consider squares gaurded that are attacked by pawns, but also squares that are potentially attacked by pawns that are ready to move.');
+
+    $c->render('template' => 'tactic', format => 'html', handler => 'ep');
+};
+
+get '/tactics/beginner/cutoff' => sub {
+    my $c = shift;
+
+    my $user = $c->current_user();
+    $c->stash('user' => $user);
+
+    $c->stash('video' => '/cutoff.webm');
+    $c->stash('name' => 'Cutoff');
+    $c->stash('description' => 'Think you are safely gaurding a piece just because you are attacking the square it is on? This isn\'t chess, so think again. A key aspect of Kung Fu Chess is that you are often gaurding pieces that don\'t seemed gaurded, such as with the "anticipate" tactic, but you are also not gaurding pieces that do seemed gaurded. For example, it is quite easy to take a piece while simulaneously cutting off the pieces gaurding it. Always be aware of what pieces can move into your path.');
+
+    $c->render('template' => 'tactic', format => 'html', handler => 'ep');
+};
+
+get '/tactics/beginner/diversion' => sub {
+    my $c = shift;
+
+    my $user = $c->current_user();
+    $c->stash('user' => $user);
+
+    $c->stash('video' => '/diversion.webm');
+    $c->stash('name' => 'Diversion');
+    $c->stash('description' => 'Always remember that this is a real time game, and your opponent has to not only in theory protect his pieces, but he actually has to react in time to make the moves. Just because you can dodge a piece, doesn\'t mean you will. In this case white creates a diversion on the other side of the board, drawing black\'s attention (and his physically mouse cursor) to the king side, all the while assassinating the exposed king with his knight.');
+
+    $c->render('template' => 'tactic', format => 'html', handler => 'ep');
+};
+
+get '/tactics/advanced/combo' => sub {
+    my $c = shift;
+
+    my $user = $c->current_user();
+    $c->stash('user' => $user);
+
+    $c->stash('video' => '/combo.webm');
+    $c->stash('name' => 'Combo');
+    $c->stash('description' => 'This is the most core tactic of Kung Fu Chess. Pieces aren\'t gaurded if you can simply take the piece and the piece gaurding it at once. Take out entire pawn structures at once or protecting piece to move while you take another piece. The possiblities are endless when combination tactics are properly mastered, and combo moves are what really drives advanced play.');
+
+    $c->render('template' => 'tactic', format => 'html', handler => 'ep');
+};
+
+get '/tactics/advanced/peekaboo' => sub {
+    my $c = shift;
+
+    my $user = $c->current_user();
+    $c->stash('user' => $user);
+
+    $c->stash('video' => '/peekaboo.webm');
+    $c->stash('name' => 'Combo');
+    $c->stash('description' => 'This deceptive tactic makes use of the fact that are you allowed to move to spaces that would be illegal in regular chess play. For example, just because a piece is sitting inbetween you and a square, doesn\'t mean you can\'t attempt to move there. After all, since the game takes place in real time, who is to say if the piece will still be obstructing you by the time you reach it? This allows you to disguise your moves for powerful discovered attacks. You can even move through enemy pieces, anticipating that they will move them before you reach the spot, for truly unexpected play.');
+
+    $c->render('template' => 'tactic', format => 'html', handler => 'ep');
+};
+
+get '/tactics/advanced/block' => sub {
+    my $c = shift;
+
+    my $user = $c->current_user();
+    $c->stash('user' => $user);
+
+    $c->stash('video' => '/block.webm');
+    $c->stash('name' => 'Block');
+    $c->stash('description' => 'Similarly to the peekaboo tactic and anticipate tactics, this takes advantage of knowing where your opponent is moving, and the fact that you can alter the board before they arrive. In this case we don\'t simply gaurd or dodge from the spot, we move and sacrifice one of our own pieces into their path to spot them in their tracks.');
+
+    $c->render('template' => 'tactic', format => 'html', handler => 'ep');
+};
+
+get '/tactics/expert/sweep' => sub {
+    my $c = shift;
+
+    my $user = $c->current_user();
+    $c->stash('user' => $user);
+
+    $c->stash('video' => '/sweep.webm');
+    $c->stash('name' => 'Sweep');
+    $c->stash('description' => 'The most dangerous and feared tactic in Kung Fu Chess: the sweep. Only experts can execute this move with any consistency, as it requires anticipating where your opponent is going to move before they even move their. If you move before them, sweeping through their path, you will kill them mid move. When two pieces collide and both are moving, the piece that moved first kills the other piece, so you must set up the sweep very carefully, and make sure not to move too late or you will be the one getting killed.');
+
+    $c->render('template' => 'tactic', format => 'html', handler => 'ep');
+};
+
+get '/tactics/expert/selfkill' => sub {
+    my $c = shift;
+
+    my $user = $c->current_user();
+    $c->stash('user' => $user);
+
+    $c->stash('video' => '/selfKill.webm');
+    $c->stash('name' => 'Self Kill');
+    $c->stash('description' => 'As was discussed in other tactics, such as the block and peekabo, since we don\'t know what the state of the board will be when we begin a move, you are allowed to make normally illegal moves. For knights in particular, this means you can move anyway, even on top of your own pieces. If you don\'t move your piece away in time, you will kill it. However, in rare circumstances, this can be used to your advanced. As you can see in the video, the white king is trapped, and the black bishop is quickly coming in for the kill. White however can kill their own pawn, clearing a desperate escape route for the king.');
+
+    $c->render('template' => 'tactic', format => 'html', handler => 'ep');
+};
 
 #####################################
 ###
@@ -765,6 +890,21 @@ get '/activePlayers' => sub {
     $c->render('template' => 'players', format => 'html', handler => 'ep');
 };
 
+get '/rankings' => sub {
+    my $c = shift;
+    my $user = $c->current_user();
+    $c->stash('user' => $user);
+
+    #$c->stash('title' => 'title');
+    my $playersStandard  = getTopPlayers('standard', 10);
+    my $playersLightning = getTopPlayers('lightning', 10);
+    #$c->render_to_string('players', 'title' => 'test', 'players' => $playersStandard, 'ratingType' => '2way');
+    $c->stash('playersStandard' => $playersStandard);
+    $c->stash('playersLightning' => $playersLightning);
+
+    $c->render('template' => 'rankings', format => 'html', handler => 'ep');
+};
+
 ### join game
 get '/game/:gameId' => sub {
     my $c = shift;
@@ -1090,7 +1230,7 @@ websocket '/ws' => sub {
             $msg->{'author'}  = escape_html( ($player ? $player->{screenname} : "anonymous") );
 
             $msg->{'color'} = $player->getBelt();
-            app->db()->do('INSERT INTO chat_log (comment_text, player_id, game_id, post_time) VALUES (?,?,NOW())', {},
+            app->db()->do('INSERT INTO chat_log (comment_text, player_id, game_id, post_time) VALUES (?,?,?,NOW())', {},
                 $msg->{'message'},
                 $msg->{gameId},
                 $player->{player_id}
@@ -1163,6 +1303,14 @@ websocket '/ws' => sub {
                         };
                         $game->playerBroadcast($commandMsg);
                     }
+                } elsif ($command eq 'resetRecording' && $player->isAdmin()) {
+                    print "RESET recording\n\n\n";
+                    $game->resetRecording();
+                    ### force re-spawning
+                    my $commandMsg = {
+                        'c' => 'join',
+                    };
+                    $game->serverBroadcast($commandMsg);
                 } else {
                     my $commandMsg = {
                         'c' => 'systemMsg',
@@ -1171,6 +1319,7 @@ websocket '/ws' => sub {
                     $game->playerBroadcast($commandMsg);
                 }
             } else {
+                ### we already set non commands above
             }
         } elsif ($msg->{'c'} eq 'readyToBegin'){
             my $return = $game->playerReady($msg);
@@ -1526,7 +1675,7 @@ sub endGame {
                 ($result eq 'draw' ? 'draw' : ($result eq '1-0' ? 'loss' : 'win') ),
                 $blackStart->{"rating_$gameSpeed"},
                 $blackEnd->{"rating_$gameSpeed"},
-                1
+                $rated
             );
         }
     }
@@ -1608,6 +1757,41 @@ sub getActivePlayers {
         SELECT *
         FROM players
         WHERE last_seen > NOW() - INTERVAL 10 SECOND',
+        { 'Slice' => {} }
+    );
+
+    my @players = ();
+
+    foreach my $row (@$playerRows) {
+        my $data = {
+            'row' => $row
+        };
+        my $player = new KungFuChess::Player($data, app->db());
+        if ($player) {
+            push @players, $player;
+        }
+    }
+
+    return \@players;
+}
+
+sub getTopPlayers {
+    my $ratingsType = shift;
+    my $number = shift;
+
+    my $ratingsColumn = '';
+    if ($ratingsType eq 'standard') {
+        $ratingsColumn = 'rating_standard';
+    } elsif ($ratingsType eq 'lightning') {
+        $ratingsColumn = 'rating_lightning';
+    } else {
+        return [];
+    }
+
+    my $playerRows = app->db()->selectall_arrayref("
+        SELECT *
+        FROM players
+        ORDER BY $ratingsColumn DESC LIMIT $number",
         { 'Slice' => {} }
     );
 

@@ -1,0 +1,22 @@
+%= include 'header'
+<div class="container bg-light card" id='homeContent'>
+    <div class="row">
+        <div class="col-sm">
+                <h3>Standard Ratings</h3>
+                <div class='card shadow-m'>
+                <% $self->stash('players', $playersStandard); %>
+                <% $self->stash('ratingType', 'standard'); %>
+                %= include 'players'
+                </div>
+        </div>
+        <div class="col-sm">
+                <h3>Lightning Ratings</h3>
+                <div class='card shadow-m'>
+                <% $self->stash('players', $playersLightning); %>
+                <% $self->stash('ratingType', 'lightning'); %>
+                %= include 'players'
+                </div>
+        </div>
+    </div>
+</div>
+%= include 'footer'

@@ -34,6 +34,12 @@
         <a href="/forums">Forums</a>
     </li>
     <li>
+        <a href="/rankings">Rankings</a>
+    </li>
+    <li>
+        <a href="/learn">Learn</a>
+    </li>
+    <li>
         <a href="/about">About</a>
     </li>
 </ul>

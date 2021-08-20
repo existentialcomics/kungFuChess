@@ -1,9 +1,13 @@
 %= include 'header'
 
 <div class="container bg-light" id='homeContent'>
-    <div class="bg-light" style="height:300px; width: 550px; float:right">
+    <div class="bg-light" style="width: 450px; float:right">
+        <video autoplay="true" width="450">
+            <source src="/wushuchess.webm" type="video/webm">
+            Sorry, your browser doesn't support embedded videos.
+        </video>
         <center>Original Shizmoo Game</center>
-        <img src="/originalShizmooGame.jpg" style="float:right; width:550px; padding:0px; margin:0px">
+        <img src="/originalShizmooGame.jpg" style="float:right; width:450px; padding:0px; margin:0px">
     </div>
     <div>
         <p>KungFuChess is a real time chess varient where you can move every piece at the same time, but you must wait for them te recharge before moving them again. It is based on the original Shizmoo game in the early 2000s on kungfuchess.com.</p>

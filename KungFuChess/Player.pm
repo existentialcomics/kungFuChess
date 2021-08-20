@@ -102,6 +102,11 @@ sub getJsonMsg {
     return encode_json $msg;
 }
 
+sub isAdmin {
+    my $self = shift;
+    return $self->{screenname} eq 'thebalrog';
+}
+
 sub getBestVictory {
     my $self = shift;
     my $gameSpeed = shift;
