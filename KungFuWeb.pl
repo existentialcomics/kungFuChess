@@ -240,7 +240,7 @@ get '/tactics/expert/sweep' => sub {
 
     $c->stash('video' => '/sweep.webm');
     $c->stash('name' => 'Sweep');
-    $c->stash('description' => 'The most dangerous and feared tactic in Kung Fu Chess: the sweep. Only experts can execute this move with any consistency, as it requires anticipating where your opponent is going to move before they even move their. If you move before them, sweeping through their path, you will kill them mid move. When two pieces collide and both are moving, the piece that moved first kills the other piece, so you must set up the sweep very carefully, and make sure not to move too late or you will be the one getting killed.');
+    $c->stash('description' => 'The most dangerous and feared tactic in Kung Fu Chess: the sweep. Only experts can execute this move with any consistency, as it requires anticipating where your opponent is going to move before they even move their piece. If you move before them, sweeping through their path, you will kill them mid move. When two pieces collide and both are moving, the piece that moved first kills the other piece, so you must set up the sweep very carefully, and make sure not to move too late or you will be the one getting killed.');
 
     $c->render('template' => 'tactic', format => 'html', handler => 'ep');
 };
