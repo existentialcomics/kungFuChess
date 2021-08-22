@@ -93,17 +93,12 @@ sub killPlayer {
     } else {
         $self->{$color}->{alive} = 0;
     }
-    print Dumper($self->{white});
-    print Dumper($self->{black});
-    print Dumper($self->{green});
-    print Dumper($self->{red});
 
     if ($self->{white}->{alive} + 
         $self->{black}->{alive} + 
         $self->{red}->{alive} + 
         $self->{green}->{alive} <= 1
     ) {
-        print "  kill player only one left\n";
         if ($self->{mode} eq '4way') {
             if ($self->{white}->{alive} == 1) {
                 return '1-0-0-0';

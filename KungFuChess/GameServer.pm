@@ -643,9 +643,8 @@ sub moveIfLegal {
                 };
                 $self->send($msgPromote);
                 my $pawn = KungFuChess::Bitboards::_getPieceBB($moving_to_bb);
-                my $p = ($pawn eq 'P' ? 'Q' : 'q');
                 KungFuChess::Bitboards::_removePiece($moving_to_bb);
-                KungFuChess::Bitboards::_putPiece($p, $moving_to_bb);
+                KungFuChess::Bitboards::_putPiece($pawn + 5, $moving_to_bb);
             }
             if ($moving_to_bb == $to_bb) {
                 $done = 1;

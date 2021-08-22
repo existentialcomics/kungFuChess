@@ -369,8 +369,6 @@ sub _loadByScreenname {
     my $self = shift;
     my $screenname = shift;
 
-    print "_load $screenname\n";
-
     my $profileRows = $self->{dbh}->selectall_arrayref('
         SELECT *
         FROM players
