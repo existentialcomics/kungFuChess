@@ -359,7 +359,7 @@ sub sendAllGamePieces {
     my $returnOnly = shift;
     my $conn = $self->{conn};
 
-    print KungFuChess::Bitboards::pretty();
+    #print KungFuChess::Bitboards::pretty();
     my @msgs = ();
     foreach my $r ( @{ $self->{ranks} } ) {
         foreach my $f ( @{ $self->{files} } ) {
@@ -507,8 +507,7 @@ sub moveIfLegal {
         my ($self, $func, $fr_bb, $to_bb, $dir, $startTime, $moveType, $piece) = @_;
 
         my $next_fr_bb = 0;
-        print "moveStep $fr_bb, $to_bb, $dir\n";
-        print KungFuChess::Bitboards::pretty();
+        #print KungFuChess::Bitboards::pretty();
 
         # something else has deleted our active move marker, probably because the piece was killed.
         # so we cannot proceed or strange things will happen!

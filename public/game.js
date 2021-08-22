@@ -453,7 +453,15 @@ var bindGameEvents = function(ws_conn) {
     };
 
     conn.onclose = function(e) {
+        var dt = new Date();
         console.log('Disconnected!');
+        addGameMessage(
+            "SYSTEM",
+            "Disconnected, attempting to reconnect...",
+            "red",
+            'black',
+            dt
+        );
         game_reconnectInterval = setTimeout(
             game_reconnectMain,
             1000
@@ -618,17 +626,8 @@ var handleMessage = function(msg) {
         var square = getSquareFromBB(msg.bb);
         var piece = piecesByBoardPos[square];
 
-		pieces[piece.id].image.destroy();
-		var newQueen = getQueen(piece.x, piece.y, piece.color);
-		newQueen.id = piece.id;
-		pieceLayer.add(newQueen.image);
-		pieces[newQueen.id] = newQueen;
-        newQueen.setImagePos(newQueen.x, newQueen.y);
-        if (piece.color == myColor || myColor == 'both'){
-            newQueen.image.draggable(true);
-        }
-        setPieceBoardPos(newQueen, square);
-		pieceLayer.draw();
+        // must wait until end of animation to replace with queen
+        piece.promote = true;
     } else if (msg.c == 'notready'){
         // happens when we join too quickly 
         var retry = setTimeout(function() {
@@ -1194,6 +1193,25 @@ var getPiece = function(x, y, color, image){
 
                     if (pieces[piece.id] != null) {
                         piece.setDelayTimer(timerRecharge)
+                    }
+
+                    if (piece.promote) {
+                        pieces[piece.id].image.destroy();
+                        var newQueen = getQueen(piece.x, piece.y, piece.color);
+                        newQueen.id = piece.id;
+                        pieceLayer.add(newQueen.image);
+                        pieces[newQueen.id] = newQueen;
+                        newQueen.setImagePos(newQueen.x, newQueen.y);
+                        if (piece.color == myColor || myColor == 'both'){
+                            newQueen.image.draggable(true);
+                        }
+                        setPieceBoardPos(newQueen, piece.square);
+                        pieceLayer.draw();
+                        //var newQueen = getQueen(piece.x, piece.y, piece.color);
+                        console.log('PROMOTE');
+                        console.log(newQueen.image);
+                        console.log(piece.image);
+                        console.log(this.image);
                     }
 
                     piece.setImagePos(piece.x, piece.y);
