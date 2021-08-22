@@ -612,6 +612,18 @@ sub moveIfLegal {
                             delete $self->{"stoptimer_$moving_to_bb"};
                         }
                     );
+
+                    ### can still be a pawn capturing on back rank
+                    if ($moveType == KungFuChess::Bitboards::MOVE_PROMOTE) {
+                        my $msgPromote = {
+                            'c' => 'promote',
+                            'bb'  => $moving_to_bb,
+                        };
+                        $self->send($msgPromote);
+                        my $pawn = KungFuChess::Bitboards::_getPieceBB($moving_to_bb);
+                        KungFuChess::Bitboards::_removePiece($moving_to_bb);
+                        KungFuChess::Bitboards::_putPiece($pawn + 5, $moving_to_bb);
+                    }
                     return ; ## return early because there is no more movement
                 }
             } elsif ($themColor == $usColor) { ## we hit ourselves, stop!

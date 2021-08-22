@@ -1270,12 +1270,16 @@ var setupBoard = function(){
 
     for(var i = 0; i < boardSize; i++){
         for(var j = 0; j < boardSize; j++){
+            var color = (( (j + (i % 2) ) % 2) != 0 ? '#c1978e' : '#EEEEEE');
+            if (myColor == 'black' || myColor == 'green') {
+                color = (( (j + (i % 2) ) % 2) != 0 ? '#EEEEEE' : '#c1978e');
+            }
             var rect = new Konva.Rect({
               x: i * (width / boardSize),
               y: j * (width / boardSize),
               width: width / boardSize,
               height: height / boardSize,
-              fill: (( (j + (i % 2) ) % 2) != 0 ? '#EEEEEE' : '#c1978e'),
+              fill: color,
             });
             boardLayer.add(rect);
         }
