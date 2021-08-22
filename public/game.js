@@ -387,7 +387,6 @@ var updateTimeStamps = function(){
         $("#whiteOnline").removeClass('offline');
     }
 
-    console.log("red: " + redLastSeen);
     if (redLastSeen == null || timestamp - redLastSeen > 3000) {
         $("#redOnline").addClass('offline');
         $("#redOnline").removeClass('online');
@@ -762,10 +761,30 @@ var handleMessage = function(msg) {
         );
     } else if (msg.c == 'gameOver') {
         var dt = new Date();
+        console.log(msg);
         //endGame();
+        var msgText = "game over (" + msg.result + ")";
+        if (msg.hasOwnProperty('ratingsAdj')) {
+            if (msg.ratingsAdj.hasOwnProperty('white')) {
+                var adj = Math.round(msg.ratingsAdj.white);
+                msgText += "<br />White: " + (adj >= 0 ? "+" + adj : adj);
+            }
+            if (msg.ratingsAdj.hasOwnProperty('black')) {
+                var adj = Math.round(msg.ratingsAdj.black);
+                msgText += "<br />Black: " + (adj >= 0 ? "+" + adj : adj);
+            }
+            if (msg.ratingsAdj.hasOwnProperty('red')) {
+                var adj = Math.round(msg.ratingsAdj.red);
+                msgText += "<br />Red: " + (adj >= 0 ? "+" + adj : adj);
+            }
+            if (msg.ratingsAdj.hasOwnProperty('green')) {
+                var adj = Math.round(msg.ratingsAdj.green);
+                msgText += "<br />Green: " + (adj >= 0 ? "+" + adj : adj);
+            }
+        }
         addGameMessage(
             "SYSTEM",
-            "game over (" + msg.result + ")",
+            msgText,
             "red",
             'black',
             dt

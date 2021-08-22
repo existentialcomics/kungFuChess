@@ -127,7 +127,21 @@ get '/' => sub {
             DESC limit 100",
         { 'Slice' => {} }
     );
-    $c->stash('chatLog' => $chatLog ? encode_json \@{$chatLog} : '[]');
+    unshift(@{$chatLog},{
+        'post_time' => time,
+        'game_id' => undef,
+        'player_id' => 1,
+        'comment_text' => 'Welcome to KungFuChess (currently in beta). Enter the matching pools or start a game to play. Click the "about" tab to see more about the game, or "learn" to learn special tactics.',
+        'screenname' => 'SYSTEM',
+        'color' => 'red',
+        'text_color' => '#666666',
+        'chat_log_id' => 1
+    });
+    my $chatLogString = ($chatLog ? encode_json \@{$chatLog} : '[]');
+    ### hacky but not sure how to do it proper. Because it is a javascript string
+    #   we must double escape "
+    #$chatLogString =~ s/\\"/\\\\"/g;
+    $c->stash('chatLog' => $chatLogString);
 
     $c->render('template' => 'home', format => 'html', handler => 'ep');
 };
@@ -1596,7 +1610,7 @@ sub updateRatings {
         savePlayer($black, $bresult, $gameSpeed);
     }
 
-    return ($white, $black);
+    return ($white, $black, $red, $green);
 }
 
 sub endGame {
@@ -1638,11 +1652,11 @@ sub endGame {
         $gameId,
     );
 
-    my ($whiteStart, $blackStart) = getPlayers($gameId);
+    my ($whiteStart, $blackStart, $redStart, $greenStart) = getPlayers($gameId);
 
-    my ($whiteEnd, $blackEnd) = ($whiteStart, $blackStart);
+    my ($whiteEnd, $blackEnd, $redEnd, $greenEnd) = ($whiteStart, $blackStart, $redStart, $greenStart);
     if ($rated) {
-        ($whiteEnd, $blackEnd) = updateRatings($gameId, $gameSpeed, $score);   
+        ($whiteEnd, $blackEnd, $redEnd, $greenEnd) = updateRatings($gameId, $gameSpeed, $score);   
     }
 
     if ($score && $score =~ m/^[01\.-]+$/) {
@@ -1656,7 +1670,7 @@ sub endGame {
                 $blackStart->{player_id},
                 $gameSpeed,
                 $gameType,
-                ($result eq 'draw' ? 'draw' : ($result eq '1-0' ? 'win' : 'loss') ),
+                ($score eq '0.5-0.5' ? 'draw' : ($score eq '1-0' || $score eq '1-0-0-0' ? 'win' : 'loss') ),
                 $whiteStart->{"rating_$gameSpeed"},
                 $whiteEnd->{"rating_$gameSpeed"},
                 $rated
@@ -1672,21 +1686,63 @@ sub endGame {
                 $whiteStart->{player_id},
                 $gameSpeed,
                 $gameType,
-                ($result eq 'draw' ? 'draw' : ($result eq '1-0' ? 'loss' : 'win') ),
+                ($score eq '0.5-0.5' ? 'draw' : ($score eq '0-1' || $score eq '0-1-0-0' ? 'win' : 'loss') ),
                 $blackStart->{"rating_$gameSpeed"},
                 $blackEnd->{"rating_$gameSpeed"},
                 $rated
             );
         }
+        if ($gameType eq '4way') {
+            if ($redStart->{player_id}) {
+                app->db()->do('INSERT INTO game_log
+                    (game_id, player_id, opponent_id, game_speed, game_type, result, rating_before, rating_after, rated)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)', {},
+                    $gameId,
+                    $redStart->{player_id},
+                    $blackStart->{player_id},
+                    $gameSpeed,
+                    $gameType,
+                    ($score eq '0.5-0.5' ? 'draw' : ($score eq '1-0' || $score eq '1-0-0-0' ? 'win' : 'loss') ),
+                    $redStart->{"rating_$gameSpeed"},
+                    $redEnd->{"rating_$gameSpeed"},
+                    $rated
+                );
+            }
+
+            if ($greenStart->{player_id}) {
+                app->db()->do('INSERT INTO game_log
+                    (game_id, player_id, opponent_id, game_speed, game_type, result, rating_before, rating_after, rated)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)', {},
+                    $gameId,
+                    $greenStart->{player_id},
+                    $whiteStart->{player_id},
+                    $gameSpeed,
+                    $gameType,
+                    ($score eq '0.5-0.5' ? 'draw' : ($score eq '0-1' || $score eq '0-1-0-0' ? 'win' : 'loss') ),
+                    $greenStart->{"rating_$gameSpeed"},
+                    $greenEnd->{"rating_$gameSpeed"},
+                    $rated
+                );
+            }
+        }
     }
 
 
     my $game = $currentGames{$gameId};
+    my $ratingsAdj = {
+        'white' => $whiteEnd->{"rating_$gameSpeed"} - $whiteStart->{"rating_$gameSpeed"},
+        'black' => $blackEnd->{"rating_$gameSpeed"} - $blackStart->{"rating_$gameSpeed"},
+    };
+    if ($gameType eq '4way') {
+        $ratingsAdj->{red}   = $redEnd->{"rating_$gameSpeed"}   - $redStart->{"rating_$gameSpeed"},
+        $ratingsAdj->{green} = $greenEnd->{"rating_$gameSpeed"} - $greenStart->{"rating_$gameSpeed"},
+    };
     if ($game) {
         my $msg = {
             'c' => 'gameOver',
             'result' => $result,
-            'score' => $score
+            'score' => $score,
+            'ratingsAdj' => $ratingsAdj,
         };
         $game->playerBroadcast($msg);
         $game->serverBroadcast($msg);

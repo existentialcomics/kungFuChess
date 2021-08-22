@@ -534,10 +534,14 @@ function showInvite(uid, screenname, gameSpeed, gameType, rated) {
  * Add message to the chat window
  */
 function addChatMessage(author, message, usercolor, textcolor, dt) {
+    var dtString = ' ';
+    if (! isNaN(dt.getTime())) {
+        dtString =
+            (dt.getHours() < 10 ? '0' + dt.getHours() : dt.getHours()) + ':' +
+            (dt.getMinutes() < 10 ? '0' + dt.getMinutes() : dt.getMinutes());
+    }
     chatContent = $('#global-chat-log');
-    chatContent.append('<span class="' + usercolor + 'beltColor">' + author + '</span><span style="font-size: 12px;color:grey"> ' +
-            + (dt.getHours() < 10 ? '0' + dt.getHours() : dt.getHours()) + ':'
-            + (dt.getMinutes() < 10 ? '0' + dt.getMinutes() : dt.getMinutes())
+    chatContent.append('<span class="' + usercolor + 'beltColor">' + author + '</span><span style="font-size: 12px;color:grey"> ' + dtString 
             + '</span>&nbsp;&nbsp;<span style="color:' + textcolor + '">' + escapeHtml(message) + '</span>' + '<br />');
     $("#global-chat-log").scrollTop($("#global-chat-log")[0].scrollHeight);
 }
@@ -551,7 +555,7 @@ $(function () {
             msg.screenname,
             msg.comment_text, 
             (msg.color ? msg.color : 'green'),
-            'black',
+            (msg.text_color ? msg.text_color : 'black'),
             dt
         );
     });
