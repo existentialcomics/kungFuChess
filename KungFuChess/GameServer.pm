@@ -612,21 +612,10 @@ sub moveIfLegal {
                         }
                     );
 
-                    ### can still be a pawn capturing on back rank
-                    if ($moveType == KungFuChess::Bitboards::MOVE_PROMOTE) {
-                        my $msgPromote = {
-                            'c' => 'promote',
-                            'bb'  => $moving_to_bb,
-                        };
-                        $self->send($msgPromote);
-                        my $pawn = KungFuChess::Bitboards::_getPieceBB($moving_to_bb);
-                        KungFuChess::Bitboards::_removePiece($moving_to_bb);
-                        KungFuChess::Bitboards::_putPiece($pawn + 5, $moving_to_bb);
-                    }
-                    return ; ## return early because there is no more movement
+                    ### to make us done
+                    $to_bb = $moving_to_bb;
                 }
             } elsif ($themColor == $usColor) { ## we hit ourselves, stop!
-                print "hitting ourselves\n";
                 ### message that animates a move on the board
                 my $msg = {
                     'c' => 'authstop',
@@ -634,7 +623,10 @@ sub moveIfLegal {
                     'fr_bb' => $fr_bb,
                 };
                 $self->send($msg);
-                return ; ## return early because there is no more movement
+
+                ### to make us done at the spot we started
+                $to_bb = $fr_bb;
+                $moving_to_bb = $fr_bb;
             } else { ### moving into a free space
                 print "moving to free space...\n";
                 KungFuChess::Bitboards::move($fr_bb, $moving_to_bb);
@@ -659,7 +651,8 @@ sub moveIfLegal {
             }
             if ($moving_to_bb == $to_bb) {
                 $done = 1;
-            } else {
+            }
+            if (! $done){
                 $self->{activeMoves}->{$moving_to_bb} = {
                     'to_bb' => $to_bb,
                     'start_time' => $startTime
@@ -821,17 +814,23 @@ sub moveIfLegal {
                 }
             );
         } else {
-            $self->{timeoutSquares}->{$to_bb} = time();
+            my $time = time();
+            $self->{timeoutSquares}->{$to_bb} = $time;
             $self->{timeoutCBs}->{$to_bb} = AnyEvent->timer(
                 after => $self->{pieceRecharge} + $nextMoveSpeed,
                 cb => sub {
                     KungFuChess::Bitboards::clearEnPassant($to_bb);
                     # TODO replicate in Bitboards
                     #KungFuChess::Bitboards::unsetFrozen($to_bb);
-                    delete $self->{timeoutSquares}->{$to_bb};
-                    delete $self->{timeoutCBs}->{$to_bb};
+
+                    ### if the time doesn't match, another piece has moved here
+                    if ($time == $self->{timeoutSquares}->{$to_bb}) { 
+                        delete $self->{timeoutSquares}->{$to_bb};
+                        delete $self->{timeoutCBs}->{$to_bb};
+                    }
                 }
             );
+            #return;
         }
     };
 

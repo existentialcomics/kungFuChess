@@ -1157,6 +1157,25 @@ var getPiece = function(x, y, color, image){
     piece.image_id = piece.image._id;
     piecesByImageId[piece.image_id] = piece;
 
+    piece.promoteToQueen = function() {
+        pieces[piece.id].image.destroy();
+        var newQueen = getQueen(piece.x, piece.y, piece.color);
+        newQueen.id = piece.id;
+        pieceLayer.add(newQueen.image);
+        pieces[newQueen.id] = newQueen;
+        newQueen.setImagePos(newQueen.x, newQueen.y);
+        if (piece.color == myColor || myColor == 'both'){
+            newQueen.image.draggable(true);
+        }
+        setPieceBoardPos(newQueen, piece.square);
+        pieceLayer.draw();
+        //var newQueen = getQueen(piece.x, piece.y, piece.color);
+        console.log('PROMOTE');
+        console.log(newQueen.image);
+        console.log(piece.image);
+        console.log(this.image);
+    }
+
     piece.move = function(x, y, speedAdj = 1){
         //isLegal = this.legalMove(this.x - x, this.y - y);
         //if (!isLegal){
@@ -1196,24 +1215,9 @@ var getPiece = function(x, y, color, image){
                     }
 
                     if (piece.promote) {
-                        pieces[piece.id].image.destroy();
-                        var newQueen = getQueen(piece.x, piece.y, piece.color);
-                        newQueen.id = piece.id;
-                        pieceLayer.add(newQueen.image);
-                        pieces[newQueen.id] = newQueen;
-                        newQueen.setImagePos(newQueen.x, newQueen.y);
-                        if (piece.color == myColor || myColor == 'both'){
-                            newQueen.image.draggable(true);
-                        }
-                        setPieceBoardPos(newQueen, piece.square);
-                        pieceLayer.draw();
-                        //var newQueen = getQueen(piece.x, piece.y, piece.color);
-                        console.log('PROMOTE');
-                        console.log(newQueen.image);
-                        console.log(piece.image);
-                        console.log(this.image);
+                        piece.promote = null;
+                        piece.promoteToQueen();
                     }
-
                     piece.setImagePos(piece.x, piece.y);
                 }
             }, pieceLayer);
@@ -1227,6 +1231,11 @@ var getPiece = function(x, y, color, image){
         if (piece.hasOwnProperty('anim')) {
             piece.anim.stop();
         }
+        if (piece.promote) {
+            piece.promote = null;
+            piece.promoteToQueen();
+        }
+
         piece.image.draggable(true);
         piece.isMoving = false;
         piece.setDelayTimer(timeToCharge)
@@ -1264,6 +1273,7 @@ var getPiece = function(x, y, color, image){
     piece.setImagePos = function(x, y){
         piece.image.setX(getX(this.x * width / boardSize, this.y * width / boardSize));
         piece.image.setY(getY(this.x * width / boardSize, this.y * width / boardSize));
+        console.log('piece layer draw');
         pieceLayer.draw();
     }
     return piece;
@@ -1449,6 +1459,7 @@ $(function () {
     });
     $("#replayGame").click(function() {
         replayMode = true;
+        console.log("replaying game...");
         clearBoard();
 
         // clears all active timeouts

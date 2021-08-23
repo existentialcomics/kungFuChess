@@ -63,6 +63,11 @@ app->plugin('database', {
 app->plugin('DefaultHelpers');
 app->plugin('CSRFProtect');
 
+app->hook(before_routes => sub {
+    my $c = shift;
+    $c->stash('title' => "KungFuChess");
+});
+
 app->plugin('authentication' => {
     'autoload_user' => 1,
     'session_key' => 'kungfuchessapp',
@@ -929,6 +934,7 @@ get '/game/:gameId' => sub {
     $c->stash('user' => $user);
     app->log->debug("---- Entering game ----" );
     my $gameId = $c->stash('gameId');
+    $c->stash('title' => "KungFuChess game:$gameId");
 
     my $color = 'watch';
 

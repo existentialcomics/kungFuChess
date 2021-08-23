@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Kungfu chess</title>
+    <title><%= $title %></title>
     <script src="/jquery-3.2.min.js"></script>
     <script src="/js/bootstrap.min.js"></script>
     <script src="/config.js"></script>

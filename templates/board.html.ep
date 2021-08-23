@@ -154,6 +154,5 @@
 
 <script src="/pieces/pieces.js"></script>
 <script src="/game.js"></script>
-<script src="/main.js"></script>
 
 %= include 'footer'
