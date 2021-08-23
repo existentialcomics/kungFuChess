@@ -14,6 +14,8 @@ if (gameType == '4way') {
     files = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
 }
 
+var rematches = [];
+
 
 function rematchPool(originalThread = false) {
     if (cancelRematchPool) {
@@ -809,18 +811,36 @@ var handleMessage = function(msg) {
             'black',
             dt
         );
-    } else if (msg.c == 'requestDraw') {
+    } else if (msg.c == 'playerReady') {
         var dt = new Date();
-        if (msg.color == myColor) {
-
-        }
         addGameMessage(
             "SYSTEM",
-            msg.color + " as requested a draw.",
+            msg.color + " is ready.",
             "red",
             'black',
             dt
         );
+    } else if (msg.c == 'requestDraw') {
+        var dt = new Date();
+        addGameMessage(
+            "SYSTEM",
+            msg.color + " has requested a draw.",
+            "red",
+            'black',
+            dt
+        );
+    } else if (msg.c == 'rematch') {
+        if (rematches[msg.color] !== 'seen') {
+            var dt = new Date();
+            addGameMessage(
+                "SYSTEM",
+                msg.color + " has requested a rematch.",
+                "red",
+                'black',
+                dt
+            );
+        }
+        rematches[msg.color] = 'seen';
     } else {
         console.log("unknown msg recieved");
         console.debug(msg);
@@ -1443,7 +1463,8 @@ function addGameMessage(author, message, color, textcolor, dt) {
             + (dt.getHours() < 10 ? '0' + dt.getHours() : dt.getHours()) + ':'
             + (dt.getMinutes() < 10 ? '0' + dt.getMinutes() : dt.getMinutes())
             + '</span> ' + message + '<br />');
-    game_chatContent.scrollTop = game_chatContent.scrollHeight;
+    //game_chatContent.scrollTop = game_chatContent.scrollHeight;
+    $("#game-chat-log").scrollTop($("#game-chat-log")[0].scrollHeight);
 }
 
 //$(document).ready(function () {

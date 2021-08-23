@@ -8,7 +8,7 @@
 body {
   margin: 0;
   padding: 0;
-  overflow: hidden;
+  overflow: scroll;
   background-color: #F0F0F0;
 }
 
@@ -22,6 +22,12 @@ ul {
 
 li {
   float: left;
+}
+
+tr {
+  line-height: 1;
+  min-height: 25px;
+  height: 25px;
 }
 
 li a {
@@ -7464,8 +7470,8 @@ button.bg-dark:focus {
   overflow: auto !important;
 }
 
-.overflow-hidden {
-  overflow: hidden !important;
+.overflow-scroll {
+  overflow: scroll !important;
 }
 
 .position-static {

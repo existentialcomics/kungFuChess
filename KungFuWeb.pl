@@ -136,7 +136,7 @@ get '/' => sub {
         'post_time' => time,
         'game_id' => undef,
         'player_id' => 1,
-        'comment_text' => 'Welcome to KungFuChess (currently in beta). Enter the matching pools or start a game to play. Click the "about" tab to see more about the game, or "learn" to learn special tactics.',
+        'comment_text' => 'Welcome to KungFuChess (currently in beta). Enter the matching pools or start a game to play. Click the "about" tab to see more about the game, or "learn" to learn special tactics. There may be some guys in rematch, I recommend just making a new game.',
         'screenname' => 'SYSTEM',
         'color' => 'red',
         'text_color' => '#666666',
@@ -1423,7 +1423,8 @@ websocket '/ws' => sub {
                 endGame($msg->{gameId}, 'draw');
 
                 my $drawnMsg = {
-                    'c' => 'requestDraw'
+                    'c' => 'requestDraw',
+                    'color' => $color
                 };
 
                 $game->playerBroadcast($drawnMsg);

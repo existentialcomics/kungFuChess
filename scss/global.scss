@@ -9,7 +9,7 @@ $doubleBlackBeltColor: #000000;
 body {
     margin: 0;
     padding: 0;
-    overflow: hidden;
+    overflow: scroll;
     background-color: #F0F0F0;
 }
 ul {
@@ -21,6 +21,11 @@ ul {
 }
 li {
     float: left;
+}
+tr {
+   line-height: 1;
+   min-height: 25px;
+   height: 25px;
 }
 
 li a {
