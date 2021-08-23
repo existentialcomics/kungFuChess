@@ -1517,9 +1517,11 @@ sub globalBroadcast {
     my $msg = shift;
 
     foreach my $conn (values %globalConnections) {
-        if ($conn) {
-            $conn->send(encode_json $msg);
-        }
+        eval {
+            if ($conn) {
+                $conn->send(encode_json $msg);
+            }
+        };
     }
 }
 
