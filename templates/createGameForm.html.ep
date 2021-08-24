@@ -36,26 +36,26 @@
                 <div class="form-radio">
                     <input class="form-radio-input" type="radio" name="gameMode" id="standardRatingRadio" value="rated" 
                         <% if ($user && $user->{player_id} != -1){ %> checked <% } else { %> disabled <% } %>>
-                    <label class="form-radio-label" for="standardRatingRadio">
+                    <label class="form-radio-label" for="ratedRadio">
                         Rated
                     </label>
                 </div>
                 <div class="form-radio">
-                    <input class="form-radio-input" type="radio" name="gameMode" id="lightningRatingRadio" value="unrated" 
+                    <input class="form-radio-input" type="radio" name="gameMode" id="unratedRadio" value="unrated" 
                         <% if (!($user && $user->{player_id} != -1)){ %> checked <% } %> >
-                    <label class="form-radio-label" for="lightningRatingRadio">
+                    <label class="form-radio-label" for="unratedRadio">
                         Unrated
                     </label>
                 </div>
                 <div class="form-radio">
-                    <input class="form-radio-input" type="radio" name="gameMode" id="lightningRatingRadio" value="practice">
-                    <label class="form-radio-label" for="lightningRatingRadio">
+                    <input class="form-radio-input" type="radio" name="gameMode" id="practiceRadio" value="practice">
+                    <label class="form-radio-label" for="practiceRadio">
                         Practice
                     </label>
                 </div>
                 <div class="form-radio">
-                    <input class="form-radio-input" type="radio" name="gameMode" id="lightningRatingRadio" value="ai" disabled>
-                    <label class="form-radio-label" for="lightningRatingRadio">
+                    <input class="form-radio-input" type="radio" name="gameMode" id="aiRadio" value="ai" disabled>
+                    <label class="form-radio-label" for="aiRadio">
                         Against AI
                     </label>
                 </div>

@@ -217,12 +217,16 @@ my $black     = 0x0000000000000000;
 my $occupied  = 0x0000000000000000;
 my $enPassant = 0x0000000000000000;
 
-my $whiteCastleK  = RANKS->[0] & FILES->[4];
-my $whiteCastleR  = RANKS->[0] & FILES->[7];
-my $whiteQCastleR = RANKS->[0] & FILES->[0];
-my $blackCastleK  = RANKS->[7] & FILES->[4];
-my $blackCastleR  = RANKS->[7] & FILES->[7];
-my $blackQCastleR = RANKS->[7] & FILES->[0];
+my $whiteCastleK      = RANKS->[0] & FILES->[4];
+my $whiteCastleR      = RANKS->[0] & FILES->[7];
+my $whiteCastleR_off  = RANKS->[0] & FILES->[6]; # if you moved next to the rook that's still a castle attempt
+my $whiteQCastleR     = RANKS->[0] & FILES->[0];
+my $whiteQCastleR_off = RANKS->[0] & FILES->[1]; # if you moved next to the rook that's still a castle attempt
+my $blackCastleK      = RANKS->[7] & FILES->[4];
+my $blackCastleR      = RANKS->[7] & FILES->[7];
+my $blackCastleR_off = RANKS->[0] & FILES->[6]; # if you moved next to the rook that's still a castle attempt
+my $blackQCastleR     = RANKS->[7] & FILES->[0];
+my $blackQCastleR_off = RANKS->[7] & FILES->[1]; # if you moved next to the rook that's still a castle attempt
 
 ### kungfuChess specific: frozen pieces waiting to move and currently moving 
 my $frozenBB = 0x0000000000000000;
@@ -609,17 +613,25 @@ sub isLegalMove {
 
     ### castles go before checking same color on to_bb
     if ($fr_bb & $kings) {
-        my ($bbK, $bbR, $bbQR);
+        my ($bbK, $bbR, $bbQR, $bbR_off, $bbQR_off);
         if ($color == WHITE) {
-            $bbK  = $whiteCastleK;
-            $bbR  = $whiteCastleR;
-            $bbQR = $whiteQCastleR;
+            $bbK      = $whiteCastleK;
+            $bbR      = $whiteCastleR;
+            $bbR_off  = $whiteCastleR_off;
+            $bbQR     = $whiteQCastleR;
+            $bbQR_off = $whiteQCastleR_off;
         } else {
-            $bbK  = $blackCastleK;
-            $bbR  = $blackCastleR;
-            $bbQR = $blackQCastleR;
+            $bbK      = $blackCastleK;
+            $bbR      = $blackCastleR;
+            $bbR_off  = $blackCastleR_off;
+            $bbQR     = $blackQCastleR;
+            $bbQR_off = $blackQCastleR_off;
         }
+        ### if they are moving to the "off" square we assume they are attempting to castle
+        if ($to_bb & $bbR_off)  { $to_bb = $bbR ; } 
+        if ($to_bb & $bbQR_off) { $to_bb = $bbQR; } 
 
+        ### we simply assume the pieces are there to move, since the castle bbs should be cleared if they move
         if ($fr_bb & $bbK){ 
             if ($to_bb & $bbR) { 
                 if (blockers(_piecesUs($color), EAST, $fr_bb, shift_BB($to_bb, WEST)) ){
@@ -665,7 +677,7 @@ sub isLegalMove {
                 return @noMove;
             }
             # activate en_passant bb, warning:
-            # this activates on checking for legal move only.
+            # this activates on checking for legal move only. TODO should be when you actually move.
             # in the app we are expected to moveIfLegal so fine?
             # GameServer is expected to clear this when timer runs out.
             $enPassant |= shift_BB($to_bb, getReverseDir($pawnDir));
@@ -1022,6 +1034,20 @@ sub move {
     if (! ($fr_bb & $occupied)) {
         #print "not occupied\n";
         return 0;
+    }
+
+    ### clear castle opportunities
+    if ($whiteCastleK && ($to_bb | $fr_bb) & $whiteCastleK) {
+        $whiteCastleK = 0;
+    }
+    if ($whiteCastleR && ($to_bb | $fr_bb) & $whiteCastleK) {
+        $whiteCastleR = 0;
+    }
+    if ($blackCastleK && ($to_bb | $fr_bb) & $blackCastleK) {
+        $blackCastleK = 0;
+    }
+    if ($blackCastleR && ($to_bb | $fr_bb) & $blackCastleK) {
+        $blackCastleR = 0;
     }
 
     my $piece = _getPieceBB($fr_bb);

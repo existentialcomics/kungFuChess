@@ -181,7 +181,7 @@ get '/tactics/beginner/anticipate' => sub {
 
     $c->stash('video' => '/anticipate.webm');
     $c->stash('name' => 'Anticipate');
-    $c->stash('description' => 'When you see a piece moving, it is very important to try to work out which spot your opponent is attempting to land on, so you can potentially set up an attack on that spot before they reach it, allowing you to capture the piece before it is able to move again. In the video, you can see the bishap making long move to g4. However, white anticipates this, particually once they move into the f5 square, which is already gaurded. This allows white to move a pawn forward to attach the expected square. Against a skilled opponent, you should not only consider squares gaurded that are attacked by pawns, but also squares that are potentially attacked by pawns that are ready to move.');
+    $c->stash('description' => 'When you see a piece moving, it is very important to try to work out which spot your opponent is attempting to land on, so you can potentially set up an attack on that spot before they reach it, allowing you to capture the piece before it is able to move again. In the video, you can see the bishap making long move to g4. However, white anticipates this, particually once they move into the f5 square, which is already gaurded. This allows white to move a pawn forward to attack the expected square. Against a skilled opponent, you should not only consider squares gaurded that are attacked by pawns, but also squares that are potentially attacked by pawns that are ready to move.');
 
     $c->render('template' => 'tactic', format => 'html', handler => 'ep');
 };
@@ -207,7 +207,7 @@ get '/tactics/beginner/diversion' => sub {
 
     $c->stash('video' => '/diversion.webm');
     $c->stash('name' => 'Diversion');
-    $c->stash('description' => 'Always remember that this is a real time game, and your opponent has to not only in theory protect his pieces, but he actually has to react in time to make the moves. Just because you can dodge a piece, doesn\'t mean you will. In this case white creates a diversion on the other side of the board, drawing black\'s attention (and his physically mouse cursor) to the king side, all the while assassinating the exposed king with his knight.');
+    $c->stash('description' => 'Always remember that this is a real time game, and your opponent has to not only in theory protect his pieces, but he actually has to react in time to make the moves. Just because you can dodge a piece, doesn\'t mean you will. In this case white creates a diversion on the other side of the board, drawing black\'s attention (and his physical mouse cursor) to the king side, all the while assassinating the exposed king with his knight.');
 
     $c->render('template' => 'tactic', format => 'html', handler => 'ep');
 };
@@ -246,7 +246,7 @@ get '/tactics/advanced/block' => sub {
 
     $c->stash('video' => '/block.webm');
     $c->stash('name' => 'Block');
-    $c->stash('description' => 'Similarly to the peekaboo tactic and anticipate tactics, this takes advantage of knowing where your opponent is moving, and the fact that you can alter the board before they arrive. In this case we don\'t simply gaurd or dodge from the spot, we move and sacrifice one of our own pieces into their path to spot them in their tracks.');
+    $c->stash('description' => 'Similarly to the peekaboo tactic and anticipate tactics, this takes advantage of knowing where your opponent is moving, and the fact that you can alter the board before they arrive. In this case we don\'t simply gaurd or dodge from the spot, we move and sacrifice one of our own pieces into their path to stop them in their tracks.');
 
     $c->render('template' => 'tactic', format => 'html', handler => 'ep');
 };
@@ -272,7 +272,7 @@ get '/tactics/expert/selfkill' => sub {
 
     $c->stash('video' => '/selfKill.webm');
     $c->stash('name' => 'Self Kill');
-    $c->stash('description' => 'As was discussed in other tactics, such as the block and peekabo, since we don\'t know what the state of the board will be when we begin a move, you are allowed to make normally illegal moves. For knights in particular, this means you can move anyway, even on top of your own pieces. If you don\'t move your piece away in time, you will kill it. However, in rare circumstances, this can be used to your advanced. As you can see in the video, the white king is trapped, and the black bishop is quickly coming in for the kill. White however can kill their own pawn, clearing a desperate escape route for the king.');
+    $c->stash('description' => 'As was discussed in other tactics, such as the block and peekabo, since we don\'t know what the state of the board will be when we begin a move, you are allowed to make normally illegal moves. For knights in particular, this means you can move anywhere, even on top of your own pieces. If you don\'t move your piece away in time, you will kill it. However, in rare circumstances, this can be used to your advantage. As you can see in the video, the white king is trapped, and the black bishop is quickly coming in for the kill. White however can kill their own pawn, clearing a desperate escape route for the king.');
 
     $c->render('template' => 'tactic', format => 'html', handler => 'ep');
 };

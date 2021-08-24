@@ -228,16 +228,24 @@ my $enPassant = Math::BigInt->new('0x00000000000000000000000000000000');
 
 my $whiteCastleK  = RANKS_H->{1} & FILES_H->{'g'};
 my $whiteCastleR  = RANKS_H->{1} & FILES_H->{'j'};
+my $whiteCastleR_off  = RANKS_H->{1} & FILES_H->{'i'};
 my $whiteQCastleR = RANKS_H->{1} & FILES_H->{'c'};
+my $whiteQCastleR_off = RANKS_H->{1} & FILES_H->{'d'};
 my $blackCastleK  = RANKS_H->{12} & FILES_H->{'g'};
 my $blackCastleR  = RANKS_H->{12} & FILES_H->{'j'};
+my $blackCastleR_off  = RANKS_H->{12} & FILES_H->{'i'};
 my $blackQCastleR = RANKS_H->{12} & FILES_H->{'c'};
+my $blackQCastleR_off = RANKS_H->{12} & FILES_H->{'d'};
 my $redCastleK  = RANKS_H->{6} & FILES_H->{'a'};
 my $redCastleR  = RANKS_H->{3} & FILES_H->{'a'};
+my $redCastleR_off  = RANKS_H->{4} & FILES_H->{'a'};
 my $redQCastleR = RANKS_H->{10} & FILES_H->{'a'};
+my $redQCastleR_off = RANKS_H->{9} & FILES_H->{'a'};
 my $greenCastleK  = RANKS_H->{6} & FILES_H->{'l'};
 my $greenCastleR  = RANKS_H->{3} & FILES_H->{'l'};
+my $greenCastleR_off  = RANKS_H->{4} & FILES_H->{'l'};
 my $greenQCastleR = RANKS_H->{10} & FILES_H->{'l'};
+my $greenQCastleR_off = RANKS_H->{9} & FILES_H->{'l'};
 
 ### frozen pieces, can't move
 my $frozenBB = Math::BigInt->new('0x00000000000000000000000000000000');
@@ -847,6 +855,9 @@ sub isLegalMove {
             $kingDir = SOUTH;
             $rookDir = NORTH;
         }
+        ### if they are moving to the "off" square we assume they are attempting to castle
+        if ($to_bb & $bbR_off)  { $to_bb = $bbR ; } 
+        if ($to_bb & $bbQR_off) { $to_bb = $bbQR; } 
 
         if ($fr_bb & $bbK){ 
             if ($to_bb & $bbR) { 
@@ -1238,6 +1249,31 @@ sub move {
 
     if (! ($fr_bb & $occupied)) {
         return 0;
+    }
+    ### clear castle opportunities
+    if ($whiteCastleK && ($to_bb | $fr_bb) & $whiteCastleK) {
+        $whiteCastleK = 0;
+    }
+    if ($whiteCastleR && ($to_bb | $fr_bb) & $whiteCastleK) {
+        $whiteCastleR = 0;
+    }
+    if ($blackCastleK && ($to_bb | $fr_bb) & $blackCastleK) {
+        $blackCastleK = 0;
+    }
+    if ($blackCastleR && ($to_bb | $fr_bb) & $blackCastleK) {
+        $blackCastleR = 0;
+    }
+    if ($redCastleK && ($to_bb | $fr_bb) & $redCastleK) {
+        $redCastleK = 0;
+    }
+    if ($redCastleR && ($to_bb | $fr_bb) & $redCastleK) {
+        $redCastleR = 0;
+    }
+    if ($greenCastleK && ($to_bb | $fr_bb) & $greenCastleK) {
+        $greenCastleK = 0;
+    }
+    if ($greenCastleR && ($to_bb | $fr_bb) & $greenCastleK) {
+        $greenCastleR = 0;
     }
 
     my $piece = _getPieceBB($fr_bb);
