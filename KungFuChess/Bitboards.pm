@@ -1218,7 +1218,10 @@ sub evaluate {
             my $pieceAttackingXrayBB = 0x0;
 
             ### tracks all the pieces for calulating bonuses
-            push @{$pieces[$color]->[$pieceType]}, $fr;
+            #   TODO here. we cannot use the hash, it converts it to a string
+            #   this does not work, clobbers the bb
+            #push @{$pieces[$color]->[$pieceType]}, $fr;
+            $pieces[$color]->[$pieceType] = $fr;
 
             ### for square bonuses
             my $sq_f = $f;
@@ -1350,7 +1353,7 @@ sub evaluate {
     }
 
     foreach my $color (1 .. 2) {
-        my $them = ($color = WHITE ? BLACK : WHITE);
+        my $them = ($color == WHITE ? BLACK : WHITE);
         foreach my $pType (1 .. 7) {
             foreach my $bb ($pieces[$color]->[$pType]) {
                 if ($pType == BISHOP || $pType == KNIGHT) {
@@ -1424,7 +1427,7 @@ sub evaluateTree {
 
     my ($score, $moves) = evaluate();
             #print pretty_ai();
-            #print "   ---- eval score:  $score -----\n";
+            #print "   ---- $depth eval score:  $score -----\n";
 
     my @bestMoves = (
         [],

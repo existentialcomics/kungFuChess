@@ -2,3 +2,4 @@ kungFuChess.cnf
 .sass-cache
 scss/bootstrap
 *.swp
+.env

@@ -1682,7 +1682,7 @@ sub endGame {
                 $gameSpeed,
                 $gameType,
                 ($score eq '0.5-0.5' ? 'draw' : ($score eq '1-0' || $score eq '1-0-0-0' ? 'win' : 'loss') ),
-                $whiteStart->{"rating_$gameSpeed"},
+                $whiteStart->{"rating_$gameSpeed"}, ### TODO handle nulls
                 $whiteEnd->{"rating_$gameSpeed"},
                 $rated
             );
@@ -1740,13 +1740,26 @@ sub endGame {
 
 
     my $game = $currentGames{$gameId};
+    my $whiteStartRating = (defined($whiteEnd->{"rating_$gameSpeed"}) ? $whiteEnd->{"rating_$gameSpeed"} :
+        (defined($whiteStart->{"rating_$gameSpeed"}) ? $whiteStart->{"rating_$gameSpeed"} : 0));
+    my $whiteEndRating =  (defined($whiteStart->{"rating_$gameSpeed"}) ? $whiteStart->{"rating_$gameSpeed"} : 0);
+    my $blackStartRating = (defined($blackEnd->{"rating_$gameSpeed"}) ? $blackEnd->{"rating_$gameSpeed"} :
+        (defined($blackStart->{"rating_$gameSpeed"}) ? $blackStart->{"rating_$gameSpeed"} : 0));
+    my $blackEndRating =  (defined($blackStart->{"rating_$gameSpeed"}) ? $blackStart->{"rating_$gameSpeed"} : 0);
+
     my $ratingsAdj = {
-        'white' => $whiteEnd->{"rating_$gameSpeed"} - $whiteStart->{"rating_$gameSpeed"},
-        'black' => $blackEnd->{"rating_$gameSpeed"} - $blackStart->{"rating_$gameSpeed"},
+        'white' => $whiteEndRating - $whiteStartRating,
+        'black' => $blackEndRating - $blackStartRating
     };
     if ($gameType eq '4way') {
-        $ratingsAdj->{red}   = $redEnd->{"rating_$gameSpeed"}   - $redStart->{"rating_$gameSpeed"},
-        $ratingsAdj->{green} = $greenEnd->{"rating_$gameSpeed"} - $greenStart->{"rating_$gameSpeed"},
+        my $redStartRating = (defined($redEnd->{"rating_$gameSpeed"}) ? $redEnd->{"rating_$gameSpeed"} :
+            (defined($redStart->{"rating_$gameSpeed"}) ? $redStart->{"rating_$gameSpeed"} : 0));
+        my $redEndRating =  (defined($redStart->{"rating_$gameSpeed"}) ? $redStart->{"rating_$gameSpeed"} : 0);
+        my $greenStart = (defined($greenEnd->{"rating_$gameSpeed"}) ? $greenEnd->{"rating_$gameSpeed"} :
+            (defined($greenStart->{"rating_$gameSpeed"}) ? $greenStart->{"rating_$gameSpeed"} : 0));
+        my $greenEnd =  (defined($greenStart->{"rating_$gameSpeed"}) ? $greenStart->{"rating_$gameSpeed"} : 0);
+        $ratingsAdj->{'red'} = $redEnd - $redStart;
+        $ratingsAdj->{'green'} = $greenEnd - $greenStart;
     };
     if ($game) {
         my $msg = {
@@ -1810,7 +1823,7 @@ sub getActiveGames {
 }
 
 sub clearInactiveGames {
-    my $games = app->db()->selectall_arrayref("SELECT game_id from games WHERE status = 'active'");
+    my $games = app->db()->selectall_arrayref("SELECT game_id from games WHERE status = 'active' OR status = 'waiting to begin'");
     foreach my $row (@$games) {
         my $gameId = $row->[0];
         if (! exists($currentGames{$gameId})){

@@ -54,7 +54,7 @@
                     </label>
                 </div>
                 <div class="form-radio">
-                    <input class="form-radio-input" type="radio" name="gameMode" id="aiRadio" value="ai" disabled>
+                    <input class="form-radio-input" type="radio" name="gameMode" id="aiRadio" value="ai" >
                     <label class="form-radio-label" for="aiRadio">
                         Against AI
                     </label>

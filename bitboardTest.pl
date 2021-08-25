@@ -42,6 +42,9 @@ while ($go) {
         #print "score: $score\n";
         #print "moves:\n";
         #print Dumper(@moves);
+    } elsif ($input =~ m/^eval$/) {
+        my ($eval, $moves) = KungFuChess::Bitboards::evaluate();
+        print "eval: $eval\n";
     } elsif ($input =~ m/^eval (white|black)\s?(.*?)?$/) {
         my $cIn = $1;
         my $ponder = $2;

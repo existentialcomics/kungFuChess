@@ -81,7 +81,7 @@
 </div>
 
 <script>
-    var chatLog = <%== $chatLog %>;
+    chatLog = <%== $chatLog %>;
     <% if ($activeTab eq 'openGames') { %>
     getOpenGames();
     <% } %>

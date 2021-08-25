@@ -8,9 +8,16 @@ var chatContent = $('#chatlog');
 
 var currentGameUid = "";
 var isConnected = false;
+var chatLog = [];
 
 var openGamesRunning = false;
 var cancelOpenGames = false;
+
+var checkPoolRunning = false;
+var checkPoolGameSpeed = 'standard';
+var checkPoolGameType = '2way';
+var cancelCheckPool = false;
+
 function getOpenGames(originalThread = false) {
     if (cancelOpenGames) {
         openGamesRunning = false;
@@ -125,15 +132,11 @@ function getPlayers(originalThread = false) {
     }
 }
 
-var checkPoolRunning = false;
-var checkPoolGameSpeed = 'standard';
-var checkPoolGameType = '2way';
-var cancelCheckPool = false;
-
 function checkPool(originalThread = false) {
     if (cancelCheckPool) {
         checkPoolRunning = false;
         cancelCheckPool = false;
+        console.log('cancelCheckPool set');
         return ;
     }
     var setInterval = originalThread;
@@ -141,6 +144,7 @@ function checkPool(originalThread = false) {
         checkPoolRunning = true;
         setInterval = true;
     }
+    console.log('making ajax');
     $.ajax({
         type : 'GET',
         url  : '/ajax/pool/' + checkPoolGameSpeed + "/" + checkPoolGameType,
@@ -150,28 +154,17 @@ function checkPool(originalThread = false) {
             if (jsonRes.hasOwnProperty('gameId')) {
                 window.location.replace('/game/' + jsonRes.gameId);
             }
-            if (setInterval) {
-                intervalPlayer = setTimeout(
-                    function() {
-                        checkPool(true);
-                    },
-                    2000
-                );
-            }
-        },
-        error : function(data){
-            var jsonRes = data;
-            if (jsonRes.hasOwnProperty('gameId')) {
-                window.location.replace('/game/' + jsonRes.gameId);
-            }
-            if (setInterval) {
-                intervalPlayer = setTimeout(
-                    function() {
-                        checkPool(true);
-                    },
-                    2000
-                );
-            }
+        }
+    }).always(function() {
+        if (setInterval) {
+            intervalPlayer = setTimeout(
+                function() {
+                    checkPool(true);
+                },
+                2000
+            );
+        } else {
+
         }
     });
 }
@@ -185,7 +178,10 @@ $(function () {
         ) {
             cancelCheckPool = true;
             $(this).html('Standard Pool');
+            console.log('stopping standard');
         } else {
+            cancelCheckPool = false;
+            console.log('starting standard');
             $(this).html('Standard Pool<br /><span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>');
             $("#enter-pool-lightning").html('Lighting Pool');
             $("#enter-pool-4way-standard").html('Standard 4way Pool');
@@ -203,6 +199,7 @@ $(function () {
             cancelCheckPool = true;
             $(this).html('Lightning Pool');
         } else {
+            cancelCheckPool = false;
             $(this).html('Lightning Pool<br /><span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>');
             $("#enter-pool-standard").html('Standard Pool');
             $("#enter-pool-4way-standard").html('Standard 4way Pool');
@@ -220,6 +217,7 @@ $(function () {
             cancelCheckPool = true;
             $(this).html('Standard 4way Pool');
         } else {
+            cancelCheckPool = false;
             $(this).html('Standard 4way Pool<br /><span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>');
             $("#enter-pool-standard").html('Standard Pool');
             $("#enter-pool-lightning").html('Lighting Pool');
@@ -237,6 +235,7 @@ $(function () {
             cancelCheckPool = true;
             $(this).html('Lightning 4way Pool');
         } else {
+            cancelCheckPool = false;
             $(this).html('Lightning 4way Pool<br /><span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>');
             $("#enter-pool-standard").html('Standard Pool');
             $("#enter-pool-lightning").html('Lighting Pool');
