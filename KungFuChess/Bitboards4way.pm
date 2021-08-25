@@ -829,37 +829,46 @@ sub isLegalMove {
 
     ### castles go before checking same color on to_bb
     if ($fr_bb & $kings) {
-        my ($bbK, $bbR, $bbQR, $kingDir, $rookDir);
+        my ($bbK, $bbR, $bbQR, $bbR_off, $bbQR_off);
+        my ($kingDir, $rookDir);
         if ($color == WHITE) {
-            $bbK  = $whiteCastleK;
-            $bbR  = $whiteCastleR;
-            $bbQR = $whiteQCastleR;
+            $bbK      = $whiteCastleK;
+            $bbR      = $whiteCastleR;
+            $bbR_off  = $whiteCastleR_off;
+            $bbQR     = $whiteQCastleR;
+            $bbQR_off = $whiteQCastleR_off;
             $kingDir = WEST;
             $rookDir = EAST;
         } elsif ($color == BLACK) {
-            $bbK  = $blackCastleK;
-            $bbR  = $blackCastleR;
-            $bbQR = $blackQCastleR;
+            $bbK      = $blackCastleK;
+            $bbR      = $blackCastleR;
+            $bbR_off  = $blackCastleR_off;
+            $bbQR     = $blackQCastleR;
+            $bbQR_off = $blackQCastleR_off;
             $kingDir = WEST;
             $rookDir = EAST;
         } elsif ($color == RED) {
-            $bbK  = $redCastleK;
-            $bbR  = $redCastleR;
-            $bbQR = $redQCastleR;
+            $bbK      = $redCastleK;
+            $bbR      = $redCastleR;
+            $bbR_off  = $redCastleR_off;
+            $bbQR     = $redQCastleR;
+            $bbQR_off = $redQCastleR_off;
             $kingDir = SOUTH;
             $rookDir = NORTH;
         } elsif ($color == GREEN) {
-            $bbK  = $greenCastleK;
-            $bbR  = $greenCastleR;
-            $bbQR = $greenQCastleR;
+            $bbK      = $greenCastleK;
+            $bbR      = $greenCastleR;
+            $bbR_off  = $greenCastleR_off;
+            $bbQR     = $greenQCastleR;
+            $bbQR_off = $greenQCastleR_off;
             $kingDir = SOUTH;
             $rookDir = NORTH;
         }
-        ### if they are moving to the "off" square we assume they are attempting to castle
-        if ($to_bb & $bbR_off)  { $to_bb = $bbR ; } 
-        if ($to_bb & $bbQR_off) { $to_bb = $bbQR; } 
 
         if ($fr_bb & $bbK){ 
+            ### if they are moving to the "off" square we assume they are attempting to castle
+            if ($to_bb & $bbR_off)  { $to_bb = $bbR ; } 
+            if ($to_bb & $bbQR_off) { $to_bb = $bbQR; } 
             if ($to_bb & $bbR) { 
                 if (blockers(_piecesUs($color), $kingDir, $fr_bb, shift_BB($to_bb, $rookDir)) ){
                     return ($color, MOVE_CASTLE_OO, DIR_NONE, $fr_bb, $to_bb);

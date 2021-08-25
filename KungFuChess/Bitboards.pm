@@ -224,7 +224,7 @@ my $whiteQCastleR     = RANKS->[0] & FILES->[0];
 my $whiteQCastleR_off = RANKS->[0] & FILES->[1]; # if you moved next to the rook that's still a castle attempt
 my $blackCastleK      = RANKS->[7] & FILES->[4];
 my $blackCastleR      = RANKS->[7] & FILES->[7];
-my $blackCastleR_off = RANKS->[0] & FILES->[6]; # if you moved next to the rook that's still a castle attempt
+my $blackCastleR_off  = RANKS->[7] & FILES->[6]; # if you moved next to the rook that's still a castle attempt
 my $blackQCastleR     = RANKS->[7] & FILES->[0];
 my $blackQCastleR_off = RANKS->[7] & FILES->[1]; # if you moved next to the rook that's still a castle attempt
 
@@ -627,12 +627,13 @@ sub isLegalMove {
             $bbQR     = $blackQCastleR;
             $bbQR_off = $blackQCastleR_off;
         }
-        ### if they are moving to the "off" square we assume they are attempting to castle
-        if ($to_bb & $bbR_off)  { $to_bb = $bbR ; } 
-        if ($to_bb & $bbQR_off) { $to_bb = $bbQR; } 
 
         ### we simply assume the pieces are there to move, since the castle bbs should be cleared if they move
         if ($fr_bb & $bbK){ 
+            ### if they are moving to the "off" square we assume they are attempting to castle
+            if ($to_bb & $bbR_off)  { $to_bb = $bbR ; } 
+            if ($to_bb & $bbQR_off) { $to_bb = $bbQR; } 
+
             if ($to_bb & $bbR) { 
                 if (blockers(_piecesUs($color), EAST, $fr_bb, shift_BB($to_bb, WEST)) ){
                     return ($color, MOVE_CASTLE_OO, DIR_NONE, $fr_bb, $to_bb);

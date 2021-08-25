@@ -473,7 +473,7 @@ get '/ajax/rematch' => sub {
             );
 
             if ($existingRematch) {
-                $gameId = createGame($gameRow->{game_type}, $gameRow->{game_speed}, 0, $challengeId, $myId);
+                $gameId = createGame($gameRow->{game_type}, $gameRow->{game_speed}, $gameRow->{rated}, $challengeId, $myId);
                 app->db()->do('
                     UPDATE pool
                     SET matched_game = ?
@@ -513,7 +513,11 @@ get '/ajax/rematch' => sub {
 
     my $count = 0;
     foreach my $conn (values %{$gameConnections{$origGameId}}) {
-        $conn->send(encode_json($msg));
+        eval {
+            if ($conn) {
+                $conn->send(encode_json($msg));
+            }
+        };
     }
     $c->render('json' => $return );
 };
@@ -1258,7 +1262,11 @@ websocket '/ws' => sub {
 
             app->log->debug("chat msg recieved for $msg->{gameId}");
             foreach my $conn (values %{$gameConnections{$msg->{gameId}}}) {
-                $conn->send(encode_json($msg));
+                eval {
+                    if ($conn) {
+                        $conn->send(encode_json($msg));
+                    }
+                };
             }
         }
 
@@ -1511,7 +1519,9 @@ sub screennameBroadcast {
     if (! $globalConnectionsByAuth{ $userRow[1] }) { return 0; }
 
     my $connection = $globalConnectionsByAuth{ $userRow[1] };
-    $connection->send(encode_json $msg);
+    eval {
+        $connection->send(encode_json $msg);
+    };
 }
 
 sub globalBroadcast {
@@ -1682,8 +1692,8 @@ sub endGame {
                 $gameSpeed,
                 $gameType,
                 ($score eq '0.5-0.5' ? 'draw' : ($score eq '1-0' || $score eq '1-0-0-0' ? 'win' : 'loss') ),
-                $whiteStart->{"rating_$gameSpeed"}, ### TODO handle nulls
-                $whiteEnd->{"rating_$gameSpeed"},
+                ($whiteStart->{"rating_$gameSpeed"} ? $whiteStart->{"rating_$gameSpeed"} : undef),
+                ($whiteEnd->{"rating_$gameSpeed"} ? $whiteEnd->{"rating_$gameSpeed"} : undef),
                 $rated
             );
         }
@@ -1698,8 +1708,8 @@ sub endGame {
                 $gameSpeed,
                 $gameType,
                 ($score eq '0.5-0.5' ? 'draw' : ($score eq '0-1' || $score eq '0-1-0-0' ? 'win' : 'loss') ),
-                $blackStart->{"rating_$gameSpeed"},
-                $blackEnd->{"rating_$gameSpeed"},
+                ($blackStart->{"rating_$gameSpeed"} ? $blackStart->{"rating_$gameSpeed"} : undef),
+                ($blackEnd->{"rating_$gameSpeed"} ? $blackEnd->{"rating_$gameSpeed"} : undef),
                 $rated
             );
         }
@@ -1714,8 +1724,8 @@ sub endGame {
                     $gameSpeed,
                     $gameType,
                     ($score eq '0.5-0.5' ? 'draw' : ($score eq '1-0' || $score eq '1-0-0-0' ? 'win' : 'loss') ),
-                    $redStart->{"rating_$gameSpeed"},
-                    $redEnd->{"rating_$gameSpeed"},
+                    ($redStart->{"rating_$gameSpeed"} ? $redStart->{"rating_$gameSpeed"} : undef),
+                    ($redEnd->{"rating_$gameSpeed"} ? $redEnd->{"rating_$gameSpeed"} : undef),
                     $rated
                 );
             }
@@ -1730,8 +1740,8 @@ sub endGame {
                     $gameSpeed,
                     $gameType,
                     ($score eq '0.5-0.5' ? 'draw' : ($score eq '0-1' || $score eq '0-1-0-0' ? 'win' : 'loss') ),
-                    $greenStart->{"rating_$gameSpeed"},
-                    $greenEnd->{"rating_$gameSpeed"},
+                    ($greenStart->{"rating_$gameSpeed"} ? $greenStart->{"rating_$gameSpeed"} : undef),
+                    ($greenEnd->{"rating_$gameSpeed"} ? $greenEnd->{"rating_$gameSpeed"} : undef),
                     $rated
                 );
             }
