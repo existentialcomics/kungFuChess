@@ -48,9 +48,10 @@ sub _init {
 sub getProvisionalFactor {
     my $self = shift;
     my $gameSpeed = shift;
+    my $gameType = shift;
 
-    my $gamesPlayed = $self->getGamesPlayed($gameSpeed);
-    if ($self->getGamesPlayed($gameSpeed) > 20) {
+    my $gamesPlayed = $self->getGamesPlayed($gameSpeed, $gameType);
+    if ($gamesPlayed > 20) {
         return 0;
     }
     return ($gamesPlayed / 20);
@@ -133,6 +134,7 @@ sub getBestVictory {
 sub getWorstDefeat {
     my $self = shift;
     my $gameSpeed = shift;
+    my $gameType = shift;
 
     my @row = $self->{dbh}->selectrow_array(
         "SELECT MIN(rating_before)
@@ -145,7 +147,7 @@ sub getWorstDefeat {
         {},
         $self->{player_id},
         $gameSpeed,
-        '2way'
+        $gameType ? $gameType : '2way'
     );
 
     $self->{'worst_defeat' . $gameSpeed} = $row[0];
@@ -156,6 +158,7 @@ sub getWorstDefeat {
 sub getHighestRating {
     my $self = shift;
     my $gameSpeed = shift;
+    my $gameType = shift;
 
     my @row = $self->{dbh}->selectrow_array(
         "SELECT MAX(rating_after)
@@ -167,7 +170,7 @@ sub getHighestRating {
         {},
         $self->{player_id},
         $gameSpeed,
-        '2way'
+        $gameType ? $gameType : '2way'
     );
 
     $self->{'highest_rating' . $gameSpeed} = $row[0];
@@ -178,6 +181,7 @@ sub getHighestRating {
 sub getLowestRating {
     my $self = shift;
     my $gameSpeed = shift;
+    my $gameType = shift;
 
     my @row = $self->{dbh}->selectrow_array(
         "SELECT MIN(rating_after)
@@ -189,7 +193,7 @@ sub getLowestRating {
         {},
         $self->{player_id},
         $gameSpeed,
-        '2way'
+        $gameType ? $gameType : '2way'
     );
 
     $self->{'lowwest_rating' . $gameSpeed} = $row[0];
@@ -200,6 +204,7 @@ sub getLowestRating {
 sub getGamesDrawn {
     my $self = shift;
     my $gameSpeed = shift;
+    my $gameType = shift;
 
     my @row = $self->{dbh}->selectrow_array(
         "SELECT COUNT(*) as games_won
@@ -212,7 +217,7 @@ sub getGamesDrawn {
         {},
         $self->{player_id},
         $gameSpeed,
-        '2way'
+        $gameType ? $gameType : '2way'
     );
 
     $self->{'games_won_' . $gameSpeed} = $row[0];
@@ -223,6 +228,7 @@ sub getGamesDrawn {
 sub getGamesLost {
     my $self = shift;
     my $gameSpeed = shift;
+    my $gameType = shift;
 
     my @row = $self->{dbh}->selectrow_array(
         "SELECT COUNT(*) as games_won
@@ -235,7 +241,7 @@ sub getGamesLost {
         {},
         $self->{player_id},
         $gameSpeed,
-        '2way'
+        $gameType ? $gameType : '2way'
     );
 
     $self->{'games_won_' . $gameSpeed} = $row[0];
@@ -246,6 +252,7 @@ sub getGamesLost {
 sub getGamesWon {
     my $self = shift;
     my $gameSpeed = shift;
+    my $gameType = shift;
 
     my @row = $self->{dbh}->selectrow_array(
         "SELECT COUNT(*) as games_won
@@ -258,7 +265,7 @@ sub getGamesWon {
         {},
         $self->{player_id},
         $gameSpeed,
-        '2way'
+        $gameType ? $gameType : '2way'
     );
 
     $self->{'games_won_' . $gameSpeed} = $row[0];
@@ -269,6 +276,7 @@ sub getGamesWon {
 sub getGamesPlayed {
     my $self = shift;
     my $gameSpeed = shift;
+    my $gameType = shift;
 
     my @row = $self->{dbh}->selectrow_array(
         "SELECT COUNT(*) as games_played 
@@ -280,7 +288,7 @@ sub getGamesPlayed {
         {},
         $self->{player_id},
         $gameSpeed,
-        '2way'
+        $gameType ? $gameType : '2way'
     );
 
     $self->{'games_played_' . $gameSpeed} = $row[0];

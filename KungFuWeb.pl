@@ -1353,7 +1353,6 @@ websocket '/ws' => sub {
                         $game->playerBroadcast($commandMsg);
                     }
                 } elsif ($command eq 'resetRecording' && $player->isAdmin()) {
-                    print "RESET recording\n\n\n";
                     $game->resetRecording();
                     ### force re-spawning
                     my $commandMsg = {
@@ -1583,9 +1582,10 @@ sub encryptPassword {
 sub updateRatings {
     my $gameId = shift;
     my $gameSpeed = shift;
+    my $gameType = shift;
     my $score  = shift;
 
-    app()->log->debug("updating ratings for $gameId, " . ($score ? 'score' : '(no score)'));
+    app()->log->debug("updating ratings for $gameId, " . ($score ? $score : '(no score)'));
 
     ### score must exist and look something like 1-0, 0.5-0.5, 1-0-0-0, etc
     if (!$score || $score !~ m/^[01\.-]+$/) {
@@ -1607,7 +1607,7 @@ sub updateRatings {
         return;
     }
     
-    if ($cresult) { ### was a 4way game
+    if ($gameType eq '4way') { ### was a 4way game
         # transformed rating (on a normal curve)
         my $r1 = 10 ** ($white->{$ratingColumn} / 400);
         my $r2 = 10 ** ($black->{$ratingColumn} / 400);
@@ -1620,20 +1620,20 @@ sub updateRatings {
         my $e3 = $r3 / ($r1 + $r2 + $r3 + $r4);
         my $e4 = $r4 / ($r1 + $r2 + $r3 + $r4);
 
-        my $whiteProv = $white->getProvisionalFactor();
-        my $blackProv = $black->getProvisionalFactor();
-        my $redProv   = $black->getProvisionalFactor();
-        my $greenProv = $black->getProvisionalFactor();
+        my $whiteProv = $white->getProvisionalFactor($gameSpeed);
+        my $blackProv = $black->getProvisionalFactor($gameSpeed);
+        my $redProv   = $black->getProvisionalFactor($gameSpeed);
+        my $greenProv = $black->getProvisionalFactor($gameSpeed);
 
         #### TODO adjust results based on all four results i.e. 0-0-0.5-0.5 vs all draws
-        $white->{$ratingColumn} = $white->{$ratingColumn} + $k * ($result - $e1);
-        $black->{$ratingColumn} = $black->{$ratingColumn} + $k * ($bresult - $e2);
-        $red->{$ratingColumn}   = $red->{$ratingColumn}   + $k * ($cresult - $e3);
-        $green->{$ratingColumn} = $green->{$ratingColumn} + $k * ($dresult - $e4);
-        savePlayer($white, $result,  $gameSpeed);
-        savePlayer($black, $bresult, $gameSpeed);
-        savePlayer($red  , $cresult, $gameSpeed);
-        savePlayer($green, $cresult, $gameSpeed);
+        $white->{$ratingColumn} = $white->{$ratingColumn} - $k * ($result  - $e1);
+        $black->{$ratingColumn} = $black->{$ratingColumn} - $k * ($bresult - $e2);
+        $red->{$ratingColumn}   = $red->{$ratingColumn}   - $k * ($cresult - $e3);
+        $green->{$ratingColumn} = $green->{$ratingColumn} - $k * ($dresult - $e4);
+        savePlayer($white, $result,  $gameSpeed, '4way');
+        savePlayer($black, $bresult, $gameSpeed, '4way');
+        savePlayer($red  , $cresult, $gameSpeed, '4way');
+        savePlayer($green, $cresult, $gameSpeed, '4way');
     } else {
         # transformed rating (on a normal curve)
         my $r1 = 10 ** ($white->{$ratingColumn} / 400);
@@ -1643,13 +1643,13 @@ sub updateRatings {
         my $e1 = $r1 / ($r1 + $r2);
         my $e2 = $r2 / ($r1 + $r2);
 
-        my $whiteProv = $white->getProvisionalFactor();
-        my $blackProv = $black->getProvisionalFactor();
+        my $whiteProv = $white->getProvisionalFactor($gameSpeed);
+        my $blackProv = $black->getProvisionalFactor($gameSpeed);
 
         $white->{$ratingColumn} = $white->{$ratingColumn} + $k * ($result - $e1);
         $black->{$ratingColumn} = $black->{$ratingColumn} + $k * ($bresult - $e2);
-        savePlayer($white, $result,  $gameSpeed);
-        savePlayer($black, $bresult, $gameSpeed);
+        savePlayer($white, $result,  $gameSpeed, '2way');
+        savePlayer($black, $bresult, $gameSpeed, '2way');
     }
 
     return ($white, $black, $red, $green);
@@ -1698,7 +1698,7 @@ sub endGame {
 
     my ($whiteEnd, $blackEnd, $redEnd, $greenEnd) = ($whiteStart, $blackStart, $redStart, $greenStart);
     if ($rated) {
-        ($whiteEnd, $blackEnd, $redEnd, $greenEnd) = updateRatings($gameId, $gameSpeed, $score);   
+        ($whiteEnd, $blackEnd, $redEnd, $greenEnd) = updateRatings($gameId, $gameSpeed, $gameType, $score);   
     }
 
     if ($score && $score =~ m/^[01\.-]+$/) {
@@ -1786,11 +1786,11 @@ sub endGame {
         my $redStartRating = (defined($redEnd->{"rating_$gameSpeed"}) ? $redEnd->{"rating_$gameSpeed"} :
             (defined($redStart->{"rating_$gameSpeed"}) ? $redStart->{"rating_$gameSpeed"} : 0));
         my $redEndRating =  (defined($redStart->{"rating_$gameSpeed"}) ? $redStart->{"rating_$gameSpeed"} : 0);
-        my $greenStart = (defined($greenEnd->{"rating_$gameSpeed"}) ? $greenEnd->{"rating_$gameSpeed"} :
+        my $greenStartRating = (defined($greenEnd->{"rating_$gameSpeed"}) ? $greenEnd->{"rating_$gameSpeed"} :
             (defined($greenStart->{"rating_$gameSpeed"}) ? $greenStart->{"rating_$gameSpeed"} : 0));
-        my $greenEnd =  (defined($greenStart->{"rating_$gameSpeed"}) ? $greenStart->{"rating_$gameSpeed"} : 0);
-        $ratingsAdj->{'red'} = $redEnd - $redStart;
-        $ratingsAdj->{'green'} = $greenEnd - $greenStart;
+        my $greenEndRating =  (defined($greenStart->{"rating_$gameSpeed"}) ? $greenStart->{"rating_$gameSpeed"} : 0);
+        $ratingsAdj->{'red'} = $redEndRating - $redStartRating;
+        $ratingsAdj->{'green'} = $greenEndRating - $greenStartRating;
     };
     if ($game) {
         my $msg = {

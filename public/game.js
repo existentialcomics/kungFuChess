@@ -760,6 +760,7 @@ var handleMessage = function(msg) {
     } else if (msg.c == 'gameOver') {
         var dt = new Date();
         //endGame();
+        console.log(msg);
         var msgText = "game over (" + msg.result + ")";
         if (msg.hasOwnProperty('ratingsAdj')) {
             if (msg.ratingsAdj.hasOwnProperty('white')) {

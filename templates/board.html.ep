@@ -65,10 +65,10 @@
                 <% if ($gameType eq '4way') { %>
                     <span>(black)</span>
                     <br />
-                    <span class="circle offline" id="greenOnline"></span>
-                    <span id='greenPlayerName'><%= $greenPlayer->{screenname} %></span>
-                    <span id='greenRating'><%= $greenPlayer->{rating_standard} %></span>
-                    <span>(green)</span>
+                    <span class="circle offline" id="redOnline"></span>
+                    <span id='redPlayerName'><%= $redPlayer->{screenname} %></span>
+                    <span id='redRating'><%= $redPlayer->{rating_standard} %></span>
+                    <span>(red)</span>
                 <% } %>
             <% } else { %>
                 <span class="circle offline" id="blackOnline"></span>
