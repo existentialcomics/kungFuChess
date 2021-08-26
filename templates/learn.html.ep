@@ -23,6 +23,8 @@
         <h4><b>Expert</b></h4>
         <h5><a href="/tactics/expert/sweep">Sweep</a></h5>
         <p>The most dangerous and feared tactic in all of Kung Fu Chess. Anticipate your opponent before he even moves for deadly results.</p>
+        <h5><a href="/tactics/expert/feint">Feint</a></h5>
+        <p>Use your opponents knowledge and skill against him as you feign towards a promising spot, only to stop short.</p>
         <h5><a href="/tactics/expert/selfkill">Self Kill</a></h5>
         <p>A rare tactic that makes use of the special ability of the knight to kill your own pieces.</p>
     <br />

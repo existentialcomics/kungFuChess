@@ -19,14 +19,12 @@ var rematches = [];
 
 function rematchPool(originalThread = false) {
     if (cancelRematchPool) {
-        console.log("canceling rematch pool");
         rematchPoolRunning = false;
         cancelRematchPool = false;
         return ;
     }
     var setInterval = originalThread;
     if (rematchPoolRunning == false) {
-        console.log("setting rematch interval");
         rematchPoolRunning = true;
         setInterval = true;
     }
@@ -488,8 +486,8 @@ var game_reconnectMain = function() {
 
 sendMsg = function(msg) {
     if (msg.c != 'ping') {
-        console.log("sending msg:");
-        console.log(msg);
+        //console.log("sending msg:");
+        //console.log(msg);
     }
     msg.gameId = gameId;
     msg.auth = authId;
@@ -721,7 +719,6 @@ var handleMessage = function(msg) {
     } else if (msg.c == 'kill'){
         var square = getSquareFromBB(msg.bb);
         var piece  = piecesByBoardPos[square];
-        console.log(piece);
         if (piece.type == 'king') {
             killPlayer(piece.color);
         }
@@ -762,7 +759,6 @@ var handleMessage = function(msg) {
         );
     } else if (msg.c == 'gameOver') {
         var dt = new Date();
-        console.log(msg);
         //endGame();
         var msgText = "game over (" + msg.result + ")";
         if (msg.hasOwnProperty('ratingsAdj')) {
@@ -850,7 +846,6 @@ var handleMessage = function(msg) {
 var setPieceBoardPos = function(piece, square) {
     piece.square = square;
     piecesByBoardPos[square] = piece;
-    console.log(piecesByBoardPos);
 };
 
 var spawn = function(chr, square) {
@@ -895,8 +890,6 @@ var spawn = function(chr, square) {
             piece.id = maxPieceId++;
             pieceLayer.add(piece.image);
             pieces[piece.id] = piece;
-            console.log("piece color:");
-            console.log(piece.color);
             if (piece.color == myColor || myColor == 'both'){
                 pieces[piece.id].image.draggable(true);
             }
@@ -920,7 +913,7 @@ conn.onmessage = function(evt) {
 
 	var msg = JSON.parse(evt.data);
     if (msg.c != 'pong') {
-        console.log("msg recieved: " + evt.data);
+        //console.log("msg recieved: " + evt.data);
     }
     handleMessage(msg);
 };
@@ -934,12 +927,9 @@ var startGame = function(){
 }
 
 var killPlayer = function(color){
-    console.log("killing player " + color);
     for(id in pieces){
         piece = pieces[id];
-        console.log(piece);
         if (piece != null && piece.color == color) {
-            console.log("destroying ... " + id);
             piece.image.destroy();
             if (piece.delayRect){
                 piece.delayRect.destroy();
@@ -1189,11 +1179,6 @@ var getPiece = function(x, y, color, image){
         }
         setPieceBoardPos(newQueen, piece.square);
         pieceLayer.draw();
-        //var newQueen = getQueen(piece.x, piece.y, piece.color);
-        console.log('PROMOTE');
-        console.log(newQueen.image);
-        console.log(piece.image);
-        console.log(this.image);
     }
 
     piece.move = function(x, y, speedAdj = 1){
@@ -1293,7 +1278,6 @@ var getPiece = function(x, y, color, image){
     piece.setImagePos = function(x, y){
         piece.image.setX(getX(this.x * width / boardSize, this.y * width / boardSize));
         piece.image.setY(getY(this.x * width / boardSize, this.y * width / boardSize));
-        console.log('piece layer draw');
         pieceLayer.draw();
     }
     return piece;
@@ -1492,20 +1476,25 @@ $(function () {
         var startTime = 0;
         var gameStart = false;
         gameLog.forEach(function (logMsg) {
+            if (logMsg.msg.c == 'spawn') {
+                handleMessage(logMsg.msg);
+            }
+        });
+        gameLog.forEach(function (logMsg) {
             if (logMsg.msg.c == 'gameBegins') {
                 startTime = logMsg.time + 3;
                 gameStart = true;
             } else {
                 var msgTimeout = 0;
-                if ((gameStart && logMsg.msg.c != 'spawn') || (logMsg.msg.c == 'spawn')) {
+                if (logMsg.msg.c != 'spawn') {
                     msgTimeout = (logMsg.time - startTime) * 1000;
+                    setTimeout(
+                        function() {
+                            handleMessage(logMsg.msg);
+                        },
+                        msgTimeout
+                    );
                 }
-                setTimeout(
-                    function() {
-                        handleMessage(logMsg.msg);
-                    },
-                    msgTimeout
-                );
             }
         });
     });

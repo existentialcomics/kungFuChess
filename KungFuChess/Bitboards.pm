@@ -688,6 +688,10 @@ sub isLegalMove {
         if ($to_bb & (_piecesThem($color) | $enPassant) ){
             if ($to_bb & $enPassant){
                 $pawnMoveType = MOVE_EN_PASSANT;
+                my $enPassCapture_bb = shift_BB($to_bb, getReverseDir($pawnDir));
+                if (! ($enPassCapture_bb & _piecesThem($color) & $pawns)) {
+                    return @noMove;
+                }
             }
             my $enemyCapturesE = shift_BB($to_bb, EAST);
             my $enemyCapturesW = shift_BB($to_bb, WEST);

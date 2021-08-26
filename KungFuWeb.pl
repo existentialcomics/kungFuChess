@@ -264,6 +264,19 @@ get '/tactics/expert/sweep' => sub {
     $c->render('template' => 'tactic', format => 'html', handler => 'ep');
 };
 
+get '/tactics/expert/feint' => sub {
+    my $c = shift;
+
+    my $user = $c->current_user();
+    $c->stash('user' => $user);
+
+    $c->stash('video' => '/feint.webm');
+    $c->stash('name' => 'Feint');
+    $c->stash('description' => 'This bold and daring strategy uses your opponent\'s skill against him, by moving towards a very good spot and then not landing there! In the video, white has a chance to exchange a knight for a rook by attacking the black knight and rook at the same time. He will lose his bishop, assuming black dodges it and takes, but will get the rook. However, since he knows his opponent will see this and have ample time to dodge, so he moves instead to the ungaurded space in front of it, saving his bishop. Risky, because if black does not dodge, he would lose the queen!');
+
+    $c->render('template' => 'tactic', format => 'html', handler => 'ep');
+};
+
 get '/tactics/expert/selfkill' => sub {
     my $c = shift;
 
@@ -633,6 +646,14 @@ get '/about' => sub {
     $c->stash('user' => $user);
 
     $c->render('template' => 'about', format => 'html', handler => 'ep');
+};
+
+get '/faq' => sub {
+    my $c = shift;
+    my $user = $c->current_user();
+    $c->stash('user' => $user);
+
+    $c->render('template' => 'faq', format => 'html', handler => 'ep');
 };
 
 get '/forums' => sub {

@@ -1,0 +1,24 @@
+%= include 'header'
+
+<div class="container bg-light" id='homeContent' style="overflow-y:scroll;">
+    <div style="overflow-y:scroll;">
+        <h3>FAQ</h5>
+        <h4><b>What is KungFuChess?</b></h4>
+        <p>A real time chess variant created around 2001 by Shizmoo games. It was shut down somewhere around 2007. All the pieces can move at once, but after you move a piece it must wait a little while before it can move again.</p>
+        <h4><b>What happens if two pieces collide while moving?</b></h4>
+        <p>If opposing pieces are currently moving, the piece which moved first kills the other piece. If you collide with an enemy piece that is stopped you will kill it and stop. If you collide with you you will.</p>
+        <h4><b>How fast do the pieces move, and how long do they have to wait before they can move again?</b></h4>
+        <p>There are two modes, "standard" and "lightning". In standard the pieces take 10 seconds to recharge, and move one square per second. In lightning they pieces take a fifth of a second to recharge, and five squares per second.</p>
+        <h4><b>What are some of the key tactical differences in Kung Fu Chess compared to regular chess?</b></h4>
+        <p>You can see most of the advanced tactics on the <a href="/learn">learn</a> page. In general, it's that you must keep in mind which pieces are currently recharging, and the timing of how long it will take pieces to get to where they are going. Remeber, the board can change dramtically by the time your move even finishes.</p>
+        <h4><b>Wait, 4way? What is that.</b></h4>
+        <p>Just like it sounds, four players at once, all attacking each other. In normal chess this would be quite boring. And in fact it is pretty boring on the standard speed in Kung Fu Chess. On lightning speed, however, it created a chaotic, dynamic, fast paced game.</p>
+        <h4><b>What are the belts?</b></h4>
+        <p>Keep with the martial arts themes, players above certain ratings thresholds are given a "belt" as a reward. The Green belt signifies a provisional rating.</p>
+        <h4><b>Where are the ads?</b></h4>
+        <p>This game is free to play, with no ads, keeping with the lichess model of pure free and open source software. I will never put ads or charge for special features.</p>
+    </div>
+</div>
+
+
+%= include 'footer'
