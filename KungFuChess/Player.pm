@@ -40,7 +40,7 @@ sub _init {
     } elsif (defined($data->{auth_token})) { 
         return $self->_loadByAuth($data->{auth_token});
     } else {
-        print "undef\n";
+        print " player undef\n";
         return undef;
     }
 }
@@ -94,7 +94,6 @@ sub getRating {
     if (!$gameType ) { $gameType  = '2way'; }
 
     my $wayAdd = ($gameType eq '4way' ? '_4way' : '');
-    print "$gameSpeed $wayAdd\n";
     return $self->{'rating_' . $gameSpeed . $wayAdd};
 }
 

@@ -84,6 +84,7 @@ app->plugin('authentication' => {
                     'auth'       => $row->[4],
                 };
                 app->db()->do('UPDATE players SET last_seen = NOW() WHERE player_id = ?', {}, $user->{'id'});
+                # TODO load by row, it does the query twice
                 my $player = new KungFuChess::Player(
                     {  'userId' => $user->{id} },
                     app->db()
@@ -136,7 +137,7 @@ get '/' => sub {
         'post_time' => time,
         'game_id' => undef,
         'player_id' => 1,
-        'comment_text' => 'Welcome to KungFuChess (currently in beta). Enter the matching pools or start a game to play. Click the "about" tab to see more about the game, or "learn" to learn special tactics. There may be some guys in rematch, I recommend just making a new game.',
+        'comment_text' => 'Welcome to KungFuChess (currently in beta). Enter the matching pools or start a game to play. Click the "about" tab to see more about the game, or "learn" to learn special tactics. There may be some bugs in rematch, I recommend just making a new game.',
         'screenname' => 'SYSTEM',
         'color' => 'red',
         'text_color' => '#666666',
@@ -449,6 +450,7 @@ get '/ajax/rematch' => sub {
                     }
                 }
             } else {
+                app->db()->('DELETE FROM pool WHERE player_id = ?', $user->{player_id});
                 my $sth = app->db()->prepare('INSERT INTO pool
                     (player_id, game_speed, game_type, open_to_public, rated, private_game_key, in_matching_pool, last_ping)
                     VALUES (?, ?, ?, ?, ?, ?, 0, NOW())');
@@ -975,7 +977,7 @@ get '/game/:gameId' => sub {
     my $gameRow = app->db()->selectrow_hashref('SELECT * FROM games WHERE game_id = ?', { 'Slice' => {} }, $gameId);
 
     $c->stash('positionGameMsgs' => $gameRow->{final_position});
-    $c->stash('gameLog'          => $gameRow->{game_log});
+    $c->stash('gameLog'          => $gameRow->{game_log} ? $gameRow->{game_log} : '[]');
     $c->stash('chatLog'          => ($game ? encode_json($game->{chatLog}) : undef));
     $c->stash('gameStatus'       => $gameRow->{status});
     my ($timerSpeed, $timerRecharge) = getPieceSpeed($gameRow->{game_speed});
