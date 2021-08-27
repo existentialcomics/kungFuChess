@@ -60,18 +60,21 @@ sub getProvisionalFactor {
 sub getBelt {
     my $self = shift;
     my $gameSpeed = shift;
+    my $gameType  = shift;
 
     if ($self->{is_anon}) { return 'green'; }
 
     if (!$gameSpeed) { $gameSpeed = 'standard'; }
+    if (!$gameType ) { $gameType  = '2way'; }
 
     if (! defined( $self->{'rating_' . $gameSpeed})) { 
         return undef;
     }
-    my $rating = $self->{'rating_' . $gameSpeed};
+    my $wayAdd = ($gameType eq '4way' ? '_4way' : '');
+    my $rating = $self->{'rating_' . $gameSpeed . $wayAdd};
 
     # provisional belt
-    if ($self->getGamesPlayed($gameSpeed) < 20) {
+    if ($self->getGamesPlayed($gameSpeed, $gameType) < 20) {
         return 'green';
     }
 
@@ -86,8 +89,13 @@ sub getBelt {
 sub getRating {
     my $self = shift;
     my $gameSpeed = shift;
+    my $gameType  = shift;
+    if (!$gameSpeed) { $gameSpeed = 'standard'; }
+    if (!$gameType ) { $gameType  = '2way'; }
 
-    return $self->{'rating_' . $gameSpeed};
+    my $wayAdd = ($gameType eq '4way' ? '_4way' : '');
+    print "$gameSpeed $wayAdd\n";
+    return $self->{'rating_' . $gameSpeed . $wayAdd};
 }
 
 sub getJsonMsg {
@@ -111,6 +119,7 @@ sub isAdmin {
 sub getBestVictory {
     my $self = shift;
     my $gameSpeed = shift;
+    my $gameType = shift;
 
     my @row = $self->{dbh}->selectrow_array(
         "SELECT MAX(rating_before)
@@ -118,12 +127,12 @@ sub getBestVictory {
             WHERE opponent_id = ?
             AND game_speed = ?
             AND game_type = ?
-            AND result = 'win'
+            AND result = 'loss'
             AND rated = 1",
         {},
         $self->{player_id},
         $gameSpeed,
-        '2way'
+        $gameType ? $gameType : '2way'
     );
 
     $self->{'best_victory' . $gameSpeed} = $row[0];
@@ -142,7 +151,7 @@ sub getWorstDefeat {
             WHERE opponent_id = ?
             AND game_speed = ?
             AND game_type = ?
-            AND result = 'loss'
+            AND result = 'win'
             AND rated = 1",
         {},
         $self->{player_id},
