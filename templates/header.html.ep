@@ -48,7 +48,7 @@
 </ul>
 <% if (defined(stash('error')) && stash('error')) { %>
 <div class="alert alert-danger" role="alert">
-   <%= stash('error') %>
+    <%== stash('error') %>
 </div>
 <% } %>
 <script>

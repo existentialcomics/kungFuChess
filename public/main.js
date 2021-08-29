@@ -548,8 +548,7 @@ function addChatMessage(author, message, usercolor, textcolor, dt) {
 //$(document).ready(function () {
 $(function () {
     chatLog.slice().reverse().forEach(function (msg) {
-        var unix = Date.parse(msg.post_time);
-        var dt   = new Date(unix);
+        var dt   = new Date(Date.now() - msg.unix_seconds_back)
         addChatMessage(
             msg.screenname,
             msg.comment_text, 

@@ -77,6 +77,12 @@ sub getBelt {
     if ($self->getGamesPlayed($gameSpeed, $gameType) < 20) {
         return 'green';
     }
+    return getBeltStatic($rating);
+}
+
+### static method that just passes in rating;
+sub getBeltStatic {
+    my $rating = shift;
 
     return 'yellow' if ($rating < 1400); 
     return 'orange' if ($rating < 1600); 
@@ -94,7 +100,6 @@ sub getRating {
     if (!$gameType ) { $gameType  = '2way'; }
 
     my $wayAdd = ($gameType eq '4way' ? '_4way' : '');
-    print "$gameSpeed $wayAdd\n";
     return $self->{'rating_' . $gameSpeed . $wayAdd};
 }
 

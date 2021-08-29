@@ -125,7 +125,7 @@ get '/' => sub {
     my $activeTab = $c->req->param('activeTab') ? $c->req->param('activeTab') : 'pool';
     $c->stash('activeTab' => $activeTab);
     my $chatLog = app->db()->selectall_arrayref(
-        "SELECT chat_log.*, p.screenname FROM chat_log
+        "SELECT chat_log.*, UNIX_TIMESTAMP() - UNIX_TIMESTAMP(post_time) as unix_seconds_back, p.screenname FROM chat_log
             LEFT JOIN players p ON chat_log.player_id = p.player_id
             WHERE game_id IS NULL
             ORDER BY chat_log_id
@@ -1168,23 +1168,137 @@ post '/register' => sub {
     my $user = $c->current_user();
     $c->stash('user' => $user);
 
-    my ($u, $p) = ($c->req->param('username'), $c->req->param('password'));
+    my $rules = [
+        {
+            'required'   => 1,
+            'key'        => 'username',
+            'name'       => 'User name',
+            'check'      => 'length',
+            'check_args' => [5, 255],
+        },
+        {
+            'required'   => 1,
+            'key'        => 'password',
+            'name'       => 'Password',
+            'check'      => 'min_length',
+            'check_args' => [5],
+        },
+        {
+            'required'   => 0,
+            'key'        => 'email',
+            'name'       => 'Email',
+            'check'      => 'email',
+        },
+        {
+            'required'   => 0,
+            'key'        => 'username',
+            'check'      => 'custom',
+            'check_args' => [$c, $c->req->param('username')],
+            'sub'        => sub {
+                my $c = shift;
+                my $u = shift;
 
-    my $existing = app->db()->selectall_arrayref('SELECT * FROM players WHERE screenname = ?', {}, $u);
-    if (@$existing) {
-        $c->stash('error' => 'Username ' . $u . ' already exists!');
-        return $c->render('template' => 'register', format => 'html', handler => 'ep');
+                my $existing = app->db()->selectall_arrayref('SELECT * FROM players WHERE screenname = ?', {}, $u);
+                return (! @$existing)
+            },
+            'custom_message' => 'User name ' . $c->req->param('username') . ' already exists.',
+        },
+    ];
+
+    my ($validated, $passed, $failed, $errors) = validate($c, $rules);
+    if (! $validated) {
+        $c->render('template' => 'register', format => 'html', handler => 'ep');
+        return;
     }
-    $c->db()->do('INSERT INTO players (screenname, password, rating_standard, rating_lightning)
-            VALUES (?, ?, 1400, 1400)', {}, $u, encryptPassword($p));
 
-    if ($c->authenticate($u, encryptPassword($p))){
+    $c->db()->do('INSERT INTO players (screenname, password, email, rating_standard, rating_lightning, rating_standard_4way, rating_lightning_4way)
+            VALUES (?, ?, ?, 1400, 1400, 1400, 1400)', {}, $passed->{username}, encryptPassword($passed->{password}), $passed->{email});
+
+    if ($c->authenticate($passed->{username}, encryptPassword($passed->{password}))){
         my $user = $c->current_user();
         $c->stash('user' => $user);
     }
 
     $c->redirect_to("/");
 };
+
+sub validate {
+    my $c = shift;
+    my $rules = shift;
+
+    my %passed = ();
+    my %failed = ();
+    my @errors = ();
+    my $validated = 1;
+    foreach my $rule (@$rules) {
+        my $key   = $rule->{key};
+        my $value = $c->req->param($key);
+        my $name  =  $rule->{name};
+        my $check = $rule->{check};
+        ### filter at the end
+        $passed{$key} = $value;
+        if ($rule->{required} && (! defined($value) || $value eq '')) {
+            $validated = 0;
+            $failed{$key} = $value;
+            push @errors, "$name is required.";
+            next;
+        } elsif (! defined($value) || $value eq '') { ### optional param is missing, this is fine
+            next;
+        }
+
+        if ($check eq 'length') {
+            my ($minLen, $maxLen) = @{$rule->{check_args}}; 
+            if (length($value) < $minLen || length($value) > $maxLen) {
+                $failed{$key} = $value;
+                $validated = 0;
+                push @errors, "$name must be between $minLen and $maxLen.";
+                next;
+            }
+        } elsif ($check eq 'min_length'){
+            my ($minLen) = @{$rule->{check_args}}; 
+            if (length($value) < $minLen) {
+                $failed{$key} = $value;
+                $validated = 0;
+                push @errors, "$name must be greater than $minLen.";
+                next;
+            }
+        } elsif ($check eq 'max_length'){
+            my ($maxLen) = @{$rule->{check_args}}; 
+            if (length($value) > $maxLen) {
+                $failed{$key} = $value;
+                $validated = 0;
+                push @errors, "$name must be less than $maxLen.";
+                next;
+            }
+        } elsif ($check eq 'email'){
+            if ($value !~ m/.@./) {
+                $failed{$key} = $value;
+                $validated = 0;
+                push @errors, "$value doesn't look like a valid email";
+                next;
+            }
+        } elsif ($check eq 'custom'){
+            my $result = &{ $rule->{sub} }(
+                @{ $rule->{check_args} }
+            );
+            if (! $result) {
+                $failed{$key} = $value;
+                $validated = 0;
+                push @errors, $rule->{custom_message};
+                next;
+            }
+        }
+    }
+
+    foreach my $key (keys %failed) {
+        delete $passed{$key};
+    }
+
+    my $errors = $c->stash('error');
+    $errors .= join("<br />", @errors);
+    $c->stash('error', $errors);
+    return $validated, \%passed, \%failed, \@errors;
+}
 
 get '/logout' => sub {
     my $c = shift;
