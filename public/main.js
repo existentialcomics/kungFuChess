@@ -549,8 +549,12 @@ function addChatMessage(author, message, usercolor, textcolor, dt) {
 $(function () {
     chatLog.slice().reverse().forEach(function (msg) {
         var dt   = new Date(Date.now() - msg.unix_seconds_back)
+        var screenname = msg.screenname;
+        if (screenname === 'thebalrog') {
+            screenname = 'thebalrog (ADMIN)';
+        }
         addChatMessage(
-            msg.screenname,
+            screenname,
             msg.comment_text, 
             (msg.color ? msg.color : 'green'),
             (msg.text_color ? msg.text_color : 'black'),

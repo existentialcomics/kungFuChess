@@ -126,7 +126,7 @@ get '/' => sub {
     my $activeTab = $c->req->param('activeTab') ? $c->req->param('activeTab') : 'pool';
     $c->stash('activeTab' => $activeTab);
     my $chatLog = app->db()->selectall_arrayref(
-        "SELECT chat_log.*, UNIX_TIMESTAMP() - UNIX_TIMESTAMP(post_time) as unix_seconds_back, p.screenname FROM chat_log
+        "SELECT chat_log.*, chat_log.player_color as color, UNIX_TIMESTAMP() - UNIX_TIMESTAMP(post_time) as unix_seconds_back, p.screenname FROM chat_log
             LEFT JOIN players p ON chat_log.player_id = p.player_id
             WHERE game_id IS NULL
             ORDER BY chat_log_id
@@ -591,16 +591,23 @@ post '/ajax/chat' => sub {
         }
     } else {
         if ($user) {
+            my $screename = $user->{screenname};
+            if ($user->isAdmin()) {
+                $screename .= " (ADMIN)";
+            }
+
             my $msg = {
                 'c' => 'globalchat',
-                'author'    => $user->{screenname},
+                'author'    => $screename,
                 'user_id'   => $user->{player_id},
                 'message'   => $message
             };
 
-            app->db()->do('INSERT INTO chat_log (comment_text, player_id, post_time) VALUES (?,?,NOW())', {},
+
+            app->db()->do('INSERT INTO chat_log (comment_text, player_id, player_color, post_time) VALUES (?,?,?,NOW())', {},
                 $msg->{'message'},
-                $user->{player_id}
+                $user->{player_id},
+                $user->getBelt()
             );
             $msg->{'color'} = $user->getBelt();
             globalBroadcast($msg);
