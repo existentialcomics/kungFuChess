@@ -819,12 +819,12 @@ get '/matchGame/:uid' => sub {
 
     if (! $gameId ) {
         $c->stash('error' => 'Game not found.');
-        $c->redirect_to("/");
-    } elsif ($gameId == -1) {
-        $c->redirect_to('/?activeTab=openGames');
+        return $c->redirect_to("/");
+    } elsif ($gameId == -1) { ### signal that we are a 4way game
+        return $c->redirect_to('/?activeTab=openGames');
     }
 
-    $c->redirect_to('/game/' . $gameId);
+    return $c->redirect_to('/game/' . $gameId);
 };
 
 get '/ajax/matchGame/:uid' => sub {
@@ -2333,10 +2333,16 @@ sub matchPool {
     my $gameType  = shift;
 
     if (!$gameSpeed) { $gameSpeed = 'standard'; }
+    if (!$gameType)  { $gameType  = '4way'; }
 
     my $ratingColumn = 'rating_' . $gameSpeed;
     my @gameMatch = app->db()->selectrow_array(
-        'SELECT player_id, matched_game FROM pool WHERE player_id = ? AND in_matching_pool = 1 AND game_speed = ?', {}, $player->{'player_id'}, $gameSpeed);
+        'SELECT player_id, matched_game FROM pool WHERE player_id = ? AND in_matching_pool = 1 AND game_speed = ? AND game_type = ?',
+        {},
+        $player->{'player_id'},
+        $gameSpeed,
+        $gameType
+    );
 
     if (@gameMatch) {
         my ($player_id, $matched_game) = @gameMatch;
@@ -2370,12 +2376,13 @@ sub matchPool {
             WHERE p.player_id != ?
             AND in_matching_pool = 1
             AND game_speed = ?
+            AND game_type = ?
             AND last_ping > NOW() - INTERVAL 3 SECOND
             ORDER BY abs(? - ' . $ratingColumn . ') LIMIT ' . $needed;
     my $playerMatchedRow = app->db()->selectall_arrayref(
         $matchSql,
         {},
-        $player->{'player_id'}, $gameSpeed, $player->{$ratingColumn}
+        $player->{'player_id'}, $gameSpeed, $gameType, $player->{$ratingColumn}
     );
 
     if ($#{$playerMatchedRow} + 1 >= $needed) {
