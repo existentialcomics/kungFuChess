@@ -108,7 +108,6 @@ var getPlayersRunning = false;
 function getPlayers(originalThread = false) {
     var setInterval = originalThread;
     if (getPlayersRunning == false) {
-        console.log("setting standard interval");
         getPlayersRunning = true;
         setInterval = true;
     }
@@ -144,7 +143,6 @@ function checkPool(originalThread = false) {
         checkPoolRunning = true;
         setInterval = true;
     }
-    console.log('making ajax');
     $.ajax({
         type : 'GET',
         url  : '/ajax/pool/' + checkPoolGameSpeed + "/" + checkPoolGameType,
@@ -178,10 +176,8 @@ $(function () {
         ) {
             cancelCheckPool = true;
             $(this).html('Standard Pool');
-            console.log('stopping standard');
         } else {
             cancelCheckPool = false;
-            console.log('starting standard');
             $(this).html('Standard Pool<br /><span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>');
             $("#enter-pool-lightning").html('Lighting Pool');
             $("#enter-pool-4way-standard").html('Standard 4way Pool');
@@ -537,18 +533,19 @@ function addChatMessage(author, message, usercolor, textcolor, dt) {
     if (! isNaN(dt.getTime())) {
         dtString =
             (dt.getHours() < 10 ? '0' + dt.getHours() : dt.getHours()) + ':' +
-            (dt.getMinutes() < 10 ? '0' + dt.getMinutes() : dt.getMinutes());
+            (dt.getMinutes() < 10 ? '0' + dt.getMinutes() : dt.getMinutes()) + ':' + 
+            (dt.getSeconds() < 10 ? '0' + dt.getSeconds() : dt.getSeconds());
     }
     chatContent = $('#global-chat-log');
-    chatContent.append('<span class="' + usercolor + 'beltColor">' + author + '</span><span style="font-size: 12px;color:grey"> ' + dtString 
-            + '</span>&nbsp;&nbsp;<span style="color:' + textcolor + '">' + escapeHtml(message) + '</span>' + '<br />');
+    chatContent.append('<span class="' + usercolor + 'beltColor" style="font-size: 14px;">' + author + '</span><span style="font-size: 10px;color:grey"> ' + dtString 
+            + '</span>&nbsp;&nbsp;<span style="font-size: 14px; color:' + textcolor + '">' + escapeHtml(message) + '</span>' + '<br />');
     $("#global-chat-log").scrollTop($("#global-chat-log")[0].scrollHeight);
 }
 
 //$(document).ready(function () {
 $(function () {
     chatLog.slice().reverse().forEach(function (msg) {
-        var dt   = new Date(Date.now() - msg.unix_seconds_back)
+        var dt   = new Date(Date.now() - (msg.unix_seconds_back * 1000))
         var screenname = msg.screenname;
         if (screenname === 'thebalrog') {
             screenname = 'thebalrog (ADMIN)';
