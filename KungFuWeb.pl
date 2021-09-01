@@ -811,6 +811,23 @@ get '/profile/:screenname' => sub {
     return $c->render('template' => 'profile', format => 'html', handler => 'ep');
 };
 
+get '/profile/:screenname/games/:speed/:type' => sub {
+    my $c = shift;
+    my $user = $c->current_user();
+    $c->stash('user' => $user);
+
+    my $data      = { 'screenname' => $c->stash('screenname') };
+    my $gameSpeed = { 'screenname' => $c->stash('speed') };
+    my $gameType  = { 'screenname' => $c->stash('speed') };
+    my $player = new KungFuChess::Player($data, app->db());
+
+    $c->stash('player' => $player);
+
+    my $games = getGameHistory($player, $gameSpeed, $gameType);
+
+    return $c->render('template' => 'profile', format => 'html', handler => 'ep');
+};
+
 get '/matchGame/:uid' => sub {
     my $c = shift;
     my $user = $c->current_user();
@@ -1186,6 +1203,12 @@ post '/register' => sub {
             'check_args' => [5, 255],
         },
         {
+            'required'   => 0,
+            'key'        => 'username',
+            'name'       => 'User name',
+            'check'      => 'word_only',
+        },
+        {
             'required'   => 1,
             'key'        => 'password',
             'name'       => 'Password',
@@ -1277,6 +1300,12 @@ sub validate {
                 $failed{$key} = $value;
                 $validated = 0;
                 push @errors, "$name must be less than $maxLen.";
+                next;
+            }
+        } elsif ($check eq 'word_only'){
+            if ($value !~ m/^[\w_-]+$/) {
+                $validated = 0;
+                push @errors, "$value must contain only letters, numbers, -, or _";
                 next;
             }
         } elsif ($check eq 'email'){
@@ -1633,6 +1662,18 @@ websocket '/ws' => sub {
         }
     });
 };
+
+sub getGameHistory {
+    my ($player, $gameSpeed, $gameType) = @_;
+
+    my $gameLog = app()->db->selectall_arrayref('SELECT * from game_log WHERE player_id = ? AND game_speed = ? and game_type = ?', { 'Slice' => {}},
+        $player->{player_id},
+        $gameSpeed,
+        $gameType
+    );
+
+    return $gameLog;
+}
 
 # auth from the game server
 sub gameauth {
@@ -2187,8 +2228,7 @@ sub getOpenGames {
         LEFT JOIN players py ON p.player_id = py.player_id
         LEFT JOIN players py2 ON p.challenge_player_id = py2.player_id
         LEFT JOIN players py3 ON p.challenge_player_2_id = py3.player_id
-            WHERE in_matching_pool = 0
-            AND last_ping > NOW() - INTERVAL 4 SECOND
+            WHERE last_ping > NOW() - INTERVAL 4 SECOND
             AND open_to_public = 1
         ',
         { 'Slice' => {} }

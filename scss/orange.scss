@@ -3,14 +3,15 @@
 @import "bootstrap/scss/_variables";
 
 // Changing the theme colors
-$primary: orange;
+$primary: #dc7700;
 $secondary: #ffff66; // gold
 /*$success: #65ff9f;*/
 /*$info: #7164ff;*/
 /*$warning: #ff9f65;*/
 /*$danger: #ff457b;*/
-$light: #e39d6d; 
-$dark: #733408; 
+$light: #f7d4a9; 
+//$dark: #733408; 
+$dark: #a75700; 
 
 /*// Your variable overrides*/
 $body-bg: $dark;

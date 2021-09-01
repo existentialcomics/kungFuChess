@@ -290,9 +290,13 @@ sub playerBroadcast {
 
 	delete $msg->{auth};
 
-	foreach my $player (values %{ $self->{playersConn}}){
-		$player->send(encode_json $msg);
-	}
+    foreach my $conn (values %{ $self->{playersConn}}) {
+        eval {
+            if ($conn) {
+                $conn->send(encode_json $msg);
+            }
+        };
+    }
 
     if ($msg->{c} eq 'chat') {
         push (@{$self->{chatLog}},
