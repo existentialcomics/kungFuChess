@@ -432,16 +432,18 @@ var bindGameEvents = function(ws_conn) {
         // finished connecting.
         // maybe query for ready to join
         console.log("connected!");
-        pingServer = setInterval(function() {
-            var d = new Date();
-            var timestamp = d.getTime();
-            heartbeat_msg = {
-                "c" : "ping",
-                'timestamp' : timestamp,
-                'ping' : myPing
-            };
-            sendMsg(heartbeat_msg);
-        }, 3000); 
+        if (myColor != 'watch') {
+            pingServer = setInterval(function() {
+                var d = new Date();
+                var timestamp = d.getTime();
+                heartbeat_msg = {
+                    "c" : "ping",
+                    'timestamp' : timestamp,
+                    'ping' : myPing
+                };
+                sendMsg(heartbeat_msg);
+            }, 3000); 
+        }
         joinGame();
         initialMessages.forEach(function (item, index) {
             handleMessage(item);
@@ -838,6 +840,18 @@ var handleMessage = function(msg) {
             );
         }
         rematches[msg.color] = 'seen';
+        if (msg.hasOwnProperty('gameId')) {
+            window.location.replace('/game/' + msg.gameId);
+        }
+    } else if (msg.c == 'watcherAdded') {
+            var dt = new Date();
+            addGameMessage(
+                "SYSTEM",
+                msg.screenname + " is watching.",
+                "red",
+                'black',
+                dt
+            );
     } else {
         console.log("unknown msg recieved");
         console.debug(msg);

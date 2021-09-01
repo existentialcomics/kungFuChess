@@ -45,6 +45,8 @@ sub _init {
     $self->{playersByAuth} = {};
     $self->{playersConn}   = {};
 
+    $self->{watchers} = [];
+
     $self->{isAiGame} = $isAiGame;
     $self->{readyToPlay}   = 0;
     $self->{auth}          = $auth;
@@ -84,7 +86,6 @@ sub _init {
 sub killPlayer {
     my $self  = shift;
     my $color = shift;
-    print "kill player $color\n";
     if ($color eq 'both') {
         $self->{black}->{alive} = 0;
         $self->{white}->{alive} = 0;
@@ -146,9 +147,9 @@ sub addConnection {
 
 sub removeConnection {
     my $self = shift;
-    my $conn = shift;
+    my $connId = shift;
 
-    delete $self->{playersConn}->{$conn};
+    delete $self->{playersConn}->{$connId};
 }
 
 ### returns positive number if all players are ready for how many seconds until game begins
@@ -289,11 +290,16 @@ sub playerBroadcast {
     my $msg = shift;
 
 	delete $msg->{auth};
+    my $msgConnId = $msg->{connId};
+    delete $msg->{connId};
 
-    foreach my $conn (values %{ $self->{playersConn}}) {
+    foreach my $connId (keys %{ $self->{playersConn}}) {
+        my $conn = $self->{playersConn}->{$connId};
         eval {
-            if ($conn) {
-                $conn->send(encode_json $msg);
+            if (! defined($msgConnId) || ($msgConnId eq $connId)) {
+                if ($conn) {
+                    $conn->send(encode_json $msg);
+                }
             }
         };
     }
@@ -317,6 +323,24 @@ sub playerBroadcast {
 sub resetRecording() {
     my $self = shift;
     $self->{gameLog} = [];
+}
+
+sub addWatcher {
+    my $self = shift;
+    my $user = shift;
+    push @{$self->{watchers}}, $user;
+    $self->playerBroadcast(
+        {
+            'c' => 'watcherAdded',
+            'screenname' => $user->{screenname}
+        }
+    );
+}
+
+sub getWatchers {
+    my $self = shift;
+
+    return @{$self->{watchers}};
 }
 
 sub addPlayer {

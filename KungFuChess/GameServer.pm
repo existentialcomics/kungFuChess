@@ -317,9 +317,7 @@ sub handleMessage {
     my ($msg, $conn) = @_;
 
     if ($msg->{c} eq 'join'){
-        $self->sendAllGamePieces();
-    } elsif ($msg->{c} eq 'playerjoin'){
-        $self->sendAllGamePieces();
+        $self->sendAllGamePieces($msg->{connId});
     } elsif ($msg->{c} eq 'move'){
         if ($msg->{move}) {
             $self->moveIfLegal($msg->{color}, $msg->{move});
@@ -356,10 +354,10 @@ sub checkForForceDraw {
 ### also figure out a way to send these to only the person that needs it
 sub sendAllGamePieces {
     my $self = shift;
+    my $connId = shift;
     my $returnOnly = shift;
     my $conn = $self->{conn};
 
-    #print KungFuChess::Bitboards::pretty();
     my @msgs = ();
     foreach my $r ( @{ $self->{ranks} } ) {
         foreach my $f ( @{ $self->{files} } ) {
@@ -368,7 +366,8 @@ sub sendAllGamePieces {
                 my $msg = {
                     'c' => 'spawn',
                     'chr'    => $chr,
-                    'square' => $f . $r
+                    'square' => $f . $r,
+                    'connId' => $connId
                 };
                 push @msgs, $msg;
             }
@@ -378,7 +377,8 @@ sub sendAllGamePieces {
         my $msg = {
             'c' => 'authstop',
             'fr_bb'  => $key,
-            'time_remaining' => $self->{pieceRecharge} - (time() - $value)
+            'time_remaining' => $self->{pieceRecharge} - (time() - $value),
+            'connId' => $connId
         };
         push @msgs, $msg;
     }
@@ -386,7 +386,8 @@ sub sendAllGamePieces {
         my $msg = {
             'c' => 'authmove',
             'fr_bb' => $key,
-            'to_bb' => $value->{to_bb}
+            'to_bb' => $value->{to_bb},
+            'connId' => $connId
         };
         push @msgs, $msg;
     }
@@ -402,7 +403,7 @@ sub endGame {
     my $self = shift;
 
     print "game ending...\n";
-    my @msgs = $self->sendAllGamePieces(1);
+    my @msgs = $self->sendAllGamePieces(undef, 1);
     my $msg = {
         'c' => 'gamePositionMsgs',
         'msgs' => encode_json(\@msgs) ### double encoded because want to store the json not use it
@@ -561,10 +562,8 @@ sub moveIfLegal {
 
             ### enemy collision
             if ($themColor != 0 && $themColor != $usColor) {
-                print "collision detected\n";
                 ### active collision
                 if (exists($self->{activeMoves}->{$moving_to_bb})) {
-                    print "  active move detected at $moving_to_bb\n";
                     my $themStartTime = $self->{activeMoves}->{$moving_to_bb}->{start_time};
                     if ($themStartTime < $startTime) {
                         print "     and so we must die\n";
@@ -587,7 +586,6 @@ sub moveIfLegal {
                         $self->send($msgStep);
                     }
                 } else { ### we hit a stopped enemy
-                    print "hitting stopped enmey\n";
                     $self->killPieceBB($moving_to_bb);
                     KungFuChess::Bitboards::move($fr_bb, $moving_to_bb);
                     my $msgStep = {
@@ -628,7 +626,6 @@ sub moveIfLegal {
                 $to_bb = $fr_bb;
                 $moving_to_bb = $fr_bb;
             } else { ### moving into a free space
-                print "moving to free space...\n";
                 KungFuChess::Bitboards::move($fr_bb, $moving_to_bb);
                 my $msgStep = {
                     'c' => 'authmovestep',
@@ -694,7 +691,6 @@ sub moveIfLegal {
             if ($colorbit == KungFuChess::Bitboards::WHITE || $colorbit == KungFuChess::Bitboards::BLACK) {
                 ### 4way bitboards are messed up and EAST and WEST are switched. Actually seems to effect nothing else.
                 if ($self->{gameType} eq '4way') {
-                    print "4way castle dected rook OO\n";
                     $rook_moving_to = KungFuChess::Bitboards::shift_BB($fr_bb, KungFuChess::Bitboards::WEST);
                 } else {
                     $rook_moving_to = KungFuChess::Bitboards::shift_BB($fr_bb, KungFuChess::Bitboards::EAST);
@@ -706,7 +702,6 @@ sub moveIfLegal {
             if ($colorbit == KungFuChess::Bitboards::WHITE || $colorbit == KungFuChess::Bitboards::BLACK) {
                 if ($self->{gameType} eq '4way') {
                     $king_moving_to = KungFuChess::Bitboards::shift_BB($to_bb, KungFuChess::Bitboards::EAST);
-                    print "4way castle dected king\n";
                 } else {
                     $king_moving_to = KungFuChess::Bitboards::shift_BB($to_bb, KungFuChess::Bitboards::WEST);
                 }
@@ -749,7 +744,6 @@ sub moveIfLegal {
             if ($colorbit == KungFuChess::Bitboards::WHITE || $colorbit == KungFuChess::Bitboards::BLACK) {
                 ### 4way bitboards are messed up and EAST and WEST are switched. Actually seems to effect nothing else.
                 if ($self->{gameType} eq '4way') {
-                    print "4way castle dected\n";
                     $rook_moving_to = KungFuChess::Bitboards::shift_BB(
                         KungFuChess::Bitboards::shift_BB($fr_bb, KungFuChess::Bitboards::EAST),
                         KungFuChess::Bitboards::EAST);
@@ -767,7 +761,6 @@ sub moveIfLegal {
             if ($colorbit == KungFuChess::Bitboards::WHITE || $colorbit == KungFuChess::Bitboards::BLACK) {
                 ### 4way bitboards are messed up and EAST and WEST are switched. Actually seems to effect nothing else.
                 if ($self->{gameType} eq '4way') {
-                    print "4way castle dected king\n";
                     $king_moving_to = KungFuChess::Bitboards::shift_BB($to_bb, KungFuChess::Bitboards::WEST);
                 } else {
                     $king_moving_to = KungFuChess::Bitboards::shift_BB($to_bb, KungFuChess::Bitboards::EAST);
@@ -861,7 +854,6 @@ sub killPieceBB {
 
     ### mark that it is no longer active, stopping any movement
     my $piece = KungFuChess::Bitboards::_getPieceBB($bb);
-    print "   deleting activeMove $bb\n";
     delete $self->{activeMoves}->{$bb};
     if ($piece) {
         my $killMsg = {

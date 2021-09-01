@@ -439,7 +439,7 @@ get '/ajax/rematch' => sub {
                         } elsif (! $existingRematch->{challenge_player_3_id}) {
                             ### we are the last to rematch so we are now ready to play.
                             $gameId = createGame($gameRow->{game_type}, $gameRow->{game_speed}, $gameRow->{rated}, $gameRow->{white_player}, $gameRow->{black_player}, $gameRow->{red_player}, $gameRow->{green_player});
-                            app->db()->do( 'UPDATE pool SET challenge_player_3_id = ?, matched_game = ?, last_ping = NOW()
+                            app->db()->do('UPDATE pool SET challenge_player_3_id = ?, matched_game = ?, last_ping = NOW()
                                 WHERE private_game_key = ?',
                                 {},
                                 $user->{player_id},
@@ -450,7 +450,11 @@ get '/ajax/rematch' => sub {
                     }
                 }
             } else {
-                app->db()->('DELETE FROM pool WHERE player_id = ?', $user->{player_id});
+                app->db()->do(
+                    'DELETE FROM pool WHERE player_id = ?',
+                    {},
+                    $user->{player_id}
+                );
                 my $sth = app->db()->prepare('INSERT INTO pool
                     (player_id, game_speed, game_type, open_to_public, rated, private_game_key, in_matching_pool, last_ping)
                     VALUES (?, ?, ?, ?, ?, ?, 0, NOW())');
@@ -525,6 +529,9 @@ get '/ajax/rematch' => sub {
         'c' => 'rematch',
         'color' => $color
     };
+    if ($gameId) {
+        $msg->{gameId} = $gameId;
+    }
 
     my $count = 0;
     foreach my $conn (values %{$gameConnections{$origGameId}}) {
@@ -1064,8 +1071,11 @@ get '/game/:gameId' => sub {
     }
     if ($color ne 'watch' && $game) {
         $game->addPlayer($user, $color);
+    } else {
+        $game->addWatcher($user, $color);
     }
     $c->stash('color', $color);
+    $c->stash('watchers', $game->getWatchers);
 
     $c->render('template' => 'board', format => 'html', handler => 'ep');
     return;
@@ -1460,6 +1470,9 @@ websocket '/ws' => sub {
                     'c' => 'joined',
                 };
                 $self->send(encode_json $ret);
+
+                ## pass msg to server to send piece pos
+                $msg->{connId} = $connId;
                 $game->serverBroadcast($msg);
                 app->log->debug('player joined');
             } else {
@@ -1467,7 +1480,6 @@ websocket '/ws' => sub {
                     'c' => 'notready',
                 };
                 $self->send(encode_json $retNotReady);
-                $game->serverBroadcast($msg);
             }
         } elsif ($msg->{'c'} eq 'chat'){
             my $player = new KungFuChess::Player({auth_token => $msg->{auth}}, app->db());
@@ -1837,7 +1849,7 @@ sub endGame {
 
     app->db()->do("DELETE FROM pool WHERE matched_game = ?", {}, $gameId);
 
-        if ($status eq 'finished') {
+    if ($status eq 'finished') {
         app->log->debug("  $gameId already ended ($status)");
         return 0;
     }

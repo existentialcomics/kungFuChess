@@ -1,8 +1,8 @@
 game log in profile
 game info box (4way, speed, start time, etc)
 rematch for anon practice games doens't work
-you can castle even if you've moved
-show rematch requests
-4way ratings working
-fix replays?
 begin removing things from Game.pm into database
+queen castle goes to wrong spot.
+chat log in games
+possible not to pawn take on certain squares??
+pool games show old matchup in open tab

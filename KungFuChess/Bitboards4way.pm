@@ -911,7 +911,7 @@ sub isLegalMove {
 
         # we dont worry about color for ranks because you can't move two that way anyway
         if ($pawnDir == NORTH || $pawnDir == SOUTH) {
-            if ((shift_BB($fr_bb, $pawnDir + $pawnDir) & $to_bb) && ($fr_bb & (RANKS_H->{2} | RANKS_H->{15})) ){
+            if ((shift_BB($fr_bb, $pawnDir + $pawnDir) & $to_bb) && ($fr_bb & (RANKS_H->{'2'} | RANKS_H->{'11'}) ) ){
                 if ($to_bb & $occupied) {
                     return @noMove;
                 }
@@ -924,12 +924,11 @@ sub isLegalMove {
                 # in the app we are expected to moveIfLegal so fine?
                 # GameServer is expected to clear this when timer runs out.
                 $enPassant |= shift_BB($to_bb, getReverseDir($pawnDir));
-                print "enPassant- $enPassant\n";
 
                 return ($color, $pawnMoveType, $pawnDir, $fr_bb, $to_bb);
             }
-        } else {
-            if ((shift_BB(shift_BB($fr_bb, $pawnDir), $pawnDir) & $to_bb) && ($fr_bb & (FILES_H->{'b'} | FILES_H->{'k'})) ){
+        } else { ### east / west
+            if ((shift_BB(shift_BB($fr_bb, $pawnDir), $pawnDir) & $to_bb) && ($fr_bb & (FILES_H->{'b'} | FILES_H->{'k'}) ) ){
                 if ($to_bb & $occupied) {
                     return @noMove;
                 }
