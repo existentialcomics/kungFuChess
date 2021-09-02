@@ -1070,12 +1070,16 @@ get '/game/:gameId' => sub {
         }
     }
     if ($color ne 'watch' && $game) {
-        $game->addPlayer($user, $color);
+        if ($game) {
+            $game->addPlayer($user, $color);
+        }
     } else {
-        $game->addWatcher($user, $color);
+        if ($game) {
+            $game->addWatcher($user, $color);
+        }
     }
     $c->stash('color', $color);
-    $c->stash('watchers', $game->getWatchers);
+    $c->stash('watchers', (defined($game) ? $game->getWatchers : []));
 
     $c->render('template' => 'board', format => 'html', handler => 'ep');
     return;
