@@ -1227,7 +1227,9 @@ var getPiece = function(x, y, color, image){
 
                 if ((frame.time > piece.anim_length)){
                     this.stop();
-                    piece.image.draggable(true);
+                    if (piece.color == myColor || myColor == 'both'){
+                        piece.image.draggable(true);
+                    }
                     piece.isMoving = false;
 
                     if (pieces[piece.id] != null) {
@@ -1256,7 +1258,9 @@ var getPiece = function(x, y, color, image){
             piece.promoteToQueen();
         }
 
-        piece.image.draggable(true);
+        if (piece.color == myColor || myColor == 'both'){
+            piece.image.draggable(true);
+        }
         piece.isMoving = false;
         piece.setDelayTimer(timeToCharge)
         piece.setImagePos(piece.x, piece.y);

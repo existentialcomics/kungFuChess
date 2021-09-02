@@ -500,6 +500,12 @@ sub moveIfLegal {
         if ($color eq 'black' && $colorbit != 2) {
             return 0;
         }
+        if ($color eq 'red'   && $colorbit != 3) {
+            return 0;
+        }
+        if ($color eq 'green' && $colorbit != 4) {
+            return 0;
+        }
     }
 
     my $timer = undef;
