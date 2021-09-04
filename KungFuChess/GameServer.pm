@@ -377,7 +377,7 @@ sub sendAllGamePieces {
         my $msg = {
             'c' => 'authstop',
             'fr_bb'  => $key,
-            'time_remaining' => $self->{pieceRecharge} - (time() - $value),
+            'time_remaining' => $self->{pieceRecharge} - (time() - $value->{'time'}),
             'connId' => $connId
         };
         push @msgs, $msg;
@@ -480,19 +480,37 @@ sub moveIfLegal {
     my $move  = shift;
     my $to_move = shift;
 
-    ### TODO premove
-    my ($colorbit, $moveType, $moveDir, $fr_bb, $to_bb);
-    if (defined($to_move)) { ### this means we are getting bitboards
-        ($colorbit, $moveType, $moveDir, $fr_bb, $to_bb) = KungFuChess::Bitboards::isLegalMove($move, $to_move);
-    } else {
-        ($colorbit, $moveType, $moveDir, $fr_bb, $to_bb) = KungFuChess::Bitboards::isLegalMove( KungFuChess::Bitboards::parseMove($move));
+    my $move_fr_bb = undef;
+    my $move_to_bb = undef;
+
+    my ($fr_rank, $fr_file, $to_rank, $to_file);
+
+    ### this means we passed in bitboards
+    if (defined($to_move)) {
+        $move_fr_bb = $move;
+        $move_to_bb = $to_move;
+    } else { ### this means we passed in a string like a1b2
+        ($move_fr_bb, $move_to_bb, $fr_rank, $fr_file, $to_rank, $to_file) = 
+        KungFuChess::Bitboards::parseMove($move);
     }
+
+    if (exists($self->{timeoutSquares}->{$move_fr_bb})) {
+        # can't use the key because it is converted to string secretly
+        $self->{timeoutSquares}->{$move_fr_bb}->{'fr_bb'} = $move_fr_bb;
+        $self->{timeoutSquares}->{$move_fr_bb}->{'to_bb'} = $move_to_bb;
+        $self->{timeoutSquares}->{$move_fr_bb}->{'color'} = $color;
+        print "setting premove $color $move_fr_bb\n";
+        return 0;
+    }
+
+    my ($colorbit, $moveType, $moveDir, $fr_bb, $to_bb)
+        = KungFuChess::Bitboards::isLegalMove($move_fr_bb, $move_to_bb, $fr_rank, $fr_file, $to_rank, $to_file);
+
+    print "moveType: $moveType\n";
     if ($moveType == 0) {
         return 0;
     }
-    if (exists($self->{timeoutSquares}->{$fr_bb})) {
-        return 0;
-    }
+
     if ($color ne 'both') {
         if ($color eq 'white' && $colorbit != 1) {
             return 0;
@@ -814,7 +832,7 @@ sub moveIfLegal {
             );
         } else {
             my $time = time();
-            $self->{timeoutSquares}->{$to_bb} = $time;
+            $self->{timeoutSquares}->{$to_bb} = { 'time' => $time };
             $self->{timeoutCBs}->{$to_bb} = AnyEvent->timer(
                 after => $self->{pieceRecharge} + $nextMoveSpeed,
                 cb => sub {
@@ -823,9 +841,20 @@ sub moveIfLegal {
                     #KungFuChess::Bitboards::unsetFrozen($to_bb);
 
                     ### if the time doesn't match, another piece has moved here
-                    if ($time == $self->{timeoutSquares}->{$to_bb}) { 
+                    if ($time == $self->{timeoutSquares}->{$to_bb}->{'time'}) { 
+                        my $timeoutData = $self->{timeoutSquares}->{$to_bb};
                         delete $self->{timeoutSquares}->{$to_bb};
                         delete $self->{timeoutCBs}->{$to_bb};
+                        ### signal that we have a premove
+                        if ($timeoutData->{color}) {
+                            $self->moveIfLegal(
+                                $timeoutData->{color},
+                                $timeoutData->{fr_bb},
+                                $timeoutData->{to_bb}
+                            );
+                        }
+                    } else {
+                        print " new piece?\n";
                     }
                 }
             );

@@ -511,7 +511,6 @@ sub blockersBB {
 sub parseMove {
     my $move = shift;
 
-    print "parse move $move\n";
     my ($fr_f, $fr_r, $to_f, $to_r);
     if ($move =~ m/^([a-z])([0-9]{1,2})([a-z])([0-9]{1,2})$/) {
         ($fr_f, $fr_r, $to_f, $to_r) = ($1, $2, $3, $4);

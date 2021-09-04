@@ -16,7 +16,6 @@ if (gameType == '4way') {
 
 var rematches = [];
 
-
 function rematchPool(originalThread = false) {
     if (cancelRematchPool) {
         rematchPoolRunning = false;
@@ -77,7 +76,7 @@ var height = 320;
 
 var boardContent = $("#boardContainer");
 var game_chatContent = $('#game-chat-log');
-var input = $('#game-chat-input');
+//var input = $('#game-chat-input');
 
 var maxPieceId = 1;
 
@@ -736,11 +735,21 @@ var handleMessage = function(msg) {
             pieceLayer.draw();
         }
     } else if (msg.c == 'gameBegins'){
+        var audio = new Audio('/sound/Tick-DeepFrozenApps-397275646.mp3');
+        audio.play();
 		for(id in pieces){
             pieces[id].setDelayTimer(3);
 		}
+        setTimeout( function() {
+            var audio = new Audio('/sound/Tick-DeepFrozenApps-397275646.mp3');
+            audio.play();
+        }, 1000);
+        setTimeout( function() {
+            var audio = new Audio('/sound/Tick-DeepFrozenApps-397275646.mp3');
+            audio.play();
+        }, 2000);
         setTimeout(startGame, 3000)
-    } else if (msg.c == 'chat') {
+    } else if (msg.c == 'gamechat') {
         var dt = new Date();
         addGameMessage(
             msg.author,
@@ -812,6 +821,9 @@ var handleMessage = function(msg) {
         );
     } else if (msg.c == 'playerReady') {
         var dt = new Date();
+        var audio = new Audio('/sound/public_sound_standard_GenericNotify.ogg');
+        audio.play();
+        $('#' + msg.color + 'Ready').html("<br /><small>ready</small");
         addGameMessage(
             "SYSTEM",
             msg.color + " is ready.",
@@ -935,6 +947,12 @@ conn.onmessage = function(evt) {
 
 var startGame = function(){
     if (! replayMode) {
+        var audio = new Audio('/sound/Boxing_Mma_Or_Wrestling_Bell-SoundBible.com-252285194.mp3');
+        audio.play();
+        $('#whiteReady').hide();
+        $('#blackReady').hide();
+        $('#redReady').hide();
+        $('#greenReady').hide();
         $('#gameStatusWaitingToStart').hide();
         $('#gameStatusActive').show();
         $('#gameStatusWaitingToEnded').hide();
@@ -1437,31 +1455,31 @@ stage.on("drop", function(e){
 /**
  * Send mesage when user presses Enter key
  */
-input.keydown(function(e) {
-    if (e.keyCode === 13) {
-        var message = $(this).val();
-        if (! message ){
-            return;
-        }
+//input.keydown(function(e) {
+    //if (e.keyCode === 13) {
+        //var message = $(this).val();
+        //if (! message ){
+            //return;
+        //}
 
-        var msg = {
-            'c' : 'chat',
-            'message' : message,
-        };
-        // send the message as an ordinary text
-        sendMsg(msg);
-        $(this).val('');
-        // disable the input field to make the user wait until server
-        // sends back response
-        input.attr('disabled', 'disabled');
-    }
-});
+        //var msg = {
+            //'c' : 'chat',
+            //'message' : message,
+        //};
+        //// send the message as an ordinary text
+        //sendMsg(msg);
+        //$(this).val('');
+        //// disable the input field to make the user wait until server
+        //// sends back response
+        //input.attr('disabled', 'disabled');
+    //}
+//});
 
 /**
  * Add message to the chat window
  */
 function addGameMessage(author, message, color, textcolor, dt) {
-    input.removeAttr('disabled'); // let the user write another message
+    $('#game-chat-input').removeAttr('disabled'); // let the user write another message
     game_chatContent.append('<span style="color:' + color + '">' + author + '</span><span style="font-size: 12px;color:grey"> ' +
             + (dt.getHours() < 10 ? '0' + dt.getHours() : dt.getHours()) + ':'
             + (dt.getMinutes() < 10 ? '0' + dt.getMinutes() : dt.getMinutes())
@@ -1472,8 +1490,16 @@ function addGameMessage(author, message, color, textcolor, dt) {
 
 //$(document).ready(function () {
 $(function () {
-    chatLog.forEach(function (logMsg) {
-        handleMessage(logMsg.msg);
+    gameChatLog.slice().reverse().forEach(function (msg) {
+        var dt   = new Date(Date.now() - (msg.unix_seconds_back * 1000))
+        var screenname = msg.screenname;
+        addGameMessage(
+            screenname,
+            msg.comment_text, 
+            (msg.color ? msg.color : 'green'),
+            (msg.text_color ? msg.text_color : 'black'),
+            dt
+        );
     });
     $("#abortGame").click(function() {
         var msg = {
@@ -1516,5 +1542,40 @@ $(function () {
                 }
             }
         });
+    });
+    // game chat
+    console.log('binding enter key for game-chat-input');
+    $('#game-chat-input').bind("enterKey",function(e){
+        var dataPost = {
+            'message' : $(this).val(),
+            'uid' : currentGameUid,
+            'gameId' : gameId,
+        };
+        $(this).val('');
+        $.ajax({
+            type : 'POST',
+            url  : '/ajax/chat',
+            data: dataPost,
+            dataType : 'json',
+            success : function(data){
+                if (data.hasOwnProperty('message')) {
+                    var dt = new Date();
+                    addChatMessage(
+                        'SYSTEM',
+                        data.message,
+                        'red',
+                        'red',
+                        dt
+                    );
+                }
+            }
+        });
+    });
+
+    $('#game-chat-input').keyup(function(e){
+        if(e.keyCode == 13)
+        {
+            $(this).trigger("enterKey");
+        }
     });
 });

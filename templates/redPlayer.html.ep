@@ -1,0 +1,12 @@
+        <% if ($gameType eq '4way') { %>
+            <span class="circle offline" id="redOnline"></span>
+            <span id='redPlayerName'><%= $redPlayer->{screenname} %></span>
+            <span id='redRating'><%= $redPlayer->{"rating_$gameSpeed"} %></span>
+
+            <% if ($redReady == 0) { %>
+            <span id='redReady'><br /><small>not ready</small></span>
+            <% } elsif ($redReady > 0) { %>
+            <br /><span id='redReady'><small>ready</small></span>
+            <% } %>
+            <span>(red)</span>
+        <% } %>

@@ -163,7 +163,9 @@ sub playerReady {
             'c' => 'playerReady',
             'color' => $color
         };
-        $self->playerBroadcast($readyMsg);
+        if ($self->{"${color}Ready"} == 0) {
+            $self->playerBroadcast($readyMsg);
+        }
         if ($color eq 'white' || $color eq 'both' || $self->{isAiGame}){
             $self->{whiteReady} = time();
         } 

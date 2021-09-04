@@ -1,0 +1,12 @@
+        <span class="circle offline" id="whiteOnline"></span>
+        <span id='whitePlayerName'><%= $whitePlayer->{screenname} %></span>
+        <span id='whiteRating'><%= $whitePlayer->{"rating_$gameSpeed"} %></span>
+
+        <% if ($whiteReady == 0) { %>
+        <span id='whiteReady'><br /><small>not ready</small></span>
+        <% } elsif ($whiteReady > 0) { %>
+        <br /><span id='whiteReady'><small>ready</small></span>
+        <% } %>
+        <% if ($gameType eq '4way') { %>
+            <span>(white)</span>
+        <% } %>

@@ -124,7 +124,9 @@ get '/' => sub {
     my $games = getActiveGames();
     $c->stash('games' => $games);
     my $activeTab = $c->req->param('activeTab') ? $c->req->param('activeTab') : 'pool';
+    my $currentGameUid = $c->req->param('uid') ? $c->req->param('uid') : '';
     $c->stash('activeTab' => $activeTab);
+    $c->stash('currentGameUid' => $currentGameUid);
     my $chatLog = app->db()->selectall_arrayref(
         "SELECT chat_log.*, chat_log.player_color as color, UNIX_TIMESTAMP() - UNIX_TIMESTAMP(post_time) as unix_seconds_back, p.screenname FROM chat_log
             LEFT JOIN players p ON chat_log.player_id = p.player_id
@@ -611,13 +613,25 @@ post '/ajax/chat' => sub {
             };
 
 
-            app->db()->do('INSERT INTO chat_log (comment_text, player_id, player_color, post_time) VALUES (?,?,?,NOW())', {},
+            app->db()->do('INSERT INTO chat_log (comment_text, player_id, player_color, game_id, post_time) VALUES (?,?,?,?,NOW())', {},
                 $msg->{'message'},
                 $user->{player_id},
-                $user->getBelt()
+                $user->getBelt(),
+                $c->req->param('gameId')
             );
             $msg->{'color'} = $user->getBelt();
-            globalBroadcast($msg);
+            if ($c->req->param('gameId')) {
+                $msg->{c} = 'gamechat';
+                foreach my $conn (values %{$gameConnections{$c->req->param('gameId')}}) {
+                    eval {
+                        if ($conn) {
+                            $conn->send(encode_json($msg));
+                        }
+                    };
+                }
+            } else {
+                globalBroadcast($msg);
+            }
         } else {
             $return{'message'} = "You must be logged in to chat.";
         }
@@ -845,7 +859,8 @@ get '/matchGame/:uid' => sub {
         $c->stash('error' => 'Game not found.');
         return $c->redirect_to("/");
     } elsif ($gameId == -1) { ### signal that we are a 4way game
-        return $c->redirect_to('/?activeTab=openGames');
+        $c->session('currentGameUid' => $c->stash('uid'));
+        return $c->redirect_to('/?activeTab=openGames&uid=' . $c->stash('uid'));
     }
 
     return $c->redirect_to('/game/' . $gameId);
@@ -1007,15 +1022,34 @@ get '/game/:gameId' => sub {
     my $game = ($currentGames{$gameId} ? $currentGames{$gameId} : undef);
     my $gameRow = app->db()->selectrow_hashref('SELECT * FROM games WHERE game_id = ?', { 'Slice' => {} }, $gameId);
 
+    $c->stash('whiteReady'  => $game ? $game->{whiteReady} : -1);
+    $c->stash('blackReady'  => $game ? $game->{blackReady} : -1);
+    $c->stash('redReady'    => $game ? $game->{redReady}   : -1);
+    $c->stash('greenReady'  => $game ? $game->{greenReady} : -1);
+
     $c->stash('positionGameMsgs' => $gameRow->{final_position});
     $c->stash('gameLog'          => $gameRow->{game_log} ? $gameRow->{game_log} : '[]');
-    $c->stash('chatLog'          => ($game ? encode_json($game->{chatLog}) : undef));
     $c->stash('gameStatus'       => $gameRow->{status});
     my ($timerSpeed, $timerRecharge) = getPieceSpeed($gameRow->{game_speed});
     $c->stash('gameSpeed'     => $gameRow->{game_speed});
     $c->stash('gameType'      => $gameRow->{game_type});
     $c->stash('timerSpeed'    => $timerSpeed);
     $c->stash('timerRecharge' => $timerRecharge);
+
+    my $chatLog = app->db()->selectall_arrayref(
+        "SELECT chat_log.*, chat_log.player_color as color, UNIX_TIMESTAMP() - UNIX_TIMESTAMP(post_time) as unix_seconds_back, p.screenname FROM chat_log
+            LEFT JOIN players p ON chat_log.player_id = p.player_id
+            WHERE game_id = ?
+            ORDER BY chat_log_id
+            DESC limit 100",
+        { 'Slice' => {} },
+        $gameId
+    );
+    my $chatLogString = ($chatLog ? encode_json \@{$chatLog} : '[]');
+    ### hacky but not sure how to do it proper. Because it is a javascript string
+    #   we must double escape "
+    #$chatLogString =~ s/\\"/\\\\"/g;
+    $c->stash('gameChatLog' => $chatLogString);
 
     if (defined($white->{player_id})){
         my $matchedKey = 1;
@@ -1434,26 +1468,6 @@ websocket '/ws' => sub {
             if ($msg->{userAuthToken}) {
                 $globalConnectionsByAuth{$msg->{userAuthToken}} = $self;
                 app->db()->do('UPDATE players SET last_seen = NOW() WHERE auth_token = ?', {}, $msg->{userAuthToken});
-            }
-        } elsif ($msg->{'c'} eq 'chat') {
-            my $player = new KungFuChess::Player({auth_token => $msg->{auth}}, app->db());
-            $msg->{'message'} = escape_html($msg->{'message'});
-            $msg->{'author'}  = escape_html( ($player ? $player->{screenname} : "anonymous") );
-
-            $msg->{'color'} = $player->getBelt();
-            app->db()->do('INSERT INTO chat_log (comment_text, player_id, game_id, post_time) VALUES (?,?,?,NOW())', {},
-                $msg->{'message'},
-                $msg->{gameId},
-                $player->{player_id}
-            );
-
-            app->log->debug("chat msg recieved for $msg->{gameId}");
-            foreach my $conn (values %{$gameConnections{$msg->{gameId}}}) {
-                eval {
-                    if ($conn) {
-                        $conn->send(encode_json($msg));
-                    }
-                };
             }
         }
 
@@ -1949,7 +1963,6 @@ sub endGame {
         }
     }
 
-
     my $game = $currentGames{$gameId};
     my $whiteStartRating = (defined($whiteEnd->{"rating_$gameSpeed"}) ? $whiteEnd->{"rating_$gameSpeed"} :
         (defined($whiteStart->{"rating_$gameSpeed"}) ? $whiteStart->{"rating_$gameSpeed"} : 0));
@@ -1959,8 +1972,8 @@ sub endGame {
     my $blackEndRating =  (defined($blackStart->{"rating_$gameSpeed"}) ? $blackStart->{"rating_$gameSpeed"} : 0);
 
     my $ratingsAdj = {
-        'white' => $whiteEndRating - $whiteStartRating,
-        'black' => $blackEndRating - $blackStartRating
+        'white' => $whiteStartRating - $whiteEndRating,
+        'black' => $blackStartRating - $blackEndRating
     };
     if ($gameType eq '4way') {
         my $redStartRating = (defined($redEnd->{"rating_$gameSpeed"}) ? $redEnd->{"rating_$gameSpeed"} :
@@ -1969,8 +1982,8 @@ sub endGame {
         my $greenStartRating = (defined($greenEnd->{"rating_$gameSpeed"}) ? $greenEnd->{"rating_$gameSpeed"} :
             (defined($greenStart->{"rating_$gameSpeed"}) ? $greenStart->{"rating_$gameSpeed"} : 0));
         my $greenEndRating =  (defined($greenStart->{"rating_$gameSpeed"}) ? $greenStart->{"rating_$gameSpeed"} : 0);
-        $ratingsAdj->{'red'} = $redEndRating - $redStartRating;
-        $ratingsAdj->{'green'} = $greenEndRating - $greenStartRating;
+        $ratingsAdj->{'red'}   = $redStartRating   - $redEndRating;
+        $ratingsAdj->{'green'} = $greenStartRating - $greenEndRating;
     };
     if ($game) {
         my $msg = {
