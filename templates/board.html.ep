@@ -90,7 +90,7 @@
         gameLog = [];
     }
     try {
-        gameChatLog = JSON.parse('<%== $gameChatLog %>');
+        gameChatLog = <%== $gameChatLog %>;
     } catch (e) {
         gameChatLog = [];
     }

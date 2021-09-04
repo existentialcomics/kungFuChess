@@ -1453,29 +1453,6 @@ stage.on("drop", function(e){
 
 
 /**
- * Send mesage when user presses Enter key
- */
-//input.keydown(function(e) {
-    //if (e.keyCode === 13) {
-        //var message = $(this).val();
-        //if (! message ){
-            //return;
-        //}
-
-        //var msg = {
-            //'c' : 'chat',
-            //'message' : message,
-        //};
-        //// send the message as an ordinary text
-        //sendMsg(msg);
-        //$(this).val('');
-        //// disable the input field to make the user wait until server
-        //// sends back response
-        //input.attr('disabled', 'disabled');
-    //}
-//});
-
-/**
  * Add message to the chat window
  */
 function addGameMessage(author, message, color, textcolor, dt) {
@@ -1490,6 +1467,9 @@ function addGameMessage(author, message, color, textcolor, dt) {
 
 //$(document).ready(function () {
 $(function () {
+    console.log('document ready');
+    var dt = new Date();
+
     gameChatLog.slice().reverse().forEach(function (msg) {
         var dt   = new Date(Date.now() - (msg.unix_seconds_back * 1000))
         var screenname = msg.screenname;
@@ -1578,4 +1558,7 @@ $(function () {
             $(this).trigger("enterKey");
         }
     });
+    var audio = new Audio('/sound/public_sound_standard_GenericNotify.ogg');
+    audio.play();
+    console.log('audio.play()');
 });
