@@ -64,6 +64,7 @@ sub _init {
         $self->{green}->{alive} = 0;
     }
 
+    $self->{bothReady}    = 0;
     $self->{whiteReady}    = 0;
     $self->{blackReady}    = 0;
     $self->{redReady}      = 0;

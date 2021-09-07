@@ -542,13 +542,7 @@ get '/ajax/rematch' => sub {
     }
 
     my $count = 0;
-    foreach my $conn (values %{$gameConnections{$origGameId}}) {
-        eval {
-            if ($conn) {
-                $conn->send(encode_json($msg));
-            }
-        };
-    }
+    gameBroadcast($msg, $origGameId);
     $c->render('json' => $return );
 };
 
@@ -628,13 +622,7 @@ post '/ajax/chat' => sub {
             $msg->{'color'} = $user->getBelt();
             if ($c->req->param('gameId')) {
                 $msg->{c} = 'gamechat';
-                foreach my $conn (values %{$gameConnections{$c->req->param('gameId')}}) {
-                    eval {
-                        if ($conn) {
-                            $conn->send(encode_json($msg));
-                        }
-                    };
-                }
+                gameBroadcast($msg, $c->req->param('gameId'));
             } else {
                 globalBroadcast($msg);
             }
@@ -1471,7 +1459,7 @@ websocket '/ws' => sub {
             } else {
                 $game->removeConnection($connId);
                 delete $playerGamesByServerConn{$connId};
-                delete $gameConnections{$gameId};
+                delete $gameConnections{$gameId}->{$connId};
                 app->log->debug("game connection closed $connId");
             }
         } else {
@@ -1779,6 +1767,21 @@ sub globalBroadcast {
     }
 }
 
+sub gameBroadcast {
+    my $msg = shift;
+    my $gameId = shift;
+
+    print "game broadcast $gameId\n";
+
+    foreach my $conn (values %{$gameConnections{$gameId}}) {
+        eval {
+            if ($conn) {
+                $conn->send(encode_json($msg));
+            }
+        };
+    }
+}
+
 sub serverBroadcast {
     my ($gameId, $msg) = @_;
     $games{$gameId}->{serverConn}->send(encode_json $msg);
@@ -2033,16 +2036,17 @@ sub endGame {
         $ratingsAdj->{'red'}   = $redStartRating   - $redEndRating;
         $ratingsAdj->{'green'} = $greenStartRating - $greenEndRating;
     };
+
+    my $msg = {
+        'c' => 'gameOver',
+        'result' => $result,
+        'score' => $score,
+        'ratingsAdj' => $ratingsAdj,
+    };
     if ($game) {
-        my $msg = {
-            'c' => 'gameOver',
-            'result' => $result,
-            'score' => $score,
-            'ratingsAdj' => $ratingsAdj,
-        };
-        $game->playerBroadcast($msg);
         $game->serverBroadcast($msg);
     }
+    gameBroadcast($msg, $gameId);
     delete $currentGames{$gameId};
     delete $games{$gameId};
     return 1;
