@@ -71,7 +71,7 @@
             <tr>
               <th>Rating</th>
               <td>
-                <h5><div id="<%= $player->getBelt('lightning') %>belt"></div><%= $player->getRating('standard', '4way') %></h5>
+                <h5><div id="<%= $player->getBelt('lightning') %>belt"></div><%= $player->getRating('lightning', '2way') %></h5>
               </td>
               <td>
                 <h5><div id="<%= $player->getBelt('lightning', '4way') %>belt"></div><%= $player->getRating('lightning', '4way') %></h5>

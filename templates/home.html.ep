@@ -4,7 +4,7 @@
     <div class="row">
 
         <div class="col-sm">
-            <nav class="navbar navbar-expand-lg navbar-light bg-light">
+            <nav class="navbar navbar-expand-lg navbar-expand navbar-light bg-light">
                   <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navBarPlayers" aria-controls="navBarPlayers" aria-expanded="false" aria-label="Toggle navigation">
                   <span class="navbar-toggler-icon"></span>
                   </button>
@@ -20,7 +20,7 @@
         </div>
 
         <div class="col-sm">
-            <nav class="navbar navbar-expand-lg navbar-light bg-light">
+            <nav class="navbar navbar-expand-lg navbar-expand navbar-light bg-light">
                   <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navBarGames" aria-controls="navBarGames" aria-expanded="false" aria-label="Toggle navigation">
                   <span class="navbar-toggler-icon"></span>
                   </button>
@@ -33,7 +33,6 @@
                   </div>
              </nav>
             <div id='pool-matching' style='<% if($activeTab ne 'pool') { %>display:none;<% } %>'>
-                <% if ($user && $user->{player_id} != -1) { %>
                 <a class="btn-block btn btn-primary p-4 text-light" id="enter-pool-standard" role="button">
                     Standard Pool
                 </a>
@@ -43,9 +42,8 @@
                 <a class="btn-block btn btn-primary p-4 text-light" id="enter-pool-4way-lightning" role="button">
                     4way Lightning Pool
                 </a>
-                <% } else { %>
-                You must be logged in to enter the quick matching pools. You can still create games from the "Open Games" tab.
-                %= include 'loginForm'
+                <% if (!($user && $user->{player_id} != -1)) { %>
+                    <small><a href="/login">Log in</a> to play rated games.</small>
                 <% } %>
             </div>
             <div id='openGamesContent' class='card shadow-m' style="<% if($activeTab ne 'openGames') { %>display:none;<% } %>">
@@ -58,7 +56,7 @@
         </div>
 
         <div class="col-sm">
-            <nav class="navbar navbar-expand-lg navbar-light bg-light">
+            <nav class="navbar navbar-expand-lg navbar-expand navbar-light bg-light">
                   <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarChat" aria-controls="navbarChat" aria-expanded="false" aria-label="Toggle navigation">
                   <span class="navbar-toggler-icon"></span>
                   </button>

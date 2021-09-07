@@ -13,6 +13,9 @@ use IPC::Open2;
 use Config::Simple;
 use Time::HiRes qw(time);
 use Data::Dumper;
+# do it all in one line .env file
+use Dotenv -load;
+use Env;
 
 ### taken from Chess::Rep
 ### can't use the whole lib because of chess specific rules like check
@@ -242,7 +245,9 @@ sub _init {
         ssl_no_verify => 1,   
     );
 
-	$client->connect("ws://localhost:3000/ws")->cb(sub {
+    $client->connect(
+        ($ENV{KFC_WS_PROTOCOL} // 'ws') . '://' . ($ENV{KFC_WS_DOMAIN} // 'localhost:3000') . "/ws"
+    )->cb(sub {
 		# make $connection an our variable rather than
 		# my so that it will stick around.  Once the
 		# connection falls out of scope any callbacks

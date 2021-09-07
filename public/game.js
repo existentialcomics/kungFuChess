@@ -840,6 +840,15 @@ var handleMessage = function(msg) {
             'black',
             dt
         );
+    } else if (msg.c == 'revokeDraw') {
+        var dt = new Date();
+        addGameMessage(
+            "SYSTEM",
+            msg.color + " has revoked draw request.",
+            "red",
+            'black',
+            dt
+        );
     } else if (msg.c == 'rematch') {
         if (rematches[msg.color] !== 'seen') {
             var dt = new Date();
@@ -1558,7 +1567,4 @@ $(function () {
             $(this).trigger("enterKey");
         }
     });
-    var audio = new Audio('/sound/public_sound_standard_GenericNotify.ogg');
-    audio.play();
-    console.log('audio.play()');
 });

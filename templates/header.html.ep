@@ -4,8 +4,12 @@
     <title><%= $title %></title>
     <script src="/jquery-3.2.min.js"></script>
     <script src="/js/bootstrap.min.js"></script>
-    <script src="/config.js"></script>
-    <script src="/main.js"></script>
+    <script>
+        var wsDomain     = '<%= $wsDomain %>';
+        var wsDomainMain = '<%= $wsDomainMain %>';
+        var wsProtocol   = '<%= $wsProtocol %>';
+    </script>
+    <script src="/main.js?version=1.0"></script>
     <% if ($user){ %>
     <link rel="stylesheet" type="text/css" href="/css/<%= $user->getBelt() %>.css">
     <% } else { %>

@@ -4,5 +4,3 @@ rematch for anon practice games doens't work
 begin removing things from Game.pm into database
 queen castle goes to wrong spot.
 possible not to pawn take on certain squares??
-pool games show old matchup in open tab
-sort players by rating

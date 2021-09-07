@@ -13,6 +13,8 @@ use IPC::Open2;
 use Config::Simple;
 use Time::HiRes qw(time);
 use Data::Dumper;
+# do it all in one line .env file
+use Dotenv -load;
 
 ### taken from Chess::Rep
 ### can't use the whole lib because of chess specific rules like check
@@ -190,6 +192,9 @@ sub _init {
 
     ### currently animating moves
     $self->{activeMoves}    = {};
+
+    ### keep track of original move times for stopped pieces
+    $self->{startMoves}    = {};
     ### squares that are on hold before they can move again
     $self->{timeoutSquares} = {};
     $self->{timeoutCBs} = {};
@@ -234,7 +239,9 @@ sub _init {
         ssl_no_verify => 1,   
     );
 
-    $client->connect("ws://localhost:3000/ws")->cb(sub {
+    $client->connect(
+        ($ENV{KFC_WS_PROTOCOL} // 'ws') . '://' . ($ENV{KFC_WS_DOMAIN} // 'localhost:3000') . "/ws"
+    )->cb(sub {
         # make $connection an our variable rather than
         # my so that it will stick around.  Once the
         # connection falls out of scope any callbacks
@@ -610,6 +617,15 @@ sub moveIfLegal {
                         $self->send($msgStep);
                     }
                 } else { ### we hit a stopped enemy
+
+                    ### stop unless the piece starting moving after us;
+                    my $shouldStop = (! $self->{startMoves}->{$moving_to_bb}
+                        || $self->{startMoves}->{$moving_to_bb} < $startTime);
+
+                    if ($self->{startMoves}->{$moving_to_bb}) {
+                        print "$self->{startMoves}->{$moving_to_bb} vs $startTime\n";
+                    }
+
                     $self->killPieceBB($moving_to_bb);
                     KungFuChess::Bitboards::move($fr_bb, $moving_to_bb);
                     my $msgStep = {
@@ -620,22 +636,28 @@ sub moveIfLegal {
                     };
                     $self->send($msgStep);
 
-                    $self->{"stoptimer_$moving_to_bb"} = AnyEvent->timer(
-                        after => $self->{pieceSpeed},
-                        cb => sub {
-                            print "delay authstop\n";
-                            my $msg = {
-                                'c' => 'authstop',
-                                'color' => $self->{color},
-                                'fr_bb' => $moving_to_bb,
-                            };
-                            $self->send($msg);
-                            delete $self->{"stoptimer_$moving_to_bb"};
-                        }
-                    );
+                    print "killing on $moving_to_bb\n";
+                    if ($shouldStop) {
+                        $self->{"stoptimer_$moving_to_bb"} = AnyEvent->timer(
+                            after => $self->{pieceSpeed},
+                            cb => sub {
+                                print "delay authstop\n";
+                                my $msg = {
+                                    'c' => 'authstop',
+                                    'color' => $self->{color},
+                                    'fr_bb' => $moving_to_bb,
+                                };
+                                $self->send($msg);
+                                delete $self->{"stoptimer_$moving_to_bb"};
+                            }
+                        );
 
-                    ### to make us done
-                    $to_bb = $moving_to_bb;
+                        ### to make us done
+                        $to_bb = $moving_to_bb;
+                    } else {
+                        print " killing stopped piece that moved after use\n";
+
+                    }
                 }
             } elsif ($themColor == $usColor) { ## we hit ourselves, stop!
                 ### message that animates a move on the board
@@ -821,17 +843,10 @@ sub moveIfLegal {
             warn "unknown movetype $moveType\n";
         }
 
-        if (! $done) {
-            KungFuChess::Bitboards::unsetMoving($fr_bb);
-            KungFuChess::Bitboards::setMoving($next_fr_bb);
-            $timer = AnyEvent->timer(
-                after => $nextMoveSpeed,
-                cb => sub {
-                    $func->($self, $func, $next_fr_bb, $to_bb, $dir, $startTime, $moveType, $piece);
-                }
-            );
-        } else {
+        if ($done) {
             my $time = time();
+            $self->{startMoves}->{$to_bb} = $startTime;
+            print "setting startMove $to_bb = $startTime\n";
             $self->{timeoutSquares}->{$to_bb} = { 'time' => $time };
             $self->{timeoutCBs}->{$to_bb} = AnyEvent->timer(
                 after => $self->{pieceRecharge} + $nextMoveSpeed,
@@ -859,6 +874,15 @@ sub moveIfLegal {
                 }
             );
             #return;
+        } else {
+            KungFuChess::Bitboards::unsetMoving($fr_bb);
+            KungFuChess::Bitboards::setMoving($next_fr_bb);
+            $timer = AnyEvent->timer(
+                after => $nextMoveSpeed,
+                cb => sub {
+                    $func->($self, $func, $next_fr_bb, $to_bb, $dir, $startTime, $moveType, $piece);
+                }
+            );
         }
     };
 
@@ -889,6 +913,7 @@ sub killPieceBB {
 
     ### mark that it is no longer active, stopping any movement
     my $piece = KungFuChess::Bitboards::_getPieceBB($bb);
+    delete $self->{startMoves}->{$bb};
     delete $self->{activeMoves}->{$bb};
     if ($piece) {
         my $killMsg = {

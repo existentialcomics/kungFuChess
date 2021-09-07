@@ -41,6 +41,8 @@ function getOpenGames(originalThread = false) {
             success : function(data){
                 var jsonRes = data;
                 if (jsonRes.hasOwnProperty('matchedGame')) {
+                    var audio = new Audio('/sound/public_sound_standard_GenericNotify.ogg');
+                    audio.play();
                     if (jsonRes.hasOwnProperty('anonKey')) {
                         window.location.replace('/game/' + jsonRes.matchedGame + "?anonKey=" + jsonRes.anonKey);
                     } else {
@@ -140,17 +142,41 @@ function checkPool(originalThread = false) {
     }
     var setInterval = originalThread;
     if (checkPoolRunning == false) {
+        currentGameUid = '';
         checkPoolRunning = true;
         setInterval = true;
+    } else {
+
     }
     $.ajax({
         type : 'GET',
         url  : '/ajax/pool/' + checkPoolGameSpeed + "/" + checkPoolGameType,
+        data : {
+            uuid : currentGameUid
+        },
         dataType : 'json',
         success : function(data){
             var jsonRes = data;
             if (jsonRes.hasOwnProperty('gameId')) {
-                window.location.replace('/game/' + jsonRes.gameId);
+                var audio = new Audio('/sound/public_sound_standard_GenericNotify.ogg');
+                audio.play();
+                audio.addEventListener('ended', function() {
+                    if (jsonRes.hasOwnProperty('anonKey')) {
+                        window.location.replace('/game/' + jsonRes.gameId + "?anonKey=" + jsonRes.anonKey);
+                    } else {
+                        window.location.replace('/game/' + jsonRes.gameId);
+                    }
+                }, false);
+                // just in case the above fails
+                setTimeout( function() {
+                    if (jsonRes.hasOwnProperty('anonKey')) {
+                        window.location.replace('/game/' + jsonRes.gameId + "?anonKey=" + jsonRes.anonKey);
+                    } else {
+                        window.location.replace('/game/' + jsonRes.gameId);
+                    }
+                }, 300);
+            } else if (jsonRes.hasOwnProperty('uid')) {
+                currentGameUid = jsonRes.uid;
             }
         }
     }).always(function() {
@@ -184,6 +210,7 @@ $(function () {
             $("#enter-pool-4way-lightning").html('Lighting 4way Pool');
             checkPoolGameSpeed = 'standard';
             checkPoolGameType  = '2way';
+            currentGameUid = '';
             checkPool();
         }
     });
@@ -202,6 +229,7 @@ $(function () {
             $("#enter-pool-4way-lightning").html('Lighting 4way Pool');
             checkPoolGameSpeed = 'lightning';
             checkPoolGameType  = '2way';
+            currentGameUid = '';
             checkPool();
         }
     });
@@ -220,6 +248,7 @@ $(function () {
             $("#enter-pool-4way-lightning").html('Lighting 4way Pool');
             checkPoolGameSpeed = 'standard';
             checkPoolGameType  = '4way';
+            currentGameUid = '';
             checkPool();
         }
     });
@@ -238,6 +267,7 @@ $(function () {
             $("#enter-pool-4way-standard").html('Standard 4way Pool');
             checkPoolGameSpeed = 'lightning';
             checkPoolGameType  = '4way';
+            currentGameUid = '';
             checkPool();
         }
     });
@@ -269,6 +299,11 @@ $(function () {
     });
   
     $("#showOpenGames").click(function() {
+        $("#enter-pool-standard").html('Standard Pool');
+        $("#enter-pool-lightning").html('Lightning Pool');
+        $("#enter-pool-4way-standard").html('Standard 4way Pool');
+        $("#enter-pool-4way-lightning").html('Lighting 4way Pool');
+
         $("#showOpenGames").addClass('active');
         $("#showActiveGames").removeClass('active');
         $("#showPool").removeClass('active');
@@ -286,6 +321,11 @@ $(function () {
     });
   
     $("#showActiveGames").click(function() {
+        $("#enter-pool-standard").html('Standard Pool');
+        $("#enter-pool-lightning").html('Lightning Pool');
+        $("#enter-pool-4way-standard").html('Standard 4way Pool');
+        $("#enter-pool-4way-lightning").html('Lighting 4way Pool');
+
         $("#showActiveGames").addClass('active');
         $("#showOpenGames").removeClass('active');
         $("#showPool").removeClass('active');
@@ -376,6 +416,8 @@ $(function () {
                     currentGameUid = jsonRes.uid;
                 }
                 if (jsonRes.hasOwnProperty('gameId')) {
+                    var audio = new Audio('/sound/public_sound_standard_GenericNotify.ogg');
+                    audio.play();
                     if (jsonRes.hasOwnProperty('anonKey')) {
                         window.location.replace('/game/' + jsonRes.gameId + "?anonKey=" + jsonRes.anonKey);
                     } else {

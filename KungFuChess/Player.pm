@@ -40,8 +40,9 @@ sub _init {
     } elsif (defined($data->{auth_token})) { 
         return $self->_loadByAuth($data->{auth_token});
     } else {
-        print " player undef\n";
-        return undef;
+        return $self->_loadAnonymousUser();
+        #print " player undef\n";
+        #return undef;
     }
 }
 

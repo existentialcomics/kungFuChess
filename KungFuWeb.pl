@@ -14,6 +14,9 @@ use Config::Simple;
 use HTML::Escape qw/escape_html/;
 # via the Digest module (recommended)
 use Digest;
+# do it all in one line .env file
+use Dotenv -load;
+use Env;
 
 use Cwd qw( abs_path );
 use File::Basename qw( dirname );
@@ -66,6 +69,9 @@ app->plugin('CSRFProtect');
 app->hook(before_routes => sub {
     my $c = shift;
     $c->stash('title' => "KungFuChess");
+    $c->stash('wsDomain'     => $ENV{KFC_WS_DOMAIN}      // 'localhost:3000');
+    $c->stash('wsDomainMain' => $ENV{KFC_WS_DOMAIN_MAIN} // 'localhost:3000');
+    $c->stash('wsProtocol'   => $ENV{KFC_WS_PROTCOL}     // 'ws');
 });
 
 app->plugin('authentication' => {
@@ -139,7 +145,7 @@ get '/' => sub {
         'post_time' => time,
         'game_id' => undef,
         'player_id' => 1,
-        'comment_text' => 'Welcome to KungFuChess (currently in beta). Enter the matching pools or start a game to play. Click the "about" tab to see more about the game, or "learn" to learn special tactics. There may be some bugs in rematch, I recommend just making a new game.',
+        'comment_text' => 'Welcome to KungFuChess (currently in beta). Enter the matching pools or start a game to play. Click the "about" tab to see more about the game, or "learn" to learn special tactics. WARNING: sweep rules have changed, you know sweep any piece that moved after you, even if it has fully stopped. Premove was also added.',
         'screenname' => 'SYSTEM',
         'color' => 'red',
         'text_color' => '#666666',
@@ -262,7 +268,7 @@ get '/tactics/expert/sweep' => sub {
 
     $c->stash('video' => '/sweep.webm');
     $c->stash('name' => 'Sweep');
-    $c->stash('description' => 'The most dangerous and feared tactic in Kung Fu Chess: the sweep. Only experts can execute this move with any consistency, as it requires anticipating where your opponent is going to move before they even move their piece. If you move before them, sweeping through their path, you will kill them mid move. When two pieces collide and both are moving, the piece that moved first kills the other piece, so you must set up the sweep very carefully, and make sure not to move too late or you will be the one getting killed.');
+    $c->stash('description' => 'The most dangerous and feared tactic in Kung Fu Chess: the sweep. Only experts can execute this move with any consistency, as it requires anticipating where your opponent is going to move before they even move their piece. If you move before them, sweeping through their path, you will kill them mid move. When two pieces collide, the piece that moved first kills the other piece, so you must set up the sweep very carefully, and make sure not to move too late or you will be the one getting killed.');
 
     $c->render('template' => 'tactic', format => 'html', handler => 'ep');
 };
@@ -646,22 +652,35 @@ post '/ajax/chat' => sub {
 get '/ajax/pool/:speed/:type' => sub {
     my $c = shift;
 
-    # TODO gaurd for standard and lightning, 2way and 4way only
+    my $gameSpeed = $c->stash('speed');
+    my $gameType  = $c->stash('type');
+    if ($gameSpeed !~ m/standard|lightning/) {
+        $gameSpeed = 'standard';
+    }
+    if ($gameType !~ m/2way|4way/) {
+        $gameType = '2way';
+    }
 
     my $user = $c->current_user();
-    enterUpdatePool(
+    my $uuid = enterUpdatePool(
         $user,
         { 
-            'gameSpeed' => $c->stash('speed'),
-            'gameType'  => $c->stash('type')
+            'gameSpeed' => $gameSpeed,
+            'gameType'  => $gameType,
+            'uuid'      => $c->req->param('uuid'),
         }
     );
-    my $gameId = matchPool($user, $c->stash('speed'), $c->stash('type'));
+    my $gameId = matchPool($user, $gameSpeed, $gameType, $uuid);
 
-    my $json = {};
+    my $json = {
+        'uid' => $uuid,
+    };
 
     if ($gameId) {
         $json->{'gameId'} = $gameId;
+        if (! $user) {
+            $json->{anonKey} = $uuid;
+        }
     }
 
     $c->render('json' => $json);
@@ -974,9 +993,14 @@ get '/activePlayers' => sub {
     my $user = $c->current_user();
     $c->stash('user' => $user);
 
-    my $ratingType = ($c->req->param('ratingType') ? $c->req->param('ratingType') : 'standard');
+    my $ratingType = ($c->req->param('ratingType') // 'standard');
+    
+    ### no funny business
+    if ($ratingType ne 'lightning') {
+        $ratingType = 'standard';
+    }
 
-    my $players = getActivePlayers();
+    my $players = getActivePlayers($ratingType);
     $c->stash('players' => $players);
     $c->stash('ratingType' => $ratingType);
     $c->render('template' => 'players', format => 'html', handler => 'ep');
@@ -1155,16 +1179,18 @@ sub getAnonymousUser {
 }
 
 sub createGame {
-    my ($type, $speed, $rated, $white, $black, $red, $green) = @_;
+    my ($type, $speed, $rated, $white, $black, $red, $green, $options) = @_;
     app->log->debug("creating game with $type, $speed, $rated, $white, $black, $red, $green\n");
 
-    my $whiteUid = ($white == ANON_USER || $black == AI_USER ? create_uuid_as_string() : undef);
-    my $blackUid = ($black == ANON_USER || $black == AI_USER ? create_uuid_as_string() : undef);
+    $options = $options // {};
+
+    my $whiteUid = ($white == ANON_USER || $black == AI_USER ? $options->{whiteUuid} // create_uuid_as_string() : undef);
+    my $blackUid = ($black == ANON_USER || $black == AI_USER ? $options->{blackUuid} // create_uuid_as_string() : undef);
     my $redUid   = undef;
     my $greenUid = undef;
     if ($type eq '4way') {
-        $redUid   = ($white == ANON_USER ? create_uuid_as_string() : undef);
-        $greenUid = ($black == ANON_USER ? create_uuid_as_string() : undef);
+        $redUid   = ($white == ANON_USER ? $options->{redUuid}   // create_uuid_as_string() : undef);
+        $greenUid = ($black == ANON_USER ? $options->{greenUuid} // create_uuid_as_string() : undef);
     }
 
     my $auth = create_uuid_as_string();
@@ -1613,6 +1639,9 @@ websocket '/ws' => sub {
             if (! gameauth($msg) ){ return 0; }
 
             $game->playerBroadcast($msg);
+        } elsif ($msg->{'c'} eq 'forceDraw'){
+            if (! gameauth($msg) ){ return 0; }
+            endGame($msg->{gameId}, 'draw');
         } elsif ($msg->{'c'} eq 'revokeDraw'){
             if (! gameauth($msg) ){ return 0; }
             my $color = $game->authMove($msg);
@@ -1620,29 +1649,29 @@ websocket '/ws' => sub {
 
             $game->playerRevokeDraw($msg);
 
-            $game->playerBroadcast($msg);
-        } elsif ($msg->{'c'} eq 'forceDraw'){
-            if (! gameauth($msg) ){ return 0; }
-            endGame($msg->{gameId}, 'draw');
+            my $drawnMsg = {
+                'c' => 'revokeDraw',
+                'color' => $color
+            };
+            $game->playerBroadcast($drawnMsg);
+            $game->serverBroadcast($drawnMsg);
         } elsif ($msg->{'c'} eq 'requestDraw'){
             my $color = $game->authMove($msg);
             return 0 if (!$color);
 
             my $drawConfirmed = $game->playerDraw($msg);
             if ($drawConfirmed) {
-                endGame($msg->{gameId}, 'draw');
-
-                my $drawnMsg = {
-                    'c' => 'requestDraw',
-                    'color' => $color
-                };
-
-                $game->playerBroadcast($drawnMsg);
-                $game->serverBroadcast($drawnMsg);
-            } else {
-                $game->playerBroadcast($msg);
-                $game->serverBroadcast($msg);
+                ### TODO fix for 4way
+                endGame($msg->{gameId}, 'draw', '0.5-0.5');
             }
+
+            my $drawnMsg = {
+                'c' => 'requestDraw',
+                'color' => $color
+            };
+            $game->playerBroadcast($drawnMsg);
+            $game->serverBroadcast($drawnMsg);
+
         } elsif ($msg->{'c'} eq 'abort'){
             my $color = $game->authMove($msg);
             return 0 if (!$color);
@@ -1782,8 +1811,8 @@ sub updateRatings {
     app()->log->debug("updating ratings for $gameId, " . ($score ? $score : '(no score)'));
 
     ### score must exist and look something like 1-0, 0.5-0.5, 1-0-0-0, etc
-    if (!$score || $score !~ m/^[01\.-]+$/) {
-        app()->log->debug("invalid score.");
+    if (!$score || $score !~ m/^[015\.-]+$/) {
+        app()->log->debug("invalid score. $score");
         return;
     }
     my ($result, $bresult, $cresult, $dresult) = split('-', $score);
@@ -1848,6 +1877,25 @@ sub updateRatings {
 
     return ($white, $black, $red, $green);
 }
+
+#sub calculateRating {
+    #my ($score, $whiteRating, $blackRating, $whiteProv, $blackProv) = @_;
+    #my $r1 = 10 ** ($whiteRating / 400);
+    #my $r2 = 10 ** ($blackRating / 400);
+
+    ## expected score
+    #my $e1 = $r1 / ($r1 + $r2);
+    #my $e2 = $r2 / ($r1 + $r2);
+
+    #my $whiteChange = $k * ($result - $e1);
+    #my $blackChange = $k * ($bresult - $e2);
+    #if ($whiteProv && $blackProv) {
+        #$whiteChange *= ($whiteProv / 2);
+    #}
+    #if ($blackProv) {
+        #$whiteChange *= ($provFactor / 2);
+    #}
+#}
 
 sub endGame {
     my $gameId = shift;
@@ -2057,10 +2105,15 @@ sub clearInactiveGames {
 }
 
 sub getActivePlayers {
+    my $speed = shift // 'standard';
+
+    if ($speed !~ m/standard|lightning|standard_4way|lightning_4way/) {
+        $speed = 'standard';
+    }
     my $playerRows = app->db()->selectall_arrayref('
         SELECT *
         FROM players
-        WHERE last_seen > NOW() - INTERVAL 10 SECOND',
+        WHERE last_seen > NOW() - INTERVAL 10 SECOND ORDER BY rating_' . $speed . " DESC",
         { 'Slice' => {} }
     );
 
@@ -2201,7 +2254,7 @@ sub getMyOpenGame {
             p.matched_game,
             py.rating_standard,
             py.rating_lightning,
-            py.screenname,
+            IF(p.player_id = -1, "(anon)", py.screenname),
             py2.rating_standard as rating2_standard,
             py2.rating_lightning as rating2_lightning,
             py2.screenname as screenname2,
@@ -2213,18 +2266,19 @@ sub getMyOpenGame {
         LEFT JOIN players py2 ON p.challenge_player_id = py2.player_id
         LEFT JOIN players py3 ON p.challenge_player_2_id = py3.player_id
             WHERE (p.player_id = ? OR challenge_player_id = ? OR challenge_player_2_id = ? OR challenge_player_3_id = ?)
-            AND p.private_game_key = ?
+            AND (p.private_game_key = ? OR p.private_game_key = ?)
         ',
         { 'Slice' => {} },
         $playerId,
         $playerId,
         $playerId,
         $playerId,
-        $uid
+        $uid,
+        $playerId
     );
 
     if ($myGame) {
-        app->db()->do( 'UPDATE pool SET last_ping = NOW()
+        app->db()->do('UPDATE pool SET last_ping = NOW()
                 WHERE player_id = ?
                 AND private_game_key = ?',
             {},
@@ -2246,19 +2300,20 @@ sub getOpenGames {
             p.game_type,
             py.rating_standard,
             py.rating_lightning,
-            py.screenname,
+            IF(py.player_id = -1, "(anon)", py.screenname) as screenname,
             py2.rating_standard as rating2_standard,
             py2.rating_lightning as rating2_lightning,
-            py2.screenname as screenname2,
+            IF(p.challenge_player_id = -1, "(anon)", py2.screenname) as screenname2,
             py3.rating_standard as rating3_standard,
             py3.rating_lightning as rating3_lightning,
-            py3.screenname as screenname3
+            IF(p.player_id = -1, "(anon)", py3.screenname) as screenname3
         FROM pool p
         LEFT JOIN players py ON p.player_id = py.player_id
         LEFT JOIN players py2 ON p.challenge_player_id = py2.player_id
         LEFT JOIN players py3 ON p.challenge_player_2_id = py3.player_id
             WHERE last_ping > NOW() - INTERVAL 4 SECOND
             AND open_to_public = 1
+            AND (in_matching_pool = 0 OR game_type = "2way")
         ',
         { 'Slice' => {} }
     );
@@ -2271,40 +2326,41 @@ sub enterUpdatePool {
     my $player = shift;
     my $options = shift;
 
-    if (! $player) { 
-        return 0;
-    }
-    if (! $player->{player_id}) {
-        return 0;
+    my $rated           = $player ? 1 : 0;
+    my $playerId        = $player ? $player->{player_id} : ANON_USER;
+    my $gameSpeed       = $options->{gameSpeed}  // 'standard';
+    my $gameType        = $options->{gameType}   // '2way';
+    my $uuid            = $options->{uuid}       // 0;
+
+    if ($uuid) {
+        my $poolRow = app->db()->selectrow_hashref('SELECT * FROM pool WHERE private_game_key = ?',
+            { 'Slice' => {} },
+            $uuid
+        );
+        if (! $poolRow ) {
+            $uuid = 0;
+        }
     }
 
-    my $gameSpeed       = (exists($options->{gameSpeed}) ? $options->{gameSpeed} : 1);
-    my $gameType        = (exists($options->{gameType}) ? $options->{gameType} : '2way');
-    my $rated           = (exists($options->{rated}) ? $options->{rated} : 1);
-    my $privateKey      = (exists($options->{privateKey}) ? $options->{privateKey} : undef);
-    my $challengePlayer = (exists($options->{challengePlayerId}) ? $options->{challengePlayerId} : 1);
+    if (! $uuid) {
+        $uuid = createChallenge($playerId, $gameSpeed, $gameType, 1, $rated, undef);
+    };
 
-    my $sth = app->db()->prepare('INSERT INTO pool (player_id, game_speed, game_type, rated, last_ping, private_game_key) VALUES (?, ?, ?, ?, NOW(), ?)
-        ON DUPLICATE KEY UPDATE game_speed = ?, game_type = ?, rated = ?, last_ping = NOW(), in_matching_pool = 1, private_game_key = ?, open_to_public = 1
-    ');
-    $sth->execute(
-        $player->{'player_id'},
-        $gameSpeed,
-        $gameType,
-        $rated,
-        $player->{'player_id'},  ### private game key is just player id, not a secret
-        ### updates
-        $gameSpeed,
-        $gameType,
-        $rated,
-        $player->{'player_id'},
+    app->db()->do( 'UPDATE pool SET last_ping = NOW(), in_matching_pool = 1
+        WHERE private_game_key = ?',
+        {},
+        $uuid
     );
+
+    return $uuid;
 }
 
 sub createChallenge {
     my ($playerId, $gameSpeed, $gameType, $open, $rated, $challengePlayer) = @_;
 
-    app->db()->do("DELETE FROM pool WHERE player_id = ?", {}, $playerId);
+    if ($playerId != ANON_USER) {
+        app->db()->do("DELETE FROM pool WHERE player_id = ?", {}, $playerId);
+    }
 
     my $sth = app->db()->prepare('INSERT INTO pool
         (player_id, game_speed, game_type, open_to_public, rated, private_game_key, in_matching_pool, last_ping, challenge_player_id)
@@ -2329,49 +2385,53 @@ sub matchGameUid {
 
     if (! $poolRow ) {
         return undef;
-    } else {
-        if ($poolRow->{rated} && $playerId == -1) {
-            return undef;
+    }
+    if ($poolRow->{rated} && $playerId == ANON_USER) {
+        return undef;
+    }
+    if ($poolRow->{game_type} eq '4way') {
+        ### check if this player is already matched to the game.
+        if (
+            ($poolRow->{player_id} eq $playerId) || 
+            ($poolRow->{challenge_player_id} && $poolRow->{challenge_player_id} eq $playerId) ||
+            ($poolRow->{challenge_player_2_id} && $poolRow->{challenge_player_2_id} eq $playerId) ||
+            ($poolRow->{challenge_player_3_id} && $poolRow->{challenge_player_3_id} eq $playerId)
+        ) {
+            # undef or game_id
+            return ($poolRow->{matched_game_id} ? $poolRow->{matched_game_id} : -1);
         }
-        if ($poolRow->{game_type} eq '4way') {
-            ### check if this player is already matched to the game.
-            if (
-                ($poolRow->{player_id} eq $playerId) || 
-                ($poolRow->{challenge_player_id} && $poolRow->{challenge_player_id} eq $playerId) ||
-                ($poolRow->{challenge_player_2_id} && $poolRow->{challenge_player_2_id} eq $playerId) ||
-                ($poolRow->{challenge_player_3_id} && $poolRow->{challenge_player_3_id} eq $playerId)
-            ) {
-                # undef or game_id
-                return ($poolRow->{matched_game_id} ? $poolRow->{matched_game_id} : -1);
-            }
-            if (! $poolRow->{challenge_player_id}) {
-                app->db()->do('UPDATE pool SET challenge_player_id = ? WHERE private_game_key = ?', {}, $playerId, $uid);
-                return -1; ### special signal that we just added
-            } elsif (! $poolRow->{challenge_player_2_id} ) {
-                app->db()->do('UPDATE pool SET challenge_player_2_id = ? WHERE private_game_key = ?', {}, $playerId, $uid);
-                return -1; ### special signal that we just added
-            } elsif (! $poolRow->{challenge_player_3_id} ) {
-                ### we are the last to join, make the game.
-                my $gameId = createGame(
-                    $poolRow->{game_type},
-                    $poolRow->{game_speed},
-                    $poolRow->{rated},
-                    $poolRow->{player_id},
-                    $poolRow->{challenge_player_id},
-                    $poolRow->{challenge_player_2_id},
-                    $playerId
-                );
-                app->db()->do('UPDATE pool SET matched_game = ?, challenge_player_3_id = ? WHERE private_game_key = ?', {}, $gameId, $playerId, $uid);
-                return $gameId;
-            }
-
-        } else {
-            # speed, open, rated, whiteId, blackId
-            my $gameId = createGame($poolRow->{game_type}, $poolRow->{game_speed}, $poolRow->{rated}, $playerId, $poolRow->{player_id});
-
-            app->db()->do('UPDATE pool SET matched_game = ? WHERE private_game_key = ?', {}, $gameId, $uid);
+        if (! $poolRow->{challenge_player_id}) {
+            app->db()->do('UPDATE pool SET challenge_player_id = ? WHERE private_game_key = ?', {}, $playerId, $uid);
+            return -1; ### special signal that we just added
+        } elsif (! $poolRow->{challenge_player_2_id} ) {
+            app->db()->do('UPDATE pool SET challenge_player_2_id = ? WHERE private_game_key = ?', {}, $playerId, $uid);
+            return -1; ### special signal that we just added
+        } elsif (! $poolRow->{challenge_player_3_id} ) {
+            ### we are the last to join, make the game.
+            my $gameId = createGame(
+                $poolRow->{game_type},
+                $poolRow->{game_speed},
+                $poolRow->{rated},
+                $poolRow->{player_id},
+                $poolRow->{challenge_player_id},
+                $poolRow->{challenge_player_2_id},
+                $playerId
+            );
+            app->db()->do('UPDATE pool SET matched_game = ?, challenge_player_3_id = ? WHERE private_game_key = ?', {}, $gameId, $playerId, $uid);
             return $gameId;
         }
+
+    } else {
+        my $options = {
+        };
+        if ($poolRow->{player_id} == ANON_USER) {
+            $options->{blackUuid} = $poolRow->{private_game_key}
+        }
+        # speed, open, rated, whiteId, blackId
+        my $gameId = createGame($poolRow->{game_type}, $poolRow->{game_speed}, $poolRow->{rated}, $playerId, $poolRow->{player_id}, undef, undef, $options);
+
+        app->db()->do('UPDATE pool SET matched_game = ? WHERE private_game_key = ?', {}, $gameId, $uid);
+        return $gameId;
     }
 }
 
@@ -2399,24 +2459,25 @@ sub cancelGameUid {
 }
 
 sub matchPool {
-    my $player = shift;
+    my $player    = shift;
     my $gameSpeed = shift;
     my $gameType  = shift;
+    my $uuid      = shift;
 
     if (!$gameSpeed) { $gameSpeed = 'standard'; }
     if (!$gameType)  { $gameType  = '4way'; }
+    my $playerId = $player->{player_id} // ANON_USER;
 
     my $ratingColumn = 'rating_' . $gameSpeed;
-    my @gameMatch = app->db()->selectrow_array(
-        'SELECT player_id, matched_game FROM pool WHERE player_id = ? AND in_matching_pool = 1 AND game_speed = ? AND game_type = ?',
+    my @poolRow = app->db()->selectrow_array(
+        'SELECT player_id, matched_game, rated FROM pool WHERE private_game_key = ?',
         {},
-        $player->{'player_id'},
-        $gameSpeed,
-        $gameType
+        $uuid
     );
 
-    if (@gameMatch) {
-        my ($player_id, $matched_game) = @gameMatch;
+    my ($player_id, $matched_game, $rated);
+    if (@poolRow) {
+        ($player_id, $matched_game, $rated) = @poolRow;
         if ($matched_game) {
             my @gameRow = app->db()->selectrow_array(
                 'SELECT status, white_player, black_player, green_player, red_player FROM games WHERE game_id = ?',
@@ -2425,16 +2486,17 @@ sub matchPool {
             );
             
             my ($gameStatus, $blackPlayer, $whitePlayer, $greenPlayer, $redPlayer) = @gameRow;
-            if ($gameStatus eq 'waiting to begin' &&
-                ($blackPlayer == $player->{'player_id'}
-                    || $whitePlayer == $player->{'player_id'}
-                    || $redPlayer == $player->{'player_id'}
-                    || $greenPlayer == $player->{'player_id'}
+            if (($gameStatus eq 'waiting to begin' || $gameStatus eq 'active') &&
+                ($blackPlayer == $playerId
+                    || $whitePlayer == $playerId
+                    || $redPlayer   == $playerId
+                    || $greenPlayer == $playerId
                 )
             ) {
                 return $matched_game;
             } else { ### the matched game is over or obsolete
-                app->db()->do("UPDATE pool SET matched_game = NULL WHERE player_id = ?", {}, $player->{'player_id'});
+                app->db()->do("DELETE FROM pool private_game_key = ?", {}, $uuid);
+                return undef;
             }
         }
     }
@@ -2442,31 +2504,47 @@ sub matchPool {
     ### now we try to find if any player matched them.
     my $needed = $gameType eq '4way' ? 3 : 1;
     my $matchSql = 
-        'SELECT p.player_id FROM pool p
+        'SELECT p.player_id, p.private_game_key FROM pool p
             LEFT JOIN players pl ON p.player_id = pl.player_id
-            WHERE p.player_id != ?
-            AND in_matching_pool = 1
+            WHERE p.private_game_key != ?
             AND game_speed = ?
             AND game_type = ?
-            AND last_ping > NOW() - INTERVAL 3 SECOND
-            ORDER BY abs(? - ' . $ratingColumn . ') LIMIT ' . $needed;
+            AND rated = ?
+            AND last_ping > NOW() - INTERVAL 5 SECOND
+            LIMIT ' . $needed;
     my $playerMatchedRow = app->db()->selectall_arrayref(
         $matchSql,
         {},
-        $player->{'player_id'}, $gameSpeed, $gameType, $player->{$ratingColumn}
+        $uuid,
+        $gameSpeed,
+        $gameType,
+        $rated,
+        #$player->{$ratingColumn} // '1600'  #TODO find best matched rating
     );
 
     if ($#{$playerMatchedRow} + 1 >= $needed) {
         my $playerMatchedId = $playerMatchedRow->[0][0];
         my $playerMatchedId2 = ($gameType eq '4way' ? $playerMatchedRow->[1][0] : undef);
         my $playerMatchedId3 = ($gameType eq '4way' ? $playerMatchedRow->[2][0] : undef);
-                  # speed, rated, whiteId, blackId, redId, greenId
-        my $gameId = createGame($gameType, $gameSpeed, 1, $player->{'player_id'}, $playerMatchedId, $playerMatchedId2, $playerMatchedId3);
 
+        my $uuid2 = $playerMatchedRow->[0][1];
+        my $uuid3 = ($gameType eq '4way' ? $playerMatchedRow->[1][1] : undef);
+        my $uuid4 = ($gameType eq '4way' ? $playerMatchedRow->[2][1] : undef);
+
+        my $options = {
+            'whiteUuid' => $uuid,
+            'blackUuid' => $uuid2,
+            'redUuid'   => $uuid3,
+            'greenUuid' => $uuid4,
+        };
+                  # speed, rated, whiteId, blackId, redId, greenId, options
+        my $gameId = createGame($gameType, $gameSpeed, 1, $playerId, $playerMatchedId, $playerMatchedId2, $playerMatchedId3, $options);
+
+        app->db()->do('UPDATE pool SET matched_game = ? WHERE private_game_key = ?', {}, $gameId, $uuid);
+        app->db()->do('UPDATE pool SET matched_game = ? WHERE private_game_key = ?', {}, $gameId, $playerMatchedRow->[0][1]);
         if ($gameType eq '4way') {
-            app->db()->do('UPDATE pool SET matched_game = ? WHERE player_id IN (?, ?, ?, ?)', {}, $gameId, $player->{'player_id'}, $playerMatchedId, $playerMatchedId2, $playerMatchedId3);
-        } else {
-            app->db()->do('UPDATE pool SET matched_game = ? WHERE player_id IN (?, ?)', {}, $gameId, $player->{'player_id'}, $playerMatchedId);
+            app->db()->do('UPDATE pool SET matched_game = ? WHERE private_game_key = ?', {}, $gameId, $playerMatchedRow->[1][1]);
+            app->db()->do('UPDATE pool SET matched_game = ? WHERE private_game_key = ?', {}, $gameId, $playerMatchedRow->[2][1]);
         }
 
         return $gameId;

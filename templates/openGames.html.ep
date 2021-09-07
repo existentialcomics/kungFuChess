@@ -1,5 +1,5 @@
 <% if (!$myGame) { %>
-    <a class="btn input-block-level btn-primary" id="createGameBtn" role="button">
+    <a class="btn input-block-level btn-primary text-light" id="createGameBtn" role="button">
         Create Game
     </a>
 <% } else { %>
