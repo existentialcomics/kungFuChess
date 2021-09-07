@@ -684,14 +684,21 @@ sub isLegalMove {
 
             return ($color, $pawnMoveType, $pawnDir, $fr_bb, $to_bb);
         }
-        if ($to_bb & (_piecesThem($color) | $enPassant) ){
-            if ($to_bb & $enPassant){
-                $pawnMoveType = MOVE_EN_PASSANT;
-                my $enPassCapture_bb = shift_BB($to_bb, getReverseDir($pawnDir));
-                if (! ($enPassCapture_bb & _piecesThem($color) & $pawns)) {
-                    return @noMove;
+        if ($to_bb & $enPassant) {
+            my $enPassCapture_bb = shift_BB($to_bb, getReverseDir($pawnDir));
+            ### if we can trust the clearing process this is unneeded TODO
+            if ($enPassCapture_bb & _piecesThem($color) & $pawns) {
+                my $enemyCapturesE = shift_BB($to_bb, EAST);
+                my $enemyCapturesW = shift_BB($to_bb, WEST);
+
+                if      (shift_BB($fr_bb, $pawnDir) & $enemyCapturesW){
+                    return ($color, MOVE_EN_PASSANT, $pawnDir + EAST, $fr_bb, $to_bb);
+                } elsif (shift_BB($fr_bb, $pawnDir) & $enemyCapturesE){
+                    return ($color, MOVE_EN_PASSANT, $pawnDir + WEST, $fr_bb, $to_bb);
                 }
             }
+        }
+        if ($to_bb & (_piecesThem($color))){
             my $enemyCapturesE = shift_BB($to_bb, EAST);
             my $enemyCapturesW = shift_BB($to_bb, WEST);
 

@@ -941,7 +941,6 @@ sub isLegalMove {
                 # in the app we are expected to moveIfLegal so fine?
                 # GameServer is expected to clear this when timer runs out.
                 $enPassant |= shift_BB($to_bb, getReverseDir($pawnDir));
-                print "enPassant: $enPassant\n";
 
                 return ($color, $pawnMoveType, $pawnDir, $fr_bb, $to_bb);
             }

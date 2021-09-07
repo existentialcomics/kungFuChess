@@ -3,4 +3,4 @@ game info box (4way, speed, start time, etc)
 rematch for anon practice games doens't work
 begin removing things from Game.pm into database
 queen castle goes to wrong spot.
-possible not to pawn take on certain squares??
+test en passant bug in 4way (kill doesn't clear) and fully fix in 2way
