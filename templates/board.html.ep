@@ -70,6 +70,8 @@
 </div>
 
 <script>
+    var wsGameDomain = "<%= $wsGameDomain %>";
+
     var whitePlayer = JSON.parse('<%== $whitePlayer->getJsonMsg() %>');
     var blackPlayer = JSON.parse('<%== $blackPlayer->getJsonMsg() %>');
     var redPlayer   = JSON.parse('<%== $whitePlayer->getJsonMsg() %>');

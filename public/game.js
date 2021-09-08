@@ -469,7 +469,7 @@ var bindGameEvents = function(ws_conn) {
         );
     };
 };
-var conn = new WebSocket(wsProtocol + "://" + wsDomain + "/ws");
+var conn = new WebSocket(wsProtocol + "://" + wsGameDomain + "/ws");
 bindGameEvents(conn);
 
 var game_reconnectInterval;
@@ -493,15 +493,20 @@ sendMsg = function(msg) {
     msg.gameId = gameId;
     msg.auth = authId;
     conn.send(JSON.stringify(msg));
+    
+    // if it errors out it wont
+    return true;
 };
 
 readyToStart = function() {
-    $("#readyToStart").attr("disabled","disabled");
     
     var msg = {
         "c" : "readyToBegin"
     };
-    sendMsg(msg);
+    var result = sendMsg(msg);
+    if (result == true) {
+        $("#readyToStart").attr("disabled","disabled");
+    }
 }
 
 resign = function(){
@@ -601,21 +606,21 @@ var handleMessage = function(msg) {
             var pieceTo   = piecesByBoardPos[to];
 
             if (pieceFrom.color == 'red' || pieceFrom.color == 'green') {
-                var y_king = rankToX[m_to[2]] + 1;
+                var y_king = rankToX[m_to[2]] + 2;
                 var x_king = parseInt(fileToY[m_to[1]]);
                 pieceFrom.move(x_king, y_king);
 
-                var y_rook = rankToX[m_from[2]] - 2;
+                var y_rook = rankToX[m_from[2]] - 1;
                 var x_rook = parseInt(fileToY[m_from[1]]);
-                pieceTo.move(x_rook, y_rook);
+                pieceTo.move(x_rook, y_rook, 0.6667);
             } else {
                 var y_king = rankToX[m_to[2]];
-                var x_king = parseInt(fileToY[m_to[1]]) + 1;
-                pieceFrom.move(x_king, y_king, 0.6667);
+                var x_king = parseInt(fileToY[m_to[1]]) + 2;
+                pieceFrom.move(x_king, y_king);
 
                 var y_rook = rankToX[m_from[2]];
-                var x_rook = parseInt(fileToY[m_from[1]]) - 2;
-                pieceTo.move(x_rook, y_rook);
+                var x_rook = parseInt(fileToY[m_from[1]]) - 1;
+                pieceTo.move(x_rook, y_rook, 0.6667);
             }
         } else { // all others
             var pieceFrom = piecesByBoardPos[from];
@@ -1240,7 +1245,6 @@ var getPiece = function(x, y, color, image){
             this.image.draggable(false);
             this.isMoving = true;
             piece.firstMove = false;
-            //piece.anim_length = Math.sqrt( Math.pow(Math.abs(this.start_x - this.x), 2) + Math.pow(Math.abs(this.start_y - this.y), 2)) * timer * 100;
             // diagonal pieces move just as fast forward as straight pieces
             var x_dist = Math.abs(this.start_x - this.x);
             var y_dist = Math.abs(this.start_y - this.y);
@@ -1294,12 +1298,13 @@ var getPiece = function(x, y, color, image){
     }
 
     piece.setDelayTimer = function(timeToDelay) {
+        var startRatio = (timeToDelay / timerRecharge);
         var rect = new Konva.Rect({
             x: getX(piece.x * width / boardSize, piece.y * width / boardSize),
             y: getY(piece.x * width / boardSize, piece.y * width / boardSize),
             width: width / boardSize,
-            //height: (height / boardSize) * (timeToDelay / timerRecharge),
-            height: height / boardSize,
+            height: (height / boardSize) * (startRatio),
+            //height: height / boardSize,
             fill: '#888822',
             opacity: 0.5
         });
@@ -1538,6 +1543,7 @@ $(function () {
         var dataPost = {
             'message' : $(this).val(),
             'uid' : currentGameUid,
+            'auth' : anonKey,
             'gameId' : gameId,
         };
         $(this).val('');

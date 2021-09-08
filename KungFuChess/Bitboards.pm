@@ -221,12 +221,12 @@ my $whiteCastleK      = RANKS->[0] & FILES->[4];
 my $whiteCastleR      = RANKS->[0] & FILES->[7];
 my $whiteCastleR_off  = RANKS->[0] & FILES->[6]; # if you moved next to the rook that's still a castle attempt
 my $whiteQCastleR     = RANKS->[0] & FILES->[0];
-my $whiteQCastleR_off = RANKS->[0] & FILES->[1]; # if you moved next to the rook that's still a castle attempt
+my $whiteQCastleR_off = RANKS->[0] & FILES->[2]; # if you moved next to the rook that's still a castle attempt
 my $blackCastleK      = RANKS->[7] & FILES->[4];
 my $blackCastleR      = RANKS->[7] & FILES->[7];
 my $blackCastleR_off  = RANKS->[7] & FILES->[6]; # if you moved next to the rook that's still a castle attempt
 my $blackQCastleR     = RANKS->[7] & FILES->[0];
-my $blackQCastleR_off = RANKS->[7] & FILES->[1]; # if you moved next to the rook that's still a castle attempt
+my $blackQCastleR_off = RANKS->[7] & FILES->[2]; # if you moved next to the rook that's still a castle attempt
 
 ### kungfuChess specific: frozen pieces waiting to move and currently moving 
 my $frozenBB = 0x0000000000000000;

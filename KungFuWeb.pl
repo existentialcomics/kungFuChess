@@ -14,9 +14,6 @@ use Config::Simple;
 use HTML::Escape qw/escape_html/;
 # via the Digest module (recommended)
 use Digest;
-# do it all in one line .env file
-use Dotenv -load;
-use Env;
 
 use Cwd qw( abs_path );
 use File::Basename qw( dirname );
@@ -69,9 +66,9 @@ app->plugin('CSRFProtect');
 app->hook(before_routes => sub {
     my $c = shift;
     $c->stash('title' => "KungFuChess");
-    $c->stash('wsDomain'     => $ENV{KFC_WS_DOMAIN}      // 'localhost:3000');
-    $c->stash('wsDomainMain' => $ENV{KFC_WS_DOMAIN_MAIN} // 'localhost:3000');
-    $c->stash('wsProtocol'   => $ENV{KFC_WS_PROTCOL}     // 'ws');
+    $c->stash('wsDomain'     => $cfg->param('ws_domain'));
+    $c->stash('wsDomainMain' => $cfg->param('ws_domain_main'));
+    $c->stash('wsProtocol'   => $cfg->param('ws_protocol'));
 });
 
 app->plugin('authentication' => {
@@ -327,7 +324,7 @@ post '/ajax/createChallenge' => sub {
     } elsif ($gameMode eq 'ai') {
         $gameId = createGame($gameType, $gameSpeed, 0, ($user ? $user->{player_id} : ANON_USER), AI_USER);
     } else {
-        $uid = createChallenge(($user ? $user->{player_id} : -1), $gameSpeed, $gameType, ($open ? 1 : 0), $rated, undef);
+        $uid = createChallenge(($user ? $user->{player_id} : ANON_USER), $gameSpeed, $gameType, ($open ? 1 : 0), $rated, undef);
     }
 
     my $return = {};
@@ -599,6 +596,38 @@ post '/ajax/chat' => sub {
             $return{'message'} = "Unknown command";
         }
     } else {
+        my $authColor = '';
+        if ($c->req->param('gameId')) {
+            my $gameRow = app->db()->selectrow_hashref('SELECT * FROM games WHERE game_id = ?', { 'Slice' => {} }, $c->req->param('gameId'));
+            if ($c->req->param('auth')) {
+                my $auth = $c->req->param('auth');
+                if ($auth eq $gameRow->{white_anon_key}) {
+                    $authColor = 'white';
+                } elsif ($auth eq $gameRow->{black_anon_key}) {
+                    $authColor = 'black';
+                } elsif ($auth eq $gameRow->{red_anon_key}) {
+                    $authColor = 'red';
+                } elsif ($auth eq $gameRow->{green_anon_key}) {
+                    $authColor = 'green';
+                }
+            }
+            my $msg = {
+                'c' => 'gameChatchat',
+                'author'    => $authColor . " (anon)",
+                'user_id'   => ANON_USER,
+                'message'   => $message
+            };
+
+            app->db()->do('INSERT INTO chat_log (comment_text, player_id, player_color, game_id, post_time) VALUES (?,?,?,?,NOW())', {},
+                $msg->{'message'},
+                ANON_USER,
+                'green',
+                $c->req->param('gameId')
+            );
+            $msg->{'color'} = 'green';
+            $msg->{c} = 'gamechat';
+            gameBroadcast($msg, $c->req->param('gameId'));
+        }
         if ($user) {
             my $screename = $user->{screenname};
             if ($user->isAdmin()) {
@@ -611,7 +640,6 @@ post '/ajax/chat' => sub {
                 'user_id'   => $user->{player_id},
                 'message'   => $message
             };
-
 
             app->db()->do('INSERT INTO chat_log (comment_text, player_id, player_color, game_id, post_time) VALUES (?,?,?,?,NOW())', {},
                 $msg->{'message'},
@@ -1034,6 +1062,9 @@ get '/game/:gameId' => sub {
     my $game = ($currentGames{$gameId} ? $currentGames{$gameId} : undef);
     my $gameRow = app->db()->selectrow_hashref('SELECT * FROM games WHERE game_id = ?', { 'Slice' => {} }, $gameId);
 
+    ### if the game isn't active we just use ours
+    $c->stash('wsGameDomain'  => $game ? $gameRow->{ws_server} : $cfg->param('ws_domain'));
+
     $c->stash('whiteReady'  => $game ? $game->{whiteReady} : -1);
     $c->stash('blackReady'  => $game ? $game->{blackReady} : -1);
     $c->stash('redReady'    => $game ? $game->{redReady}   : -1);
@@ -1168,7 +1199,7 @@ sub getAnonymousUser {
 
 sub createGame {
     my ($type, $speed, $rated, $white, $black, $red, $green, $options) = @_;
-    app->log->debug("creating game with $type, $speed, $rated, $white, $black, $red, $green\n");
+    #app->log->debug("creating game with $type, $speed, $rated, $white, $black, $red, $green\n");
 
     $options = $options // {};
 
@@ -1183,9 +1214,9 @@ sub createGame {
 
     my $auth = create_uuid_as_string();
 
-    my $sth = app->db()->prepare("INSERT INTO games (game_id, game_speed, game_type, white_player, black_player, red_player, green_player, rated, white_anon_key, black_anon_key, red_anon_key, green_anon_key)
-        VALUES (NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-    $sth->execute($speed, $type, $white, $black, $red, $green, $rated, $whiteUid, $blackUid, $redUid, $greenUid);
+    my $sth = app->db()->prepare("INSERT INTO games (game_id, game_speed, game_type, white_player, black_player, red_player, green_player, rated, white_anon_key, black_anon_key, red_anon_key, green_anon_key, ws_server)
+        VALUES (NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+    $sth->execute($speed, $type, $white, $black, $red, $green, $rated, $whiteUid, $blackUid, $redUid, $greenUid, $cfg->param('ws_domain'));
 
     my $gameId = $sth->{mysql_insertid};
 

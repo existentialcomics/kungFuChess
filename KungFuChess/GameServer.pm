@@ -239,9 +239,9 @@ sub _init {
         ssl_no_verify => 1,   
     );
 
-    $client->connect(
-        ($ENV{KFC_WS_PROTOCOL} // 'ws') . '://' . ($ENV{KFC_WS_DOMAIN} // 'localhost:3000') . "/ws"
-    )->cb(sub {
+    my $wsDomain = $cfg->param('ws_protocol') . '://localhost:3000/ws';
+
+    $client->connect($wsDomain)->cb(sub {
         # make $connection an our variable rather than
         # my so that it will stick around.  Once the
         # connection falls out of scope any callbacks
@@ -790,29 +790,29 @@ sub moveIfLegal {
             if ($colorbit == KungFuChess::Bitboards::WHITE || $colorbit == KungFuChess::Bitboards::BLACK) {
                 ### 4way bitboards are messed up and EAST and WEST are switched. Actually seems to effect nothing else.
                 if ($self->{gameType} eq '4way') {
-                    $rook_moving_to = KungFuChess::Bitboards::shift_BB(
-                        KungFuChess::Bitboards::shift_BB($fr_bb, KungFuChess::Bitboards::EAST),
-                        KungFuChess::Bitboards::EAST);
+                    $rook_moving_to = KungFuChess::Bitboards::shift_BB($fr_bb, KungFuChess::Bitboards::EAST);
                 } else {
-                    $rook_moving_to = KungFuChess::Bitboards::shift_BB(
-                        KungFuChess::Bitboards::shift_BB($fr_bb, KungFuChess::Bitboards::WEST),
-                        KungFuChess::Bitboards::WEST);
+                    $rook_moving_to = KungFuChess::Bitboards::shift_BB($fr_bb, KungFuChess::Bitboards::WEST);
                 }
             } else {
-                $rook_moving_to = KungFuChess::Bitboards::shift_BB(
-                    KungFuChess::Bitboards::shift_BB($fr_bb, KungFuChess::Bitboards::NORTH),
-                    KungFuChess::Bitboards::NORTH);
+                $rook_moving_to = KungFuChess::Bitboards::shift_BB($fr_bb, KungFuChess::Bitboards::NORTH);
             }
             my $king_moving_to = 0;
             if ($colorbit == KungFuChess::Bitboards::WHITE || $colorbit == KungFuChess::Bitboards::BLACK) {
                 ### 4way bitboards are messed up and EAST and WEST are switched. Actually seems to effect nothing else.
                 if ($self->{gameType} eq '4way') {
-                    $king_moving_to = KungFuChess::Bitboards::shift_BB($to_bb, KungFuChess::Bitboards::WEST);
+                    $king_moving_to = KungFuChess::Bitboards::shift_BB(
+                        KungFuChess::Bitboards::shift_BB($to_bb, KungFuChess::Bitboards::WEST),
+                        KungFuChess::Bitboards::WEST);
                 } else {
-                    $king_moving_to = KungFuChess::Bitboards::shift_BB($to_bb, KungFuChess::Bitboards::EAST);
+                    $king_moving_to = KungFuChess::Bitboards::shift_BB(
+                        KungFuChess::Bitboards::shift_BB($to_bb, KungFuChess::Bitboards::EAST),
+                        KungFuChess::Bitboards::EAST);
                 }
             } else {
-                $king_moving_to = KungFuChess::Bitboards::shift_BB($to_bb, KungFuChess::Bitboards::SOUTH);
+                $king_moving_to = KungFuChess::Bitboards::shift_BB(
+                    KungFuChess::Bitboards::shift_BB($to_bb, KungFuChess::Bitboards::SOUTH),
+                    KungFuChess::Bitboards::SOUTH);
             }
             my $msgSus1 = {
                 'c' => 'authsuspend',
