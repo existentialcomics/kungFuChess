@@ -8,13 +8,10 @@ package KungFuChess::GameServer;
 use AnyEvent::WebSocket::Client;
 use AnyEvent;
 use JSON::XS;
-#use KungFuChess::Bitboards;
 use IPC::Open2;
 use Config::Simple;
 use Time::HiRes qw(time);
 use Data::Dumper;
-# do it all in one line .env file
-use Dotenv -load;
 
 ### taken from Chess::Rep
 ### can't use the whole lib because of chess specific rules like check

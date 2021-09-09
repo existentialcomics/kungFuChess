@@ -743,7 +743,7 @@ var handleMessage = function(msg) {
         var audio = new Audio('/sound/Tick-DeepFrozenApps-397275646.mp3');
         audio.play();
 		for(id in pieces){
-            pieces[id].setDelayTimer(3);
+            pieces[id].setDelayTimer(3, true);
 		}
         setTimeout( function() {
             var audio = new Audio('/sound/Tick-DeepFrozenApps-397275646.mp3');
@@ -1297,16 +1297,21 @@ var getPiece = function(x, y, color, image){
         piece.setImagePos(piece.x, piece.y);
     }
 
-    piece.setDelayTimer = function(timeToDelay) {
+    piece.setDelayTimer = function(timeToDelay, forceFullSquare = false) {
         var startRatio = (timeToDelay / timerRecharge);
+        var heightBuffer = (height / boardSize) - ((height / boardSize) * (startRatio));
+        if (forceFullSquare) {
+            startRatio = 1;
+            heightBuffer = 0;
+        }
+
         var rect = new Konva.Rect({
             x: getX(piece.x * width / boardSize, piece.y * width / boardSize),
-            y: getY(piece.x * width / boardSize, piece.y * width / boardSize),
+            y: getY(piece.x * width / boardSize, piece.y * width / boardSize) + heightBuffer,
             width: width / boardSize,
             height: (height / boardSize) * (startRatio),
-            //height: height / boardSize,
             fill: '#888822',
-            opacity: 0.5
+            opacity: 0.6
         });
         delayLayer.add(rect);
 
