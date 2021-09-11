@@ -71,7 +71,10 @@
                 <input type="text" id="global-chat-input" class="form-inline"></input>
                 <div id = "connectionStatus" style='float:right;'></div>
                 <br />
-                <a href="https://twitter.com/KungFuChessOrg">twitter</a>&nbsp;&nbsp;<a href="https://www.reddit.com/r/Kungfuchess/">reddit</a>&nbsp;&nbsp;<a href="https://github.com/existentialcomics/kungFuChess">source code</a>
+                <a href="https://twitter.com/KungFuChessOrg">twitter</a>
+                &nbsp;&nbsp; <a href="https://www.reddit.com/r/Kungfuchess/">reddit</a>
+                &nbsp;&nbsp;<a href="https://discord.gg/kGAcDwsWmX">discord</a>
+                &nbsp;&nbsp;<a href="https://github.com/existentialcomics/kungFuChess">source code</a>
             </div>
         </div>
     </div>
