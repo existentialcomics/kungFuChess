@@ -205,9 +205,9 @@ $(function () {
         } else {
             cancelCheckPool = false;
             $(this).html('Standard Pool<br /><span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>');
-            $("#enter-pool-lightning").html('Lighting Pool');
+            $("#enter-pool-lightning").html('Lightning Pool');
             $("#enter-pool-4way-standard").html('Standard 4way Pool');
-            $("#enter-pool-4way-lightning").html('Lighting 4way Pool');
+            $("#enter-pool-4way-lightning").html('Lightning 4way Pool');
             checkPoolGameSpeed = 'standard';
             checkPoolGameType  = '2way';
             currentGameUid = '';
@@ -226,7 +226,7 @@ $(function () {
             $(this).html('Lightning Pool<br /><span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>');
             $("#enter-pool-standard").html('Standard Pool');
             $("#enter-pool-4way-standard").html('Standard 4way Pool');
-            $("#enter-pool-4way-lightning").html('Lighting 4way Pool');
+            $("#enter-pool-4way-lightning").html('Lightning 4way Pool');
             checkPoolGameSpeed = 'lightning';
             checkPoolGameType  = '2way';
             currentGameUid = '';
@@ -244,8 +244,8 @@ $(function () {
             cancelCheckPool = false;
             $(this).html('Standard 4way Pool<br /><span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>');
             $("#enter-pool-standard").html('Standard Pool');
-            $("#enter-pool-lightning").html('Lighting Pool');
-            $("#enter-pool-4way-lightning").html('Lighting 4way Pool');
+            $("#enter-pool-lightning").html('Lightning Pool');
+            $("#enter-pool-4way-lightning").html('Lightning 4way Pool');
             checkPoolGameSpeed = 'standard';
             checkPoolGameType  = '4way';
             currentGameUid = '';
@@ -263,7 +263,7 @@ $(function () {
             cancelCheckPool = false;
             $(this).html('Lightning 4way Pool<br /><span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>');
             $("#enter-pool-standard").html('Standard Pool');
-            $("#enter-pool-lightning").html('Lighting Pool');
+            $("#enter-pool-lightning").html('Lightning Pool');
             $("#enter-pool-4way-standard").html('Standard 4way Pool');
             checkPoolGameSpeed = 'lightning';
             checkPoolGameType  = '4way';
@@ -302,7 +302,7 @@ $(function () {
         $("#enter-pool-standard").html('Standard Pool');
         $("#enter-pool-lightning").html('Lightning Pool');
         $("#enter-pool-4way-standard").html('Standard 4way Pool');
-        $("#enter-pool-4way-lightning").html('Lighting 4way Pool');
+        $("#enter-pool-4way-lightning").html('Lightning 4way Pool');
 
         $("#showOpenGames").addClass('active');
         $("#showActiveGames").removeClass('active');
@@ -311,7 +311,7 @@ $(function () {
         $("#pool-matching").hide();
         cancelActiveGames = true;
         cancelCheckPool = true;
-        $("#enter-pool-lighting").html('Lighting Pool');
+        $("#enter-pool-lighting").html('Lightning Pool');
         $("#enter-pool-standard").html('Standard Pool');
 
         cancelOpenGames = false;
@@ -324,7 +324,7 @@ $(function () {
         $("#enter-pool-standard").html('Standard Pool');
         $("#enter-pool-lightning").html('Lightning Pool');
         $("#enter-pool-4way-standard").html('Standard 4way Pool');
-        $("#enter-pool-4way-lightning").html('Lighting 4way Pool');
+        $("#enter-pool-4way-lightning").html('Lightning 4way Pool');
 
         $("#showActiveGames").addClass('active');
         $("#showOpenGames").removeClass('active');
@@ -332,7 +332,7 @@ $(function () {
         $("#pool-matching").hide();
         cancelOpenGames = true;
         cancelCheckPool = true;
-        $("#enter-pool-lighting").html('Lighting Pool');
+        $("#enter-pool-lighting").html('Lightning Pool');
         $("#enter-pool-standard").html('Standard Pool');
 
         cancelActiveGames = false;

@@ -550,6 +550,7 @@ var getPieceSquare = function(piece) {
 }
 
 var handleMessage = function(msg) {
+    console.log(msg);
     if (msg.c == 'move'){  // called when a piece changes positions (many times in one "move")
         var from = getSquareFromBB(msg.fr_bb);
         var to   = getSquareFromBB(msg.to_bb);

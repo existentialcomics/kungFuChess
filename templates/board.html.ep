@@ -17,9 +17,9 @@
             %= include 'player', 'player' => $blackPlayer, 'ratingType' => $gameSpeed
         </div>
             <div id="game-chat-log" disabled="true"></div>
-            <form class='form-line'>
+            <div class='form-line'>
             <input type="text" id="game-chat-input" class="form-control input-lg"></input><br/>
-            </form>
+            </div>
         </div>
         <div id="boardContainer" class="col-6">
             <div id="container">

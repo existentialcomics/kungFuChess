@@ -187,7 +187,7 @@ get '/tactics/beginner/anticipate' => sub {
 
     $c->stash('video' => '/anticipate.webm');
     $c->stash('name' => 'Anticipate');
-    $c->stash('description' => 'When you see a piece moving, it is very important to try to work out which spot your opponent is attempting to land on, so you can potentially set up an attack on that spot before they reach it, allowing you to capture the piece before it is able to move again. In the video, you can see the bishap making long move to g4. However, white anticipates this, particually once they move into the f5 square, which is already gaurded. This allows white to move a pawn forward to attack the expected square. Against a skilled opponent, you should not only consider squares gaurded that are attacked by pawns, but also squares that are potentially attacked by pawns that are ready to move.');
+    $c->stash('description' => 'When you see a piece moving, it is very important to try to work out which spot your opponent is attempting to land on, so you can potentially set up an attack on that spot before they reach it, allowing you to capture the piece before it is able to move again. In the video, you can see the bishap making long move to g4. However, white anticipates this, particually once they move into the f5 square, which is already guarded. This allows white to move a pawn forward to attack the expected square. Against a skilled opponent, you should not only consider squares guarded that are attacked by pawns, but also squares that are potentially attacked by pawns that are ready to move.');
 
     $c->render('template' => 'tactic', format => 'html', handler => 'ep');
 };
@@ -200,7 +200,7 @@ get '/tactics/beginner/cutoff' => sub {
 
     $c->stash('video' => '/cutoff.webm');
     $c->stash('name' => 'Cutoff');
-    $c->stash('description' => 'Think you are safely gaurding a piece just because you are attacking the square it is on? This isn\'t chess, so think again. A key aspect of Kung Fu Chess is that you are often gaurding pieces that don\'t seemed gaurded, such as with the "anticipate" tactic, but you are also not gaurding pieces that do seemed gaurded. For example, it is quite easy to take a piece while simulaneously cutting off the pieces gaurding it. Always be aware of what pieces can move into your path.');
+    $c->stash('description' => 'Think you are safely guarding a piece just because you are attacking the square it is on? This isn\'t chess, so think again. A key aspect of Kung Fu Chess is that you are often guarding pieces that don\'t seemed guarded, such as with the "anticipate" tactic, but you are also not guarding pieces that do seemed guarded. For example, it is quite easy to take a piece while simulaneously cutting off the pieces guarding it. Always be aware of what pieces can move into your path.');
 
     $c->render('template' => 'tactic', format => 'html', handler => 'ep');
 };
@@ -226,7 +226,7 @@ get '/tactics/advanced/combo' => sub {
 
     $c->stash('video' => '/combo.webm');
     $c->stash('name' => 'Combo');
-    $c->stash('description' => 'This is the most core tactic of Kung Fu Chess. Pieces aren\'t gaurded if you can simply take the piece and the piece gaurding it at once. Take out entire pawn structures at once or protecting piece to move while you take another piece. The possiblities are endless when combination tactics are properly mastered, and combo moves are what really drives advanced play.');
+    $c->stash('description' => 'This is the most core tactic of Kung Fu Chess. Pieces aren\'t guarded if you can simply take the piece and the piece guarding it at once. Take out entire pawn structures at once or protecting piece to move while you take another piece. The possiblities are endless when combination tactics are properly mastered, and combo moves are what really drives advanced play.');
 
     $c->render('template' => 'tactic', format => 'html', handler => 'ep');
 };
@@ -252,7 +252,7 @@ get '/tactics/advanced/block' => sub {
 
     $c->stash('video' => '/block.webm');
     $c->stash('name' => 'Block');
-    $c->stash('description' => 'Similarly to the peekaboo tactic and anticipate tactics, this takes advantage of knowing where your opponent is moving, and the fact that you can alter the board before they arrive. In this case we don\'t simply gaurd or dodge from the spot, we move and sacrifice one of our own pieces into their path to stop them in their tracks.');
+    $c->stash('description' => 'Similarly to the peekaboo tactic and anticipate tactics, this takes advantage of knowing where your opponent is moving, and the fact that you can alter the board before they arrive. In this case we don\'t simply guard or dodge from the spot, we move and sacrifice one of our own pieces into their path to stop them in their tracks.');
 
     $c->render('template' => 'tactic', format => 'html', handler => 'ep');
 };
@@ -278,7 +278,7 @@ get '/tactics/expert/feint' => sub {
 
     $c->stash('video' => '/feint.webm');
     $c->stash('name' => 'Feint');
-    $c->stash('description' => 'This bold and daring strategy uses your opponent\'s skill against him, by moving towards a very good spot and then not landing there! In the video, white has a chance to exchange a knight for a rook by attacking the black knight and rook at the same time. He will lose his bishop, assuming black dodges it and takes, but will get the rook. However, since he knows his opponent will see this and have ample time to dodge, so he moves instead to the ungaurded space in front of it, saving his bishop. Risky, because if black does not dodge, he would lose the queen!');
+    $c->stash('description' => 'This bold and daring strategy uses your opponent\'s skill against him, by moving towards a very good spot and then not landing there! In the video, white has a chance to exchange a knight for a rook by attacking the black knight and rook at the same time. He will lose his bishop, assuming black dodges it and takes, but will get the rook. However, since he knows his opponent will see this and have ample time to dodge, so he moves instead to the unguarded space in front of it, saving his bishop. Risky, because if black does not dodge, he would lose the queen!');
 
     $c->render('template' => 'tactic', format => 'html', handler => 'ep');
 };
