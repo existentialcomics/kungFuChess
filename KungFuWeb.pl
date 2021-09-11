@@ -632,22 +632,24 @@ post '/ajax/chat' => sub {
                     $authColor = 'green';
                 }
             }
-            my $msg = {
-                'c' => 'gameChatchat',
-                'author'    => $authColor . " (anon)",
-                'user_id'   => ANON_USER,
-                'message'   => $message
-            };
+            if (!$user) {
+                my $msg = {
+                    'c' => 'gameChatchat',
+                    'author'    => $authColor . " (anon)",
+                    'user_id'   => ANON_USER,
+                    'message'   => $message
+                };
 
-            app->db()->do('INSERT INTO chat_log (comment_text, player_id, player_color, game_id, post_time) VALUES (?,?,?,?,NOW())', {},
-                $msg->{'message'},
-                ANON_USER,
-                'green',
-                $c->req->param('gameId')
-            );
-            $msg->{'color'} = 'green';
-            $msg->{c} = 'gamechat';
-            gameBroadcast($msg, $c->req->param('gameId'));
+                app->db()->do('INSERT INTO chat_log (comment_text, player_id, player_color, game_id, post_time) VALUES (?,?,?,?,NOW())', {},
+                    $msg->{'message'},
+                    ANON_USER,
+                    'green',
+                    $c->req->param('gameId')
+                );
+                $msg->{'color'} = 'green';
+                $msg->{c} = 'gamechat';
+                gameBroadcast($msg, $c->req->param('gameId'));
+            }
         }
         if ($user) {
             my $screename = $user->{screenname};
