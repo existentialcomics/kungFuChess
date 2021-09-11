@@ -55,7 +55,7 @@ sub getProvisionalFactor {
     if ($gamesPlayed > 20) {
         return 0;
     }
-    return ($gamesPlayed / 20);
+    return (20 - $gamesPlayed);
 }
 
 sub getBelt {
@@ -336,8 +336,8 @@ sub _loadAnonymousUser {
 
     $self->{player_id} = -1;
     $self->{screenname} = 'anonymous';
-    $self->{rating_standard} = '';
-    $self->{rating_lighting} = '';
+    $self->{rating_standard} = 0;
+    $self->{rating_lighting} = 0;
     $self->{is_anon} = 1;
     $self->{'auth_token'} = create_uuid_as_string();
 }
@@ -348,8 +348,8 @@ sub _loadAiUser {
 
     $self->{player_id} = -2;
     $self->{screenname} = 'ai';
-    $self->{rating_standard} = '';
-    $self->{rating_lighting} = '';
+    $self->{rating_standard} = 0;
+    $self->{rating_lighting} = 0;
     $self->{is_anon} = 1;
     $self->{'auth_token'} = $authToken ? $authToken : create_uuid_as_string();
 }

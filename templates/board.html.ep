@@ -3,12 +3,23 @@
 <script src="/konva.min.js"></script>
 <script src="/jquery-3.2.min.js"></script>
 <%= jquery_ajax_csrf_protection %>
-
 <div class="container bg-light card">
     <div class="row">
         <div class="col-3">
+        <div class="container bg-light card">
+            <span><%= ucfirst($gameType) %> • <%= $rated ? 'Rated' : 'Unrated' %> • <%= ucfirst($gameSpeed) %></span><br />
+            <span id='gameStatus'><%= $gameStatus %></span><br />
+            <span id='gameResult'><%= $result %></span><br />
+            <span id='gameScore'><%= $score %></span><br />
+            %= include 'player', 'player' => $whitePlayer, 'ratingType' => $gameSpeed
+            <br />
+
+            %= include 'player', 'player' => $blackPlayer, 'ratingType' => $gameSpeed
+        </div>
             <div id="game-chat-log" disabled="true"></div>
-            <input type="text" id="game-chat-input" class="form-inline"></input><br/>
+            <form class='form-line'>
+            <input type="text" id="game-chat-input" class="form-control input-lg"></input><br/>
+            </form>
         </div>
         <div id="boardContainer" class="col-6">
             <div id="container">
@@ -70,6 +81,8 @@
 </div>
 
 <script>
+    var wsGameDomain = "<%= $wsGameDomain %>";
+
     var whitePlayer = JSON.parse('<%== $whitePlayer->getJsonMsg() %>');
     var blackPlayer = JSON.parse('<%== $blackPlayer->getJsonMsg() %>');
     var redPlayer   = JSON.parse('<%== $whitePlayer->getJsonMsg() %>');
