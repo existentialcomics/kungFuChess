@@ -55,7 +55,7 @@ sub getProvisionalFactor {
     if ($gamesPlayed > 20) {
         return 0;
     }
-    return ($gamesPlayed / 20);
+    return (20 - $gamesPlayed);
 }
 
 sub getBelt {

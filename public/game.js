@@ -740,6 +740,7 @@ var handleMessage = function(msg) {
             pieceLayer.draw();
         }
     } else if (msg.c == 'gameBegins'){
+        $('#gameStatus').html('active');
         var audio = new Audio('/sound/Tick-DeepFrozenApps-397275646.mp3');
         audio.play();
 		for(id in pieces){
@@ -867,7 +868,7 @@ var handleMessage = function(msg) {
         }
         rematches[msg.color] = 'seen';
         if (msg.hasOwnProperty('gameId')) {
-            window.location.replace('/game/' + msg.gameId);
+            window.location.replace('/game/' + msg.gameId + (anonKey ? "?anonKey=" + anonKey : ""));
         }
     } else if (msg.c == 'watcherAdded') {
             var dt = new Date();
@@ -991,6 +992,7 @@ var killPlayer = function(color){
 
 var endGame = function(){
     if (! replayMode) {
+        $('#gameStatus').html('finished');
         $('#gameStatusWaitingToStart').hide();
         $('#gameStatusActive').hide();
         $('#gameStatusEnded').show();

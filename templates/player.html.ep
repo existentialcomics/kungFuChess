@@ -1,0 +1,5 @@
+<div id="playerWrapper">
+    <div id="<%= $player->getBelt($ratingType) %>belt"></div>
+    &nbsp;<a href=/profile/<%= $player->{screenname} %>><%= $player->{screenname} %></a>
+    &nbsp;<%= $player->getRating($ratingType) %>
+</div>

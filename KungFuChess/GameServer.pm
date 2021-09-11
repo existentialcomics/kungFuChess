@@ -236,7 +236,7 @@ sub _init {
         ssl_no_verify => 1,   
     );
 
-    my $wsDomain = $cfg->param('ws_protocol') . '://localhost:3000/ws';
+    my $wsDomain = 'ws://localhost:3000/ws';
 
     $client->connect($wsDomain)->cb(sub {
         # make $connection an our variable rather than

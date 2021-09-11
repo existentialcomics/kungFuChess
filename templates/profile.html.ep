@@ -15,9 +15,6 @@
               <td>
                 <h5><div id="<%= $player->getBelt('standard') %>belt"></div><%= $player->getRating('standard', '2way') %></h5>
               </td>
-              <td>
-                <h5><div id="<%= $player->getBelt('standard', '4way') %>belt"></div><%= $player->getRating('standard', '4way') %></h5>
-              </td>
             </tr>
             <tr>
               <th>Games Played</th>
@@ -72,9 +69,6 @@
               <th>Rating</th>
               <td>
                 <h5><div id="<%= $player->getBelt('lightning') %>belt"></div><%= $player->getRating('lightning', '2way') %></h5>
-              </td>
-              <td>
-                <h5><div id="<%= $player->getBelt('lightning', '4way') %>belt"></div><%= $player->getRating('lightning', '4way') %></h5>
               </td>
             </tr>
             <tr>
