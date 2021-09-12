@@ -69,7 +69,6 @@ app->hook(before_routes => sub {
     $c->stash('wsDomain'     => $cfg->param('ws_domain'));
     $c->stash('wsDomainMain' => $cfg->param('ws_domain_main'));
     $c->stash('wsProtocol'   => $cfg->param('ws_protocol'));
-    $c->stash('chatDomain'   => $cfg->param('chat_domain'));
 });
 
 app->plugin('authentication' => {
@@ -685,6 +684,100 @@ post '/ajax/chat' => sub {
 
     $c->render('json' => \%return);
 };
+
+sub chatGlobal {
+    my $user = shift;
+    my $message = shift;
+    my $gameId  = shift;
+
+    my $return = {};
+    if ($message =~ m#^/(\S+)\s(.*)#) {
+        return handleChatCommand($user, $1, $2);
+    }
+
+    my $screename = $user->{screenname};
+    if ($user->isAdmin()) {
+        $screename .= " (ADMIN)";
+    }
+
+    my $msg = {
+        'c' => 'globalchat',
+        'author'    => $screename,
+        'user_id'   => $user->{player_id},
+        'message'   => $message
+    };
+
+    app->db()->do('INSERT INTO chat_log (comment_text, player_id, player_color, game_id, post_time) VALUES (?,?,?,?,NOW())', {},
+        $msg->{'message'},
+        $user->{player_id},
+        $user->getBelt(),
+        $gameId
+    );
+    $msg->{'color'} = $user->getBelt();
+    if ($gameId) {
+        $msg->{c} = 'gamechat';
+        gameBroadcast($msg, $gameId);
+    } else {
+        globalBroadcast($msg);
+    }
+    return $return;
+}
+
+sub handleChatCommand {
+    my $user = shift;
+    my $command = shift;
+    my $value = shift;
+
+    my $return = {};
+    if ($command eq 'msg') {
+        if ($value =~ m/^(.+?)\s(.*)/){
+            my $screenname = $1;
+            my $text = $2;
+
+            my $msg = {
+                'c' => 'privatechat',
+                'author'    => $user->{screenname},
+                'user_id'   => $user->{player_id},
+                'message'   => $text
+            };
+            my $success = screennameBroadcast($msg, $value);
+            if ($success == -1) {
+                $return->{'message'} = 'delivery failed, unknown screenname';
+            } elsif ($success == 0) {
+                $return->{'message'} = 'delivery failed, user offline';
+            }
+        }
+    } elsif ($command eq 'invite') {
+        if ($value =~ m/^(.+?)\s(.*)/){
+            my $screenname = $1;
+            my $uid = $2;
+            my $myGame = getMyOpenGame($user, $uid);
+            if ($myGame && $uid) {
+                my $msg = {
+                    'c' => 'invite',
+                    'screenname' => $user->{screenname},
+                    'gameSpeed'  => $myGame->{game_speed},
+                    'gameType'   => $myGame->{game_type},
+                    'rated'      => $myGame->{rated},
+                    'uid'        => $uid
+                };
+                my $success = screennameBroadcast($msg, $screenname);
+                if ($success == -1) {
+                    $return->{'message'} = 'delivery failed, unknown screenname';
+                } elsif ($success == 0) {
+                    $return->{'message'} = 'delivery failed, user offline';
+                } else {
+                    $return->{'message'} = "Invited $screenname to your game.";
+                }
+            } else {
+                $return->{'message'} = "You must have an open game to send invites.";
+            }
+        } else {
+            $return->{'message'} = "Unknown command. Available commands: /invite, /msg";
+        }
+    }
+    return $return;
+}
 
 #####################################
 ###
@@ -1539,6 +1632,9 @@ websocket '/ws' => sub {
                 $globalConnectionsByAuth{$msg->{userAuthToken}} = $self;
                 app->db()->do('UPDATE players SET last_seen = NOW() WHERE auth_token = ?', {}, $msg->{userAuthToken});
             }
+        } elsif ($msg->{'c'} eq 'chat'){
+            my $player = new KungFuChess::Player({auth_token => $msg->{userAuthToken}}, app->db());
+            my $return = chatGlobal($player, $msg->{message}, $msg->{gameId});
         }
 
         #app->log->debug('message about to be game checked ' . $msg->{c});
