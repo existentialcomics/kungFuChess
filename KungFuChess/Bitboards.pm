@@ -1145,7 +1145,8 @@ sub getPieceDisplay {
 
 ### evaluate a single board position staticly, returns the score and moves
 sub evaluate {
-    my $score         = 0;
+    my $debug = shift;
+    my $score = 0;
     my @moves = (
         {}, # no color
         {}, # white
@@ -1364,27 +1365,67 @@ sub evaluate {
     }
 
     foreach my $color (1 .. 2) {
+        my $us   = ($color == WHITE ? WHITE : BLACK);
         my $them = ($color == WHITE ? BLACK : WHITE);
         foreach my $pType (1 .. 7) {
             foreach my $bb ($pieces[$color]->[$pType]) {
+                my $safe = ($attacking[$us][ALL_P] & $bb);
                 if ($pType == BISHOP || $pType == KNIGHT) {
                     if ($attacking[$them][PAWN] & $bb) {
-                        $additionalPenalty[$color] -= 2;
+                        $additionalPenalty[$color] -= 200;
                     }
                 }
+                ### knight and rook "safe" checks all knights all rooks
                 if ($pType == ROOK) {
                     if ($attacking[$them][PAWN] & $bb) {
-                        $additionalPenalty[$color] -= 4;
+                        $additionalPenalty[$color] -= 400;
                     }
                 }
                 if ($pType == QUEEN) {
                     if ($attacking[$them][PAWN] & $bb) {
-                        $additionalPenalty[$color] -= 7;
+                        $additionalPenalty[$color] -= 700;
+                    }
+                    if (($attacking[$them][QUEEN] & $bb)) {
+                        if ($safe) {
+                            $queenDangerPenalty[$us] -= 200;
+                        } else {
+                            $queenDangerPenalty[$us] -= 600;
+                        }
+                    }
+                    if (($attacking[$them][ROOK] & $bb)) {
+                        if ($safe) {
+                            $queenDangerPenalty[$us] -= 400;
+                        } else {
+                            $queenDangerPenalty[$us] -= 700;
+                        }
+                    }
+                    if (
+                        ($attacking[$them][KNIGHT] & $bb) ||
+                        ($attacking[$them][BISHOP] & $bb)
+                    ) {
+                        if ($safe) {
+                            $queenDangerPenalty[$us] -= 500;
+                        } else {
+                            $queenDangerPenalty[$us] -= 750;
+                        }
                     }
                 }
+                #### implement king ring
                 if ($pType == KING) {
                     if ($attacking[$them][PAWN] & $bb) {
-                        $additionalPenalty[$color] -= 15;
+                        $additionalPenalty[$color] -= 2500;
+                    }
+                    if (($attacking[$them][QUEEN] & $bb)) {
+                        $kingDangerPenalty[$us] -= 2500;
+                    }
+                    if (($attacking[$them][ROOK] & $bb)) {
+                        $kingDangerPenalty[$us] -= 2500;
+                    }
+                    if (
+                        ($attacking[$them][KNIGHT] & $bb) ||
+                        ($attacking[$them][BISHOP] & $bb)
+                    ) {
+                        $kingDangerPenalty[$us] -= 2500;
                     }
                 }
             }
@@ -1400,6 +1441,18 @@ sub evaluate {
         - ($queenDangerPenalty[1] - $queenDangerPenalty[2])
         - ($additionalPenalty[1]  - $additionalPenalty[2] )
     ;
+
+    if ($debug) {
+        print "
+mater     ($material[1]           - $material[2]          )
+squar   + ($squareBonus[1]        - $squareBonus[2]       )
+mobil   + ($mobilityBonus[1]      - $mobilityBonus[2]     )
+addit   + ($additionalBonus[1]    - $additionalBonus[2]   )
+kingD   - ($kingDangerPenalty[1]  - $kingDangerPenalty[2] )
+queeD   - ($queenDangerPenalty[1] - $queenDangerPenalty[2])
+penal   - ($additionalPenalty[1]  - $additionalPenalty[2] )
+        ";
+    }
 
     return ($score, \@moves);
 }
@@ -1437,8 +1490,13 @@ sub evaluateTree {
     if ($depth > $maxDepth) { return (undef, undef, undef); }
 
     my ($score, $moves) = evaluate();
-            #print pretty_ai();
-            #print "   ---- $depth eval score:  $score -----\n";
+
+    my $debug = 0;
+
+    if ($debug) {
+        print pretty_ai();
+        print "   ---- $depth eval score:  $score -----\n";
+    }
 
     my @bestMoves = (
         [],

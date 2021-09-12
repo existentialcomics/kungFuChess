@@ -43,7 +43,7 @@ while ($go) {
         #print "moves:\n";
         #print Dumper(@moves);
     } elsif ($input =~ m/^eval$/) {
-        my ($eval, $moves) = KungFuChess::Bitboards::evaluate();
+        my ($eval, $moves) = KungFuChess::Bitboards::evaluate(1);
         print "eval: $eval\n";
     } elsif ($input =~ m/^eval (white|black)\s?(.*?)?$/) {
         my $cIn = $1;
@@ -51,7 +51,7 @@ while ($go) {
         print "PONDER: $ponder\n";
         my $color = ($cIn =~ 'white' ? 1 : 2);
         ($score, $bestMoves, $moves) = 
-            KungFuChess::Bitboards::aiThink(2, 0.5);
+            KungFuChess::Bitboards::aiThink(2, 1.5, 1);
         print "score: $score\n";
         print Dumper($bestMoves);
         KungFuChess::BBHash::displayMoves($moves, $color, $score, $ponder);
@@ -61,6 +61,7 @@ while ($go) {
 
         ($score, $bestMoves, $moves) = 
             KungFuChess::Bitboards::aiThinkAndMove(2, 0.5, $color);
+        print Dumper($bestMoves);
         print "score: $score\n";
         print KungFuChess::Bitboards::pretty_ai();
     }

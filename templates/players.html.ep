@@ -14,7 +14,7 @@
             <%= $player->getRating($ratingType) %>
         </td>
         <td>
-            <a href=/profile/<%= $player->{screenname} %>><%= $player->{screenname} %></a>
+            <a href=/profile/<%= $player->{screenname} %> class='link-dark'><%= $player->{screenname} %></a>
         </td>
     </tr>
 <% } %>

@@ -21,38 +21,6 @@ if (gameType == '4way') {
 
 var rematches = [];
 
-function rematchPool(originalThread = false) {
-    if (cancelRematchPool) {
-        rematchPoolRunning = false;
-        cancelRematchPool = false;
-        return ;
-    }
-    var setInterval = originalThread;
-    if (rematchPoolRunning == false) {
-        rematchPoolRunning = true;
-        setInterval = true;
-    }
-    $.ajax({
-        type : 'GET',
-        url  : '/ajax/rematch?gameId=' + gameId,
-        dataType : 'json',
-        success : function(data){
-            var jsonRes = data;
-            if (jsonRes.hasOwnProperty('gameId')) {
-                window.location.replace('/game/' + jsonRes.gameId);
-            }
-            if (setInterval) {
-                intervalPlayer = setTimeout(
-                    function() {
-                        rematchPool(true);
-                    },
-                    2000
-                );
-            }
-        }
-    });
-}
-
 $(function () {
     $("#enter-pool").click(function() {
         if (checkPoolRunning) {
@@ -67,9 +35,23 @@ $(function () {
     });
     $("#rematch").click(function() {
         if (rematchPoolRunning) {
-            cancelRematchPool = true;
+            var dataPost = { 'uid' : currentGameUid,
+                'anonKey' : anonKey,
+                'gameId' : gameId,
+                'c' : 'cancelRematch',
+            };
+            $(this).val('');
+            sendMsg(dataPost);
             $(this).html('Rematch');
         } else {
+            var dataPost = { 'uid' : currentGameUid,
+                'auth' : anonKey,
+                'gameId' : gameId,
+                'c' : 'rematch',
+            };
+            $(this).val('');
+            sendMsg(dataPost);
+
             $(this).html('Requesting Rematch...<br /><span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>');
             rematchPool();
         }
@@ -81,7 +63,6 @@ var height = 320;
 
 var boardContent = $("#boardContainer");
 var game_chatContent = $('#game-chat-log');
-//var input = $('#game-chat-input');
 
 var maxPieceId = 1;
 

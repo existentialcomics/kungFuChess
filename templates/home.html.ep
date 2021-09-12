@@ -33,15 +33,17 @@
                   </div>
              </nav>
             <div id='pool-matching' style='<% if($activeTab ne 'pool') { %>display:none;<% } %>'>
-                <a class="btn-block btn btn-primary p-4 text-light" id="enter-pool-standard" role="button">
+                <div class="d-grid gap-2">
+                <a class="btn btn-primary p-4 text-light" id="enter-pool-standard" role="button">
                     Standard Pool
                 </a>
-                <a class="btn-block btn btn-primary p-4 text-light" id="enter-pool-lightning" role="button">
+                <a class="btn btn-primary p-4 text-light" id="enter-pool-lightning" role="button">
                     Lightning Pool
                 </a>
-                <a class="btn-block btn btn-primary p-4 text-light" id="enter-pool-4way-lightning" role="button">
+                <a class="btn btn-primary p-4 text-light" id="enter-pool-4way-lightning" role="button">
                     4way Lightning Pool
                 </a>
+                </div>
                 <% if (!($user && $user->{player_id} != -1)) { %>
                     <small><a href="/login">Log in</a> to play rated games.</small>
                 <% } %>
@@ -71,10 +73,10 @@
                 <input type="text" id="global-chat-input" class="form-inline"></input>
                 <div id = "connectionStatus" style='float:right;'></div>
                 <br />
-                <a href="https://twitter.com/KungFuChessOrg">twitter</a>
-                &nbsp;&nbsp; <a href="https://www.reddit.com/r/Kungfuchess/">reddit</a>
-                &nbsp;&nbsp;<a href="https://discord.gg/kGAcDwsWmX">discord</a>
-                &nbsp;&nbsp;<a href="https://github.com/existentialcomics/kungFuChess">source code</a>
+                <a class='link-dark' href="https://twitter.com/KungFuChessOrg">twitter</a>
+                &nbsp;&nbsp; <a class='link-dark' href="https://www.reddit.com/r/Kungfuchess/">reddit</a>
+                &nbsp;&nbsp;<a class='link-dark' href="https://discord.gg/kGAcDwsWmX">discord</a>
+                &nbsp;&nbsp;<a class='link-dark' href="https://github.com/existentialcomics/kungFuChess">source code</a>
             </div>
         </div>
     </div>

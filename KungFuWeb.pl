@@ -49,6 +49,9 @@ my %globalConnectionsByAuth = ();
 my %playerGamesByServerConn = ();
 my %gameConnections = ();
 
+## must be send from game connection since it is in memory
+my %rematches = ();
+
 app->log->debug('connecting to db...');
 app->plugin('database', { 
     dsn      => 'dbi:mysql:dbname=' . $cfg->param('database') .';host=' . $cfg->param('dbhost'),
@@ -342,358 +345,15 @@ post '/ajax/createChallenge' => sub {
     $c->render('json' => $return );
 };
 
-#####################################
-###
-###
-get '/ajax/rematch' => sub {
-    my $c = shift;
-    my $user = $c->current_user();
-    print "user: \n\n";
-    $c->stash('user' => $user);
-
-    if (! $user) {
-        $user = new KungFuChess::Player({ anon => 1 }, app->db());
-    }
-
-    my ($origGameId) = ($c->req->param('gameId'));
-
-    my $gameRow = app->db()->selectrow_hashref('SELECT * FROM games WHERE game_id = ?', { 'Slice' => {} }, $origGameId);
-
-    my $myId = undef;
-    my $challengeId = undef;
-    my $color = undef;
-    if ($gameRow->{white_player} eq $user->{player_id}) {
-        $myId        = $gameRow->{white_player};
-        $challengeId = $gameRow->{black_player};
-        $color = 'white';
-    } elsif ($gameRow->{black_player} eq $user->{player_id}) {
-        $myId        = $gameRow->{black_player};
-        $challengeId = $gameRow->{white_player};
-        $color = 'black';
-    } elsif ($gameRow->{red_player} eq $user->{player_id}) {
-        $myId        = $gameRow->{red_player};
-        $color = 'red';
-    } elsif ($gameRow->{green_player} eq $user->{player_id}) {
-        $myId        = $gameRow->{green_player};
-        $color = 'green';
-    } else {
-        print " player not in game!!!\n";
-        my $returnError = {
-            'error' => 'player not in the game issuing rematch',
-        };
-        $c->render('json' => $returnError );
-        ### abort 403
-    }
-
-    app->log->debug("myId: $myId, gameId: $gameRow->{game_id}");
-
-    my $gameId = undef;
-    my $uid = undef;
-    ### this means it is a practice game
-    if ($gameRow->{white_player} eq $gameRow->{black_player} && $gameRow->{white_anon_key} eq $gameRow->{black_anon_key} ) {
-                  # speed, open, rated, whiteId, blackId
-        $gameId = createGame($gameRow->{game_type}, $gameRow->{game_speed}, 0, $gameRow->{white_player}, $gameRow->{black_player}, $gameRow->{red_player}, $gameRow->{green_player});
-        if (! $user) {
-            app->db()->do("UPDATE games SET black_anon_key = white_anon_key WHERE game_id = ?", {}, $gameId);
-        }
-    } else { ### rematch with another player
-        my $existingRematch = app->db()->selectrow_hashref(
-            'SELECT * FROM pool
-            WHERE player_id = ?
-            AND challenge_player_id = ?
-            AND rated = ?
-            AND game_speed = ?', { },
-            $challengeId,
-            $myId,
-            $gameRow->{rated},
-            $gameRow->{game_speed}
-        );
-
-        if ($gameRow->{game_type} eq '4way') {
-            my $existingRematch = app->db()->selectrow_hashref(
-                'SELECT * FROM pool
-                WHERE private_game_key = ?
-                ', { },
-                $gameRow->{game_id},
-            );
-            if ($existingRematch) {
-                if ($existingRematch->{matched_game}) {
-                    $gameId = $existingRematch->{matched_game};
-                } else {
-                    ### we are already in the rematch
-                    if ($user->{player_id} eq $existingRematch->{player_id} || 
-                        $user->{player_id} eq $existingRematch->{challenge_player_id} || 
-                        $user->{player_id} eq $existingRematch->{challenge_player_2_id} || 
-                        $user->{player_id} eq $existingRematch->{challenge_player_3_id}
-                    ) {
-                        app->db()->do( 'UPDATE pool SET last_ping = NOW()
-                            WHERE private_game_key = ?',
-                            {},
-                            $existingRematch->{private_game_key}
-                        );
-                    } else {
-                        if (! $existingRematch->{challenge_player_id}) {
-                            app->db()->do( 'UPDATE pool SET challenge_player_id = ?, last_ping = NOW()
-                                WHERE private_game_key = ?',
-                                {},
-                                $user->{player_id},
-                                $existingRematch->{private_game_key}
-                            );
-                        } elsif (! $existingRematch->{challenge_player_2_id}) {
-                            app->db()->do( 'UPDATE pool SET challenge_player_2_id = ?, last_ping = NOW()
-                                WHERE private_game_key = ?',
-                                {},
-                                $user->{player_id},
-                                $existingRematch->{private_game_key}
-                            );
-                        } elsif (! $existingRematch->{challenge_player_3_id}) {
-                            ### we are the last to rematch so we are now ready to play.
-                            $gameId = createGame($gameRow->{game_type}, $gameRow->{game_speed}, $gameRow->{rated}, $gameRow->{white_player}, $gameRow->{black_player}, $gameRow->{red_player}, $gameRow->{green_player});
-                            ### all uuids should be the same as before
-                            app->db()->do("UPDATE games SET white_anon_key = ?, black_anon_key = ?, red_anon_key = ?, green_anon_key = ? WHERE game_id = ?", {},
-                                $gameRow->{white_anon_key},
-                                $gameRow->{black_anon_key},
-                                $gameRow->{red_anon_key},
-                                $gameRow->{green_anon_key},
-                                $gameId
-                            );
-                            app->db()->do('UPDATE pool SET challenge_player_3_id = ?, matched_game = ?, last_ping = NOW()
-                                WHERE private_game_key = ?',
-                                {},
-                                $user->{player_id},
-                                $gameId,
-                                $existingRematch->{private_game_key}
-                            );
-                        }
-                    }
-                }
-            } else {
-                app->db()->do(
-                    'DELETE FROM pool WHERE player_id = ?',
-                    {},
-                    $user->{player_id}
-                );
-                my $sth = app->db()->prepare('INSERT INTO pool
-                    (player_id, game_speed, game_type, open_to_public, rated, private_game_key, in_matching_pool, last_ping)
-                    VALUES (?, ?, ?, ?, ?, ?, 0, NOW())');
-
-                my $uuid = create_uuid_as_string();
-                if ($user->{player_id} eq $gameRow->{white_player} ||
-                    $user->{player_id} eq $gameRow->{black_player} ||
-                    $user->{player_id} eq $gameRow->{red_player} ||
-                    $user->{player_id} eq $gameRow->{green_player}
-                ) {
-                    $sth->execute(
-                        $user->{player_id},
-                        $gameRow->{game_speed},
-                        $gameRow->{game_type},
-                        0,
-                        $gameRow->{rated},
-                        $gameRow->{game_id},
-                    );
-                }
-            }
-
-        } else { ###### 2way
-            my $myRematchAccepted = app->db()->selectrow_hashref(
-                'SELECT * FROM pool
-                WHERE player_id = ?
-                AND challenge_player_id = ?
-                AND rated = ?
-                AND game_speed = ?
-                AND matched_game IS NOT NULL
-                ', { },
-                $myId,
-                $challengeId,
-                $gameRow->{rated},
-                $gameRow->{game_speed}
-            );
-
-            if ($existingRematch) {
-                $gameId = createGame($gameRow->{game_type}, $gameRow->{game_speed}, $gameRow->{rated}, $challengeId, $myId);
-                app->db()->do('
-                    UPDATE pool
-                    SET matched_game = ?
-                    WHERE player_id = ?
-                    AND challenge_player_id = ?
-                    AND rated = ?
-                    AND game_speed = ?', { },
-                    $gameId,
-                    $challengeId,
-                    $myId,
-                    $gameRow->{rated},
-                    $gameRow->{game_speed}
-                );
-                ### all uuids should be the same as before
-                app->db()->do("UPDATE games SET white_anon_key = ?, black_anon_key = ?, red_anon_key = ?, green_anon_key = ? WHERE game_id = ?", {},
-                    $gameRow->{white_anon_key},
-                    $gameRow->{black_anon_key},
-                    $gameRow->{red_anon_key},
-                    $gameRow->{green_anon_key},
-                    $gameId
-                );
-                print "updating anon keys\n";
-            } elsif ($myRematchAccepted) {
-                $gameId = $myRematchAccepted->{matched_game};
-            } else {
-                $uid = createChallenge($myId, $gameRow->{game_speed}, $gameRow->{game_type}, 0, $gameRow->{rated}, $challengeId);
-            }
-        }
-    }
-
-    my $return = {};
-    if ($uid){
-        $return->{uid} = $uid;
-    }
-    if ($gameId){
-        $return->{gameId} = $gameId;
-        if (! $user) {
-            my $row = app->db()->selectrow_arrayref("SELECT white_anon_key FROM games WHERE game_id = ?", {}, $gameId);
-            $return->{anonKey} = $row->[0];
-        }
-    }
-    my $msg = {
-        'c' => 'rematch',
-        'color' => $color
-    };
-    if ($gameId) {
-        $msg->{gameId} = $gameId;
-    }
-
-    my $count = 0;
-    gameBroadcast($msg, $origGameId);
-    $c->render('json' => $return );
-};
-
-#####################################
-###
-###
-post '/ajax/chat' => sub {
-    my $c = shift;
-    my $user = $c->current_user();
-
-    my $message = $c->req->param('message');
-    my %return;
-    if ($message =~ m/^\//) {
-        if ($message =~ m/^\/msg\s(.+?)\s(.*)/){
-            my $screenname = $1;
-            my $text = $2;
-
-            my $msg = {
-                'c' => 'privatechat',
-                'author'    => $user->{screenname},
-                'user_id'   => $user->{player_id},
-                'message'   => $text
-            };
-            my $success = screennameBroadcast($msg, $screenname);
-            if ($success == -1) {
-                $return{'message'} = 'delivery failed, unknown screenname';
-            } elsif ($success == 0) {
-                $return{'message'} = 'delivery failed, user offline';
-            }
-        } elsif ($message =~ m#^/invite\s(.*)#) {
-            my $screenname = $1;
-            my $myGame = getMyOpenGame($user, $c->req->param('uid'));
-            if ($myGame && $c->req->param('uid')) {
-                my $msg = {
-                    'c' => 'invite',
-                    'screenname' => $user->{screenname},
-                    'gameSpeed'  => $myGame->{game_speed},
-                    'gameType'   => $myGame->{game_type},
-                    'rated'      => $myGame->{rated},
-                    'uid'        => $c->req->param('uid')
-                };
-                my $success = screennameBroadcast($msg, $screenname);
-                if ($success == -1) {
-                    $return{'message'} = 'delivery failed, unknown screenname';
-                } elsif ($success == 0) {
-                    $return{'message'} = 'delivery failed, user offline';
-                } else {
-                    $return{'message'} = "Invited $screenname to your game.";
-                }
-            } else {
-                $return{'message'} = "You must have an open game to send invites.";
-            }
-        } else {
-            $return{'message'} = "Unknown command";
-        }
-    } else {
-        my $authColor = '';
-        if ($c->req->param('gameId')) {
-            my $gameRow = app->db()->selectrow_hashref('SELECT * FROM games WHERE game_id = ?', { 'Slice' => {} }, $c->req->param('gameId'));
-            if ($c->req->param('auth')) {
-                my $auth = $c->req->param('auth');
-                if ($auth eq $gameRow->{white_anon_key}) {
-                    $authColor = 'white';
-                } elsif ($auth eq $gameRow->{black_anon_key}) {
-                    $authColor = 'black';
-                } elsif ($auth eq $gameRow->{red_anon_key}) {
-                    $authColor = 'red';
-                } elsif ($auth eq $gameRow->{green_anon_key}) {
-                    $authColor = 'green';
-                }
-            }
-            if (!$user) {
-                my $msg = {
-                    'c' => 'gameChatchat',
-                    'author'    => $authColor . " (anon)",
-                    'user_id'   => ANON_USER,
-                    'message'   => $message
-                };
-
-                app->db()->do('INSERT INTO chat_log (comment_text, player_id, player_color, game_id, post_time) VALUES (?,?,?,?,NOW())', {},
-                    $msg->{'message'},
-                    ANON_USER,
-                    'green',
-                    $c->req->param('gameId')
-                );
-                $msg->{'color'} = 'green';
-                $msg->{c} = 'gamechat';
-                gameBroadcast($msg, $c->req->param('gameId'));
-            }
-        }
-        if ($user) {
-            my $screename = $user->{screenname};
-            if ($user->isAdmin()) {
-                $screename .= " (ADMIN)";
-            }
-
-            my $msg = {
-                'c' => 'globalchat',
-                'author'    => $screename,
-                'user_id'   => $user->{player_id},
-                'message'   => $message
-            };
-
-            app->db()->do('INSERT INTO chat_log (comment_text, player_id, player_color, game_id, post_time) VALUES (?,?,?,?,NOW())', {},
-                $msg->{'message'},
-                $user->{player_id},
-                $user->getBelt(),
-                $c->req->param('gameId')
-            );
-            $msg->{'color'} = $user->getBelt();
-            if ($c->req->param('gameId')) {
-                $msg->{c} = 'gamechat';
-                gameBroadcast($msg, $c->req->param('gameId'));
-            } else {
-                globalBroadcast($msg);
-            }
-        } else {
-            $return{'message'} = "You must be logged in to chat.";
-        }
-    }
-
-    $c->render('json' => \%return);
-};
-
 sub chatGlobal {
     my $user = shift;
     my $message = shift;
     my $gameId  = shift;
+    my $msg  = shift;
 
     my $return = {};
     if ($message =~ m#^/(\S+)\s(.*)#) {
-        return handleChatCommand($user, $1, $2);
+        return handleChatCommand($user, $1, $2, $msg);
     }
 
     my $screename = $user->{screenname};
@@ -728,7 +388,9 @@ sub handleChatCommand {
     my $user = shift;
     my $command = shift;
     my $value = shift;
+    my $params = shift;
 
+    print "\n\n\nhandle command: $command $value\n\n";
     my $return = {};
     if ($command eq 'msg') {
         if ($value =~ m/^(.+?)\s(.*)/){
@@ -749,9 +411,11 @@ sub handleChatCommand {
             }
         }
     } elsif ($command eq 'invite') {
-        if ($value =~ m/^(.+?)\s(.*)/){
-            my $screenname = $1;
-            my $uid = $2;
+        print "invite\n";
+        if ($params && $params->{'uid'}) {
+            my $screenname = $value;
+            my $uid = $params->{'uid'};
+            print "$screenname $uid\n";
             my $myGame = getMyOpenGame($user, $uid);
             if ($myGame && $uid) {
                 my $msg = {
@@ -1008,7 +672,6 @@ get '/profile/:screenname/games/:speed/:type' => sub {
     my $offset = ($page - 1) * $limit;
 
     my ($count, $games) = getGameHistory($player, $gameSpeed, $gameType, $limit, $offset);
-    print Dumper($games);
     $c->stash('gameLog' => $games);
     $c->stash('page' => $page);
     $c->stash('pages' => ceil($count / $limit));
@@ -1330,6 +993,29 @@ sub getAnonymousUser {
     return $anonUser;
 }
 
+sub createRematchGame {
+    my $rematchGameId = shift;
+    my $gameRow = app->db()->selectrow_hashref('SELECT * FROM games WHERE game_id = ?', { 'Slice' => {} }, $rematchGameId);
+
+    if ($gameRow) {
+        return createGame(
+            $gameRow->{game_type},
+            $gameRow->{game_speed},
+            $gameRow->{rated},
+            $gameRow->{white_player},
+            $gameRow->{black_player},
+            $gameRow->{red_player},
+            $gameRow->{green_player},
+            {
+                'whiteUuid' => $gameRow->{white_anon_key},
+                'blackUuid' => $gameRow->{black_anon_key},
+                'redUuid' => $gameRow->{red_anon_key},
+                'greenUuid' => $gameRow->{green_anon_key},
+            },
+        )
+    }
+}
+
 sub createGame {
     my ($type, $speed, $rated, $white, $black, $red, $green, $options) = @_;
     #app->log->debug("creating game with $type, $speed, $rated, $white, $black, $red, $green\n");
@@ -1649,7 +1335,39 @@ websocket '/ws' => sub {
             }
         } elsif ($msg->{'c'} eq 'chat'){
             my $player = new KungFuChess::Player({auth_token => $msg->{userAuthToken}}, app->db());
-            my $return = chatGlobal($player, $msg->{message}, $msg->{gameId});
+            my $return = chatGlobal($player, $msg->{message}, $msg->{gameId}, $msg);
+            if ($return) {
+                $self->send(json_encode($return));
+            }
+        } elsif ($msg->{'c'} eq 'rematch'){
+            my $gameId = $msg->{gameId};
+            my ($color, $gameRow) = authGameColor($msg->{auth}, $msg->{uid}, $gameId);
+            if ($color) {
+                $rematches{$gameId}->{$color} = time();
+                my $returnMsg = {
+                    'c' => 'rematch',
+                    'color' => $color
+                };
+                if (
+                    (   ($gameRow->{game_type} eq '2way') &&
+                        exists($rematches{$gameId}->{white}) && 
+                        exists($rematches{$gameId}->{black})
+                    ) || 
+                    (   ($gameRow->{game_type} eq '4way') &&
+                        exists($rematches{$gameId}->{white}) && 
+                        exists($rematches{$gameId}->{black}) && 
+                        exists($rematches{$gameId}->{red}) && 
+                        exists($rematches{$gameId}->{green})
+                    )
+                ) {
+                    my $rematchGameId = createRematchGame($gameId);
+                    if ($rematchGameId) {
+                        $returnMsg->{gameId} = $rematchGameId;
+                    }
+                }
+                my $count = 0;
+                gameBroadcast($returnMsg, $gameId);
+            }
         }
 
         #app->log->debug('message about to be game checked ' . $msg->{c});
@@ -2749,6 +2467,41 @@ sub matchPool {
     }
 
     return undef;
+}
+
+### usually done in the KungFuChess::Game
+#   this is used if that isn't available / transition to this
+sub authGameColor {
+    my ($playerAuth, $anonAuth, $gameId) = @_;
+    print "playerAuth: $playerAuth, $anonAuth, $gameId\n";
+    my $authColor = undef;
+    my $gameRow = app->db()->selectrow_hashref('SELECT * FROM games WHERE game_id = ?', { 'Slice' => {} }, $gameId);
+    if ($playerAuth) {
+        my $player = new KungFuChess::Player({auth_token => $playerAuth}, app->db());
+        if ($player) {
+            if ($player->{player_id} eq $gameRow->{white_player}) {
+                $authColor = 'white';
+            } elsif ($player->{player_id} eq $gameRow->{black_player}) {
+                $authColor = 'black';
+            } elsif ($player->{player_id} eq $gameRow->{red_player}) {
+                $authColor = 'red';
+            } elsif ($player->{player_id} eq $gameRow->{green_player}) {
+                $authColor = 'green';
+            }
+        }
+    }
+    if ($anonAuth) {
+        if ($anonAuth eq $gameRow->{white_anon_key}) {
+            $authColor = 'white';
+        } elsif ($anonAuth eq $gameRow->{black_anon_key}) {
+            $authColor = 'black';
+        } elsif ($anonAuth eq $gameRow->{red_anon_key}) {
+            $authColor = 'red';
+        } elsif ($anonAuth eq $gameRow->{green_anon_key}) {
+            $authColor = 'green';
+        }
+    }
+    return ($authColor, $gameRow);
 }
 
 app->start;
