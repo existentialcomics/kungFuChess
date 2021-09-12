@@ -69,6 +69,7 @@ app->hook(before_routes => sub {
     $c->stash('wsDomain'     => $cfg->param('ws_domain'));
     $c->stash('wsDomainMain' => $cfg->param('ws_domain_main'));
     $c->stash('wsProtocol'   => $cfg->param('ws_protocol'));
+    $c->stash('chatDomain'   => $cfg->param('chat_domain'));
 });
 
 app->plugin('authentication' => {

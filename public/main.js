@@ -443,7 +443,7 @@ $(function () {
         $(this).val('');
         $.ajax({
             type : 'POST',
-            url  : '/ajax/chat',
+            url  : chatServer + '/ajax/chat',
             data: dataPost,
             dataType : 'json',
             success : function(data){

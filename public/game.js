@@ -3,6 +3,11 @@ var checkPoolGameSpeed = gameSpeed;
 var checkPoolGameType  = gameType;
 var cancelCheckPool = false;
 
+var isConnectedGame = false;
+
+// have we got a board spawn message yet? if no keep joining
+var hasRecievedSpawn = false;
+
 var rematchPoolRunning = false;
 var cancelRematchPool = false;
 var boardSize = 8;
@@ -410,12 +415,15 @@ var updateTimeStamps = function(){
 };
 
 var joinGame = function(){
-		var ret = {
-			'c' : 'join',
-            'gameId' : gameId
-		};
-        gameId = gameId;
-        sendMsg(ret);
+    if (hasRecievedSpawn) {
+        return true;
+    }
+    var ret = {
+        'c' : 'join',
+        'gameId' : gameId
+    };
+    gameId = gameId;
+    sendMsg(ret);
 };
 
 var resetGamePieces = function(){
@@ -431,6 +439,7 @@ var bindGameEvents = function(ws_conn) {
         // finished connecting.
         // maybe query for ready to join
         console.log("connected!");
+        isConnectedGame = true;
         if (myColor != 'watch') {
             pingServer = setInterval(function() {
                 var d = new Date();
@@ -454,6 +463,7 @@ var bindGameEvents = function(ws_conn) {
     };
 
     conn.onclose = function(e) {
+        isConnectedGame = false;
         var dt = new Date();
         console.log('Disconnected!');
         addGameMessage(
@@ -474,7 +484,7 @@ bindGameEvents(conn);
 
 var game_reconnectInterval;
 var game_reconnectMain = function() {
-    if (isConnected == false) {
+    if (isConnectedGame == false) {
         $("#connectionStatus").html("Reconnecting...");
         conn = null;
         conn = new WebSocket(wsProtocol + "://" + wsDomain + "/ws");
@@ -1557,7 +1567,7 @@ $(function () {
         $(this).val('');
         $.ajax({
             type : 'POST',
-            url  : '/ajax/chat',
+            url  : chatServer + '/ajax/chat',
             data: dataPost,
             dataType : 'json',
             success : function(data){

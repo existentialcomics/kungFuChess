@@ -1,0 +1,9 @@
+dbuser		{db_user}
+dbpassword	{db_password}
+dbhost		{db_host}
+database	kungfuchess
+path_to_stockfish   /usr/local/bin/stockfish ### stockfish binary, not used anymore
+ws_domain_main  127.0.0.1:3000 # must be non-load balanced
+ws_domain  127.0.0.1:3000 must be the server THIS is running on
+chat_domain http://127.0.0.1:3000 ### must be full address of same server as ws_domain_main
+ws_protocol  ws
