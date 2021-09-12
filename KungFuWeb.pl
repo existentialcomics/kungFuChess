@@ -14,6 +14,7 @@ use Config::Simple;
 use HTML::Escape qw/escape_html/;
 # via the Digest module (recommended)
 use Digest;
+use POSIX;
 
 use Cwd qw( abs_path );
 use File::Basename qw( dirname );
@@ -990,15 +991,29 @@ get '/profile/:screenname/games/:speed/:type' => sub {
     $c->stash('user' => $user);
 
     my $data      = { 'screenname' => $c->stash('screenname') };
-    my $gameSpeed = { 'screenname' => $c->stash('speed') };
-    my $gameType  = { 'screenname' => $c->stash('speed') };
+    my $gameSpeed = $c->stash('speed');
+    my $gameType  = $c->stash('type');
     my $player = new KungFuChess::Player($data, app->db());
 
     $c->stash('player' => $player);
 
-    my $games = getGameHistory($player, $gameSpeed, $gameType);
+    my $limit = 50;
+    my $page = $c->req->param('page');
+    if ($page) {
+        $page =~ s/[^\d]//;
+        if ($page eq '') { $page = 1; }
+    } else {
+        $page = 1;
+    }
+    my $offset = ($page - 1) * $limit;
 
-    return $c->render('template' => 'profile', format => 'html', handler => 'ep');
+    my ($count, $games) = getGameHistory($player, $gameSpeed, $gameType, $limit, $offset);
+    print Dumper($games);
+    $c->stash('gameLog' => $games);
+    $c->stash('page' => $page);
+    $c->stash('pages' => ceil($count / $limit));
+
+    return $c->render('template' => 'gameLog', format => 'html', handler => 'ep');
 };
 
 get '/matchGame/:uid' => sub {
@@ -1864,15 +1879,23 @@ websocket '/ws' => sub {
 };
 
 sub getGameHistory {
-    my ($player, $gameSpeed, $gameType) = @_;
+    my ($player, $gameSpeed, $gameType, $limit, $offset) = @_;
 
-    my $gameLog = app()->db->selectall_arrayref('SELECT * from game_log WHERE player_id = ? AND game_speed = ? and game_type = ?', { 'Slice' => {}},
+    my $countRow = app()->db->selectrow_arrayref('SELECT count(*) FROM game_log WHERE game_log.player_id = ? AND game_log.game_speed = ? and game_log.game_type = ?', {}, 
         $player->{player_id},
         $gameSpeed,
-        $gameType
+        $gameType,
+    );
+    my $count = $countRow->[0];
+    my $gameLog = app()->db->selectall_arrayref('SELECT game_log.*, p.screenname, op.rating_before as them_before, op.rating_after as them_after from game_log LEFT JOIN players p ON p.player_id = game_log.opponent_id LEFT JOIN game_log op ON game_log.game_id = op.game_id AND game_log.opponent_id = op.player_id WHERE game_log.player_id = ? AND game_log.game_speed = ? and game_log.game_type = ? ORDER BY game_log_id DESC LIMIT ? OFFSET ?', { 'Slice' => {}},
+        $player->{player_id},
+        $gameSpeed,
+        $gameType,
+        $limit,
+        $offset
     );
 
-    return $gameLog;
+    return ($count, $gameLog);
 }
 
 # auth from the game server

@@ -443,24 +443,6 @@ $(function () {
         $(this).val('');
         dataPost['c'] = 'chat';
         sendGlobalMsg(dataPost);
-        //$.ajax({
-            //type : 'POST',
-            //url  : chatServer + '/ajax/chat',
-            //data: dataPost,
-            //dataType : 'json',
-            //success : function(data){
-                //if (data.hasOwnProperty('message')) {
-                    //var dt = new Date();
-                    //addChatMessage(
-                        //'SYSTEM',
-                        //data.message,
-                        //'red',
-                        //'red',
-                        //dt
-                    //);
-                //}
-            //}
-        //});
     });
 
     $('#global-chat-input').keyup(function(e){

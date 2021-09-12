@@ -1563,26 +1563,10 @@ $(function () {
             'uid' : currentGameUid,
             'auth' : anonKey,
             'gameId' : gameId,
+            'c' : 'chat',
         };
         $(this).val('');
-        $.ajax({
-            type : 'POST',
-            url  : chatServer + '/ajax/chat',
-            data: dataPost,
-            dataType : 'json',
-            success : function(data){
-                if (data.hasOwnProperty('message')) {
-                    var dt = new Date();
-                    addChatMessage(
-                        'SYSTEM',
-                        data.message,
-                        'red',
-                        'red',
-                        dt
-                    );
-                }
-            }
-        });
+        sendMsg(dataPost);
     });
 
     $('#game-chat-input').keyup(function(e){
