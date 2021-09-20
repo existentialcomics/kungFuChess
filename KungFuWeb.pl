@@ -349,11 +349,11 @@ sub chatGlobal {
     my $user = shift;
     my $message = shift;
     my $gameId  = shift;
-    my $msg  = shift;
+    my $origMsg  = shift;
 
     my $return = {};
     if ($message =~ m#^/(\S+)\s(.*)#) {
-        return handleChatCommand($user, $1, $2, $msg);
+        return handleChatCommand($user, $1, $2, $origMsg);
     }
 
     my $screename = $user->{screenname};
@@ -852,16 +852,16 @@ get '/game/:gameId' => sub {
     $c->stash('authId' => $user->{auth_token});
     $c->stash('anonKey' => $c->param('anonKey'));
 
-    my $game = ($currentGames{$gameId} ? $currentGames{$gameId} : undef);
     my $gameRow = app->db()->selectrow_hashref('SELECT * FROM games WHERE game_id = ?', { 'Slice' => {} }, $gameId);
 
     ### if the game isn't active we just use ours
-    $c->stash('wsGameDomain'  => $game ? $gameRow->{ws_server} : $cfg->param('ws_domain'));
+    $c->stash('wsGameDomain'  => $gameRow ? $gameRow->{ws_server} : $cfg->param('ws_domain'));
 
-    $c->stash('whiteReady'  => $game ? $game->{whiteReady} : -1);
-    $c->stash('blackReady'  => $game ? $game->{blackReady} : -1);
-    $c->stash('redReady'    => $game ? $game->{redReady}   : -1);
-    $c->stash('greenReady'  => $game ? $game->{greenReady} : -1);
+    ### unknown we must ask the ws server, stored in memory
+    $c->stash('whiteReady'  => -1);
+    $c->stash('blackReady'  => -1);
+    $c->stash('redReady'    => -1);
+    $c->stash('greenReady'  => -1);
 
     $c->stash('positionGameMsgs' => $gameRow->{final_position});
     $c->stash('gameLog'          => $gameRow->{game_log} ? $gameRow->{game_log} : '[]');
@@ -942,17 +942,8 @@ get '/game/:gameId' => sub {
             $color = ($color eq 'both' ? 'both' : 'green');
         }
     }
-    if ($color ne 'watch' && $game) {
-        if ($game) {
-            $game->addPlayer($user, $color);
-        }
-    } else {
-        if ($game) {
-            $game->addWatcher($user, $color);
-        }
-    }
     $c->stash('color', $color);
-    $c->stash('watchers', (defined($game) ? $game->getWatchers : []));
+    $c->stash('watchers', []);
 
     $c->render('template' => 'board', format => 'html', handler => 'ep');
     return;
@@ -1048,13 +1039,12 @@ sub createGame {
 
     my $isAiGame =  ($black == AI_USER ? 1 : 0);
 
+
     $currentGames{$gameId} = KungFuChess::Game->new(
         $gameId,
         $type,
         $speed,
         $auth,
-        $whiteUid,
-        $blackUid,
         $isAiGame
     );
 
@@ -1088,7 +1078,7 @@ sub createGame {
         );
         app->log->debug($cmdAi);
         system($cmdAi);
-        $currentGames{$gameId}->addPlayer($aiUser, 'black');
+        $currentGames{$gameId}->addPlayer($blackUid, 'black');
     }
 
     return $gameId;
@@ -1341,7 +1331,7 @@ websocket '/ws' => sub {
             }
         } elsif ($msg->{'c'} eq 'rematch'){
             my $gameId = $msg->{gameId};
-            my ($color, $gameRow) = authGameColor($msg->{auth}, $msg->{uid}, $gameId);
+            my ($color, $gameRow, $successAuth) = authGameColor($msg->{auth}, $msg->{uid}, $gameId);
             if ($color) {
                 $rematches{$gameId}->{$color} = time();
                 my $returnMsg = {
@@ -1378,9 +1368,13 @@ websocket '/ws' => sub {
         #app->log->debug('message game checked ' . $msg->{c});
 
         if ($msg->{'c'} eq 'join'){
+            my ($color, $gameRow, $successAuth) = authGameColor($msg->{auth}, $msg->{uid}, $msg->{gameId});
             $game->addConnection($connId, $self);
             $gameConnections{$msg->{gameId}}->{$connId} = $self;
             $playerGamesByServerConn{$connId} = $msg->{gameId};
+            if ($color) {
+                $game->addPlayer($successAuth, $color);
+            }
 
             if ($game->serverReady()) {
                 my $ret = {
@@ -2473,7 +2467,6 @@ sub matchPool {
 #   this is used if that isn't available / transition to this
 sub authGameColor {
     my ($playerAuth, $anonAuth, $gameId) = @_;
-    print "playerAuth: $playerAuth, $anonAuth, $gameId\n";
     my $authColor = undef;
     my $gameRow = app->db()->selectrow_hashref('SELECT * FROM games WHERE game_id = ?', { 'Slice' => {} }, $gameId);
     if ($playerAuth) {
@@ -2481,27 +2474,39 @@ sub authGameColor {
         if ($player) {
             if ($player->{player_id} eq $gameRow->{white_player}) {
                 $authColor = 'white';
-            } elsif ($player->{player_id} eq $gameRow->{black_player}) {
-                $authColor = 'black';
-            } elsif ($player->{player_id} eq $gameRow->{red_player}) {
-                $authColor = 'red';
-            } elsif ($player->{player_id} eq $gameRow->{green_player}) {
-                $authColor = 'green';
             }
+            if ($player->{player_id} eq $gameRow->{black_player}) {
+                $authColor = ($authColor ? 'both' : 'black'); 
+            }
+            if ($player->{player_id} eq $gameRow->{red_player}) {
+                $authColor = ($authColor ? 'both' : 'red'); 
+            }
+            if ($player->{player_id} eq $gameRow->{green_player}) {
+                $authColor = ($authColor ? 'both' : 'green'); 
+            }
+        }
+        if ($authColor) {
+            return ($authColor, $gameRow, $playerAuth);
         }
     }
     if ($anonAuth) {
         if ($anonAuth eq $gameRow->{white_anon_key}) {
             $authColor = 'white';
-        } elsif ($anonAuth eq $gameRow->{black_anon_key}) {
-            $authColor = 'black';
-        } elsif ($anonAuth eq $gameRow->{red_anon_key}) {
-            $authColor = 'red';
-        } elsif ($anonAuth eq $gameRow->{green_anon_key}) {
-            $authColor = 'green';
+        }
+        if ($anonAuth eq $gameRow->{black_anon_key}) {
+            $authColor = ($authColor ? 'both' : 'black'); 
+        }
+        if ($anonAuth eq $gameRow->{red_anon_key}) {
+            $authColor = ($authColor ? 'both' : 'red'); 
+        }
+        if ($anonAuth eq $gameRow->{green_anon_key}) {
+            $authColor = ($authColor ? 'both' : 'green'); 
+        }
+        if ($authColor) {
+            return ($authColor, $gameRow, $playerAuth);
         }
     }
-    return ($authColor, $gameRow);
+    return (undef, $gameRow, undef);
 }
 
 app->start;

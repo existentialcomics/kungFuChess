@@ -7,11 +7,11 @@
             <%= form_for login => (method => 'post') => begin %>
                 <div class="form-group">
                     <label>User name</label>
-                    <input type='text' name='username' value=''>
+                    <input class="form-inline" type='text' name='username' value=''>
                 </div>
                 <div class="form-group">
                     <label>Password</label>
-                    <input type='password' name="password" value=''>
+                    <input class="form-inline" type='password' name="password" value=''>
                 </div>
                 <input class="btn btn-primary" type='submit' value="Log in"/>
             <% end %>
