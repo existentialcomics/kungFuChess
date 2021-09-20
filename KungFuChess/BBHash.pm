@@ -75,39 +75,69 @@ sub getSquareFromBB {
     return $bitboardToSquare{$_[0]};
 }
 
+sub displayBestMoves {
+    my $bestMoves = shift;
+    my $color = shift;
+    my $score = shift;
+    my $ponder = shift;
+    my $indent = shift;
+    my $filter = shift;
+
+    foreach my $bmove (@{$bestMoves}[$color]) {
+        foreach my $move (@$bmove) {
+            my ($fr_bb, $to_bb) = split('-', $move);
+            print getSquareFromBB($fr_bb);
+            print getSquareFromBB($to_bb);
+            print "\n";
+        }
+    }
+}
+
 # 0 = fr_bb
 # 1 = to_bb
 # 2 = piece
 # 3 = piece_type
 # 4 = score
 # 5 = child moves
-
 sub displayMoves {
     my $moves = shift;
     my $color = shift;
     my $score = shift;
     my $ponder = shift;
     my $indent = shift;
+    my $filter = shift;
     $ponder = $ponder ? $ponder : '';
     $indent = $indent ? $indent : '';
 
-    foreach my $k (keys %{$moves->[$color]}) {
+    print "current score: $score\n";
+    foreach my $k (sort {$moves->[$color]->{$a}[4] <=> $moves->[$color]->{$b}[4] } keys  %{$moves->[$color]}) {
         #print $k;
         my $move = getSquareFromBB($moves->[$color]->{$k}[0]) . getSquareFromBB($moves->[$color]->{$k}[1]);
-        print $indent;
-        print $move;
-        my $mScore = $moves->[$color]->{$k}[4];
-        print ($mScore > $score ? " * " : "   ") ;
-        print  $mScore;
-        print "\n";
-        if ($move eq $ponder) {
-            displayMoves(
-                $moves->[$color]->{$k}[5],
-                $color == 2 ? 1 : 2,
-                $mScore,
-                '',
-                '  '
-            );
+        if (! $filter || ($move =~ m/^$filter/)) {
+            print $indent;
+            print $move;
+            my $mScore = $moves->[$color]->{$k}[4];
+            print ($mScore > $score ? " * " : "   ") ;
+            print  $mScore;
+            print "\n";
+            if (($move eq $ponder) || $ponder eq 'all') {
+                displayMoves(
+                    $moves->[$color]->{$k}[5],
+                    $color == 2 ? 1 : 2,
+                    $mScore,
+                    '',
+                    ' x '
+                );
+            }
+            if (($move eq $ponder) || $ponder eq 'all') {
+                displayMoves(
+                    $moves->[$color]->{$k}[5],
+                    $color,
+                    $mScore,
+                    '',
+                    '   '
+                );
+            }
         }
     }
 }

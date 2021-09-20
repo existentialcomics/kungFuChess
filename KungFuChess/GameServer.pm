@@ -498,6 +498,10 @@ sub moveIfLegal {
         KungFuChess::Bitboards::parseMove($move);
     }
 
+    ### trying to move a currently moving piece
+    if (exists($self->{activeMoves}->{$move_fr_bb})) {
+        return 0;
+    }
     if (exists($self->{timeoutSquares}->{$move_fr_bb})) {
         # can't use the key because it is converted to string secretly
         $self->{timeoutSquares}->{$move_fr_bb}->{'fr_bb'} = $move_fr_bb;
@@ -533,7 +537,7 @@ sub moveIfLegal {
     my $timer = undef;
     my $timer2 = undef;
     my $moveStep = sub {
-        my ($self, $func, $fr_bb, $to_bb, $dir, $startTime, $moveType, $piece) = @_;
+        my ($self, $func, $fr_bb, $to_bb, $dir, $startTime, $moveType, $piece, $colorbit) = @_;
 
         my $next_fr_bb = 0;
         #print KungFuChess::Bitboards::pretty();
@@ -607,7 +611,7 @@ sub moveIfLegal {
                         KungFuChess::Bitboards::move($fr_bb, $moving_to_bb);
                         my $msgStep = {
                             'c' => 'authmovestep',
-                            'color'  => $self->{color},
+                            'color'  => $colorbit,
                             'fr_bb'  => $fr_bb,
                             'to_bb'  => $moving_to_bb
                         };
@@ -627,7 +631,7 @@ sub moveIfLegal {
                     KungFuChess::Bitboards::move($fr_bb, $moving_to_bb);
                     my $msgStep = {
                         'c' => 'authmovestep',
-                        'color'  => $self->{color},
+                        'color'  => $colorbit,
                         'fr_bb'  => $fr_bb,
                         'to_bb'  => $moving_to_bb
                     };
@@ -641,7 +645,7 @@ sub moveIfLegal {
                                 print "delay authstop\n";
                                 my $msg = {
                                     'c' => 'authstop',
-                                    'color' => $self->{color},
+                                    'color' => $colorbit,
                                     'fr_bb' => $moving_to_bb,
                                 };
                                 $self->send($msg);
@@ -660,7 +664,7 @@ sub moveIfLegal {
                 ### message that animates a move on the board
                 my $msg = {
                     'c' => 'authstop',
-                    'color' => $self->{color},
+                    'color' => $colorbit,
                     'fr_bb' => $fr_bb,
                 };
                 $self->send($msg);
@@ -672,7 +676,7 @@ sub moveIfLegal {
                 KungFuChess::Bitboards::move($fr_bb, $moving_to_bb);
                 my $msgStep = {
                     'c' => 'authmovestep',
-                    'color'  => $self->{color},
+                    'color'  => $colorbit,
                     'fr_bb'  => $fr_bb,
                     'to_bb'  => $moving_to_bb
                 };
@@ -886,7 +890,7 @@ sub moveIfLegal {
     ### message that animates a move on the board
     my $msg = {
         'c' => 'authmove',
-        'color' => $self->{color},
+        'color' => $colorbit,
         'fr_bb' => $fr_bb,
         'to_bb' => $to_bb,
         'moveType' => $moveType
@@ -899,7 +903,7 @@ sub moveIfLegal {
         to_bb => $to_bb,
         start_time => 1
     };
-    $moveStep->($self, $moveStep, $fr_bb, $to_bb, $moveDir, $startTime, $moveType, '');
+    $moveStep->($self, $moveStep, $fr_bb, $to_bb, $moveDir, $startTime, $moveType, '', $colorbit);
 
     KungFuChess::Bitboards::resetAiBoards();
     return 1;

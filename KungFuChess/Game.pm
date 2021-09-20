@@ -23,7 +23,7 @@ sub new {
 
 sub _init {
 	my $self = shift;
-    my ($id, $mode, $speed, $auth, $whiteAnonKey, $blackAnonKey, $isAiGame) = @_;
+    my ($id, $mode, $speed, $auth, $isAiGame) = @_;
 	$self->{id} = $id;
 
     if ($speed eq 'standard') {
@@ -37,10 +37,6 @@ sub _init {
     }
     $self->{speed} = $speed;
     $self->{mode} = $mode;   # 2way or 4way
-    $self->{whiteAnonKey} = $whiteAnonKey;
-    $self->{blackAnonKey} = $blackAnonKey;
-    $self->{redAnonKey} = $whiteAnonKey;
-    $self->{greenAnonKey} = $blackAnonKey;
 
     $self->{playersByAuth} = {};
     $self->{playersConn}   = {};
@@ -51,8 +47,6 @@ sub _init {
     $self->{readyToPlay}   = 0;
     $self->{auth}          = $auth;
     $self->{serverConn}    = 0;
-    $self->{whitePlayer}   = undef;
-    $self->{blackPlayer}   = undef;
 
     $self->{white}->{alive} = 1;
     $self->{black}->{alive} = 1;
@@ -266,7 +260,7 @@ sub authMove {
 
     return 0 if (! defined($msg->{auth}));
     return 0 if (! defined($self->{playersByAuth}->{$msg->{auth}}));
-    return $self->{playersByAuth}->{$msg->{auth}}->{color};
+    return $self->{playersByAuth}->{$msg->{auth}};
 }
 
 sub serverBroadcast {
@@ -348,26 +342,9 @@ sub getWatchers {
 
 sub addPlayer {
     my $self = shift;
-    my ($user, $color) = @_;
+    my ($auth, $color) = @_;
 
-    $user->{color} = (defined($color) ? $color : 'none');
-
-    if ($color eq 'white'){
-        $self->{whitePlayer} = $user;
-    } elsif ($color eq 'black'){
-        $self->{blackPlayer} = $user;
-    }
-
-    $self->{playersByAuth}->{$user->{auth_token}} = $user;
-    $self->playerBroadcast({
-        'c' => 'playerjoined',
-        'user' => {
-            'color' => $user->{color},
-            'screenname' => $user->{screenname},
-            'rating' => $user->{rating},
-            'id' => $user->{id}
-        },
-    });
+    $self->{playersByAuth}->{$auth} = $color;
 }
 
 1;

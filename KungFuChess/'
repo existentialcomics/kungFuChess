@@ -11,7 +11,7 @@ use KungFuChess::BBHash;
 use base 'Exporter';
 
 # 1 for tree debugging, 2 for addition eval debugging
-my $aiDebug = 0;
+my $aiDebug = 2;
 
 my $aiDebugEvalCount = 0;
 
@@ -1405,7 +1405,7 @@ sub evaluate {
                                 $to,
                                 $piece,
                                 $pieceType,
-                                undef, # score
+                                0,     # score
                                 undef, # children moves
                                 0      # depth
                             ];
@@ -1460,7 +1460,7 @@ sub evaluate {
                                     $to,
                                     $piece,
                                     $pieceType,
-                                    undef, # score
+                                    0,     # score
                                     undef, # children moves
                                     0      # depth
                                 ];
@@ -1503,7 +1503,7 @@ sub evaluate {
                                 $to,
                                 $piece,
                                 $pieceType,
-                                undef, # score
+                                0,     # score
                                 undef, # children moves
                                 0      # depth
                             ];
@@ -1519,7 +1519,7 @@ sub evaluate {
                         $to,
                         $piece,
                         $pieceType,
-                        undef, # score
+                        0,     # score
                         undef, # children moves
                         0      # depth
                     ];
@@ -1540,7 +1540,7 @@ sub evaluate {
                         $to,
                         $piece,
                         $pieceType,
-                        undef, # score
+                        0,     # score
                         undef, # children moves
                         0      # depth
                     ];
@@ -1561,7 +1561,7 @@ sub evaluate {
                         $to,
                         $piece,
                         $pieceType,
-                        undef, # score
+                        0,     # score
                         undef, # children moves
                         0      # depth
                     ];
@@ -1734,18 +1734,19 @@ sub aiRecommendMoves {
             && abs($bestScore - $move->[MOVE_SCORE]) < $falloff) {
             push @$suggested, $move;
         } else {
-            return $suggested;
+            #return $suggested;
         }
         $count++;
 
-        #print "recommend: ";
-        #print KungFuChess::BBHash::getSquareFromBB($move->[MOVE_FR]);
-        #print KungFuChess::BBHash::getSquareFromBB($move->[MOVE_TO]);
-        #print " : ";
-        ##print Dumper($move);
-        #print $move->[MOVE_SCORE] // "(undef)";
-        #print "\n";
+        print "recommend: ";
+        print KungFuChess::BBHash::getSquareFromBB($move->[MOVE_FR]);
+        print KungFuChess::BBHash::getSquareFromBB($move->[MOVE_TO]);
+        print " : ";
+        #print Dumper($move);
+        print $move->[MOVE_SCORE] // "(undef)";
+        print "\n";
     }
+    return [];
 }
 
 sub recommendMoveForBB {
@@ -1785,8 +1786,8 @@ sub recommendMoveForBB {
 sub evaluateTree {
     my ($depth, $maxDepth, $stopTime, $moves, $score) = @_;
     #print "evalTree: $color, $depth, $maxDepth, $stopTime\n";
-    if ($depth > $maxDepth) { print "(max depth)"; return (undef, undef, undef); }
-    if ($stopTime < time()) { print "(timeout)";return (undef, undef, undef); }
+    if ($depth > $maxDepth) { return (undef, undef, undef); }
+    if ($stopTime < time()) { return (undef, undef, undef); }
     my $searchDepth = $depth;
 
     if (! $moves) {
@@ -1797,7 +1798,7 @@ sub evaluateTree {
         $| = 1;
         #print "depth : $depth\n";
         #print pretty_ai();
-        print " " x $depth;
+        print "  " x $depth;
         print "$depth eval score:  $score -----\n";
     }
 
@@ -1834,30 +1835,22 @@ sub evaluateTree {
 
     foreach my $color (WHITE, BLACK) {
         while (my ($key, $move) = each %{$moves->[$color]}) {
-            if ($aiDebug) {
-                print " " x $depth;
-                print "- $depth move: ";
-                print KungFuChess::BBHash::getSquareFromBB($move->[MOVE_FR]);
-                print KungFuChess::BBHash::getSquareFromBB($move->[MOVE_TO]);
-                print '(' . ($move->[MOVE_SCORE] // '') . ')';
-                print "\n";
-            }
             my $undoPiece;
-            $undoPiece = do_move_ai($move->[MOVE_FR], $move->[MOVE_TO]);
-            my ($newScore, $newMoves, $state) = evaluateTree($depth + 1, $maxDepth, $stopTime, $move->[MOVE_NEXT_MOVES], $move->[MOVE_SCORE]);
-            undo_move_ai($move->[MOVE_FR], $move->[MOVE_TO], $undoPiece);
-            if (! defined($newScore)) {
-                last;
+            if ($depth + 1 <= $maxDepth) {
+                if ($aiDebug) {
+                    print " " x $depth;
+                    print "- $depth move: ";
+                    print KungFuChess::BBHash::getSquareFromBB($move->[MOVE_FR]);
+                    print KungFuChess::BBHash::getSquareFromBB($move->[MOVE_TO]);
+                    print '(' . ($move->[MOVE_SCORE] // '') . ')';
+                    print "\n";
+                }
+                $undoPiece = do_move_ai($move->[MOVE_FR], $move->[MOVE_TO]);
             }
+            my ($newScore, $newMoves, $state) = evaluateTree($depth + 1, $maxDepth, $stopTime, $move->[MOVE_NEXT_MOVES], $move->[MOVE_SCORE]);
             if ($aiDebug) {
                 print " " x $depth;
                 print "$depth newScore: $newScore\n";
-                print " " x $depth;
-                print "+ $depth move: ";
-                print KungFuChess::BBHash::getSquareFromBB($move->[MOVE_FR]);
-                print KungFuChess::BBHash::getSquareFromBB($move->[MOVE_TO]);
-                print '(' . ($move->[MOVE_SCORE] // '') . ')';
-                print "\n";
             }
             if ($newMoves) {
                 $moves->[$color]->{$key}->[MOVE_NEXT_MOVES] = $newMoves;
@@ -1865,70 +1858,75 @@ sub evaluateTree {
             if ($state) {
                 $moves->[$color]->{$key}->[MOVE_STATE] = $state;
             }
+            if ($depth + 1 <= $maxDepth) {
+                undo_move_ai($move->[MOVE_FR], $move->[MOVE_TO], $undoPiece);
+            }
 
-            $moves->[$color]->{$key}->[MOVE_SCORE]      = $newScore;
-            if ($color == WHITE) {
-                if ($newScore) {
-                    if ($newScore > $bestScores[WHITE]->[0]) {
-                        ### move scores down
-                        $bestMoves[WHITE]->[1]  = $bestMoves[WHITE]->[0];
-                        $bestScores[WHITE]->[1] = $bestScores[WHITE]->[0];
-                        $bestMoves[WHITE]->[2]  = $bestMoves[WHITE]->[1];
-                        $bestScores[WHITE]->[2] = $bestScores[WHITE]->[1];
-                        $bestMoves[WHITE]->[3]  = $bestMoves[WHITE]->[2];
-                        $bestScores[WHITE]->[3] = $bestScores[WHITE]->[2];
+            if ($newScore) {
+                $moves->[$color]->{$key}->[MOVE_SCORE]      = $newScore;
+                if ($color == WHITE) {
+                    if ($newScore) {
+                        if ($newScore > $bestScores[WHITE]->[0]) {
+                            ### move scores down
+                            $bestMoves[WHITE]->[1]  = $bestMoves[WHITE]->[0];
+                            $bestScores[WHITE]->[1] = $bestScores[WHITE]->[0];
+                            $bestMoves[WHITE]->[2]  = $bestMoves[WHITE]->[1];
+                            $bestScores[WHITE]->[2] = $bestScores[WHITE]->[1];
+                            $bestMoves[WHITE]->[3]  = $bestMoves[WHITE]->[2];
+                            $bestScores[WHITE]->[3] = $bestScores[WHITE]->[2];
 
-                        $bestMoves[WHITE]->[0]  = $key;
-                        $bestScores[WHITE]->[0] = $newScore;
-                    } elsif ($newScore > $bestScores[WHITE]->[1]) {
-                        $bestMoves[WHITE]->[2]  = $bestMoves[WHITE]->[1];
-                        $bestScores[WHITE]->[2] = $bestScores[WHITE]->[1];
-                        $bestMoves[WHITE]->[3]  = $bestMoves[WHITE]->[2];
-                        $bestScores[WHITE]->[3] = $bestScores[WHITE]->[2];
+                            $bestMoves[WHITE]->[0]  = $key;
+                            $bestScores[WHITE]->[0] = $newScore;
+                        } elsif ($newScore > $bestScores[WHITE]->[1]) {
+                            $bestMoves[WHITE]->[2]  = $bestMoves[WHITE]->[1];
+                            $bestScores[WHITE]->[2] = $bestScores[WHITE]->[1];
+                            $bestMoves[WHITE]->[3]  = $bestMoves[WHITE]->[2];
+                            $bestScores[WHITE]->[3] = $bestScores[WHITE]->[2];
 
-                        $bestMoves[WHITE]->[1]  = $key;
-                        $bestScores[WHITE]->[1] = $newScore;
-                    } elsif ($newScore > $bestScores[WHITE]->[2]) {
-                        $bestMoves[WHITE]->[3]  = $bestMoves[WHITE]->[2];
-                        $bestScores[WHITE]->[3] = $bestScores[WHITE]->[2];
+                            $bestMoves[WHITE]->[1]  = $key;
+                            $bestScores[WHITE]->[1] = $newScore;
+                        } elsif ($newScore > $bestScores[WHITE]->[2]) {
+                            $bestMoves[WHITE]->[3]  = $bestMoves[WHITE]->[2];
+                            $bestScores[WHITE]->[3] = $bestScores[WHITE]->[2];
 
-                        $bestMoves[WHITE]->[2]  = $key;
-                        $bestScores[WHITE]->[2] = $newScore;
-                    } elsif ($newScore > $bestScores[WHITE]->[3]) {
-                        $bestMoves[WHITE]->[3]  = $key;
-                        $bestScores[WHITE]->[3] = $newScore;
+                            $bestMoves[WHITE]->[2]  = $key;
+                            $bestScores[WHITE]->[2] = $newScore;
+                        } elsif ($newScore > $bestScores[WHITE]->[3]) {
+                            $bestMoves[WHITE]->[3]  = $key;
+                            $bestScores[WHITE]->[3] = $newScore;
+                        }
                     }
-                }
-            } else { #### need less than instead of gt
-                if ($newScore) {
-                    if ($newScore < $bestScores[BLACK]->[0]) {
-                        ### move scores down
-                        $bestMoves[BLACK]->[1]  = $bestMoves[BLACK]->[0];
-                        $bestScores[BLACK]->[1] = $bestScores[BLACK]->[0];
-                        $bestMoves[BLACK]->[2]  = $bestMoves[BLACK]->[1];
-                        $bestScores[BLACK]->[2] = $bestScores[BLACK]->[1];
-                        $bestMoves[BLACK]->[3]  = $bestMoves[BLACK]->[2];
-                        $bestScores[BLACK]->[3] = $bestScores[BLACK]->[2];
+                } else { #### need less than instead of gt
+                    if ($newScore) {
+                        if ($newScore < $bestScores[BLACK]->[0]) {
+                            ### move scores down
+                            $bestMoves[BLACK]->[1]  = $bestMoves[BLACK]->[0];
+                            $bestScores[BLACK]->[1] = $bestScores[BLACK]->[0];
+                            $bestMoves[BLACK]->[2]  = $bestMoves[BLACK]->[1];
+                            $bestScores[BLACK]->[2] = $bestScores[BLACK]->[1];
+                            $bestMoves[BLACK]->[3]  = $bestMoves[BLACK]->[2];
+                            $bestScores[BLACK]->[3] = $bestScores[BLACK]->[2];
 
-                        $bestMoves[BLACK]->[0]  = $key;
-                        $bestScores[BLACK]->[0] = $newScore;
-                    } elsif ($newScore < $bestScores[BLACK]->[1]) {
-                        $bestMoves[BLACK]->[2]  = $bestMoves[BLACK]->[1];
-                        $bestScores[BLACK]->[2] = $bestScores[BLACK]->[1];
-                        $bestMoves[BLACK]->[3]  = $bestMoves[BLACK]->[2];
-                        $bestScores[BLACK]->[3] = $bestScores[BLACK]->[2];
+                            $bestMoves[BLACK]->[0]  = $key;
+                            $bestScores[BLACK]->[0] = $newScore;
+                        } elsif ($newScore < $bestScores[BLACK]->[1]) {
+                            $bestMoves[BLACK]->[2]  = $bestMoves[BLACK]->[1];
+                            $bestScores[BLACK]->[2] = $bestScores[BLACK]->[1];
+                            $bestMoves[BLACK]->[3]  = $bestMoves[BLACK]->[2];
+                            $bestScores[BLACK]->[3] = $bestScores[BLACK]->[2];
 
-                        $bestMoves[BLACK]->[1]  = $key;
-                        $bestScores[BLACK]->[1] = $newScore;
-                    } elsif ($newScore < $bestScores[BLACK]->[2]) {
-                        $bestMoves[BLACK]->[3]  = $bestMoves[BLACK]->[2];
-                        $bestScores[BLACK]->[3] = $bestScores[BLACK]->[2];
+                            $bestMoves[BLACK]->[1]  = $key;
+                            $bestScores[BLACK]->[1] = $newScore;
+                        } elsif ($newScore < $bestScores[BLACK]->[2]) {
+                            $bestMoves[BLACK]->[3]  = $bestMoves[BLACK]->[2];
+                            $bestScores[BLACK]->[3] = $bestScores[BLACK]->[2];
 
-                        $bestMoves[BLACK]->[2]  = $key;
-                        $bestScores[BLACK]->[2] = $newScore;
-                    } elsif ($newScore < $bestScores[BLACK]->[3]) {
-                        $bestMoves[BLACK]->[3]  = $key;
-                        $bestScores[BLACK]->[3] = $newScore;
+                            $bestMoves[BLACK]->[2]  = $key;
+                            $bestScores[BLACK]->[2] = $newScore;
+                        } elsif ($newScore < $bestScores[BLACK]->[3]) {
+                            $bestMoves[BLACK]->[3]  = $key;
+                            $bestScores[BLACK]->[3] = $newScore;
+                        }
                     }
                 }
             }
@@ -1944,18 +1942,12 @@ sub evaluateTree {
             #+ ($bestScores[WHITE]->[1] + $bestScores[BLACK]->[1])
         ) / 2;
         if ($aiDebug) {
-            print " " x $depth;
+            print "  " x $depth;
             print "$depth treeScore: $treeScore vs eval: $score\n";
             print "$depth $bestScores[WHITE]->[0] + $bestScores[BLACK]->[0]\n";
         }
 
         $score = $treeScore;
-    } else {
-        if ($aiDebug) {
-            print " " x $depth;
-            print "(no score set)\n";
-        }
-
     }
     return ($treeScore, $moves, saveState());
 }

@@ -11,11 +11,9 @@ use JSON::XS;
 #use KungFuChess::Bitboards;
 use IPC::Open2;
 use Config::Simple;
-use Time::HiRes qw(time);
+use Time::HiRes qw(time usleep);
 use Data::Dumper;
-# do it all in one line .env file
-use Dotenv -load;
-use Env;
+use KungFuChess::BBHash;
 
 ### taken from Chess::Rep
 ### can't use the whole lib because of chess specific rules like check
@@ -204,6 +202,8 @@ sub _init {
     $self->{timeoutSquares} = {};
     $self->{timeoutCBs} = {};
 
+    $self->{lastMoved} = time();
+
     print "AI: $ai\n";
     $self->{ai} = $ai;
 
@@ -245,9 +245,9 @@ sub _init {
         ssl_no_verify => 1,   
     );
 
-    $client->connect(
-        ($ENV{KFC_WS_PROTOCOL} // 'ws') . '://' . ($ENV{KFC_WS_DOMAIN} // 'localhost:3000') . "/ws"
-    )->cb(sub {
+    my $wsDomain = 'ws://localhost:3000/ws';
+
+    $client->connect($wsDomain)->cb(sub {
 		# make $connection an our variable rather than
 		# my so that it will stick around.  Once the
 		# connection falls out of scope any callbacks
@@ -294,36 +294,36 @@ sub _init {
 	});
 
 	$self->{client} = $client;
+    $self->{movesQueue} = [];
+    $self->{inducedMoves} = [];
 
-    if ($ai) {
-        #$self->{aiStates}->{uciok} = 0;
-        print "setting ai interval:\n";
-        $self->{aiInterval} = AnyEvent->timer(
-            after => 1,
-            interval => 1.0,
-            cb => sub {
-                my ($score, $bestMoves, $moves) = KungFuChess::Bitboards::aiThink(2, 0.5);
-                foreach my $move (@{$bestMoves->[2]}) {
-                    my $fr_bb = $moves->[2]->{$move}->[0];
-                    my $to_bb = $moves->[2]->{$move}->[1];
-                    my $msg = {
-                        'fr_bb' => $fr_bb,
-                        'to_bb' => $to_bb,
-                        'c'     => 'move'
-                    };
-                    $self->send($msg);
-                }
+    #if ($ai) {
+        ##$self->{aiStates}->{uciok} = 0;
+        #print "setting ai interval:\n";
+        #$self->{aiInterval} = AnyEvent->timer(
+            #after => 1,
+            #interval => 1.0,
+            #cb => sub {
+                #my ($score, $bestMoves, $moves) = KungFuChess::Bitboards::aiThink(2, 0.5);
+                #foreach my $move (@{$bestMoves->[2]}) {
+                    #my $fr_bb = $moves->[2]->{$move}->[0];
+                    #my $to_bb = $moves->[2]->{$move}->[1];
+                    #my $msg = {
+                        #'fr_bb' => $fr_bb,
+                        #'to_bb' => $to_bb,
+                        #'c'     => 'move'
+                    #};
+                    #$self->send($msg);
+                #}
 
-                print Dumper($bestMoves);
-
-                #$self->writeStockfishMsg('stop');
-                #$self->writeStockfishMsg('position fen ' . $self->getFENstring());
-                #$self->writeStockfishMsg('go');
-                #print "stockfish interval\n";
-                #$self->getStockfishMsgs();
-            }
-        );
-    }
+                ##$self->writeStockfishMsg('stop');
+                ##$self->writeStockfishMsg('position fen ' . $self->getFENstring());
+                ##$self->writeStockfishMsg('go');
+                ##print "stockfish interval\n";
+                ##$self->getStockfishMsgs();
+            #}
+        #);
+    #}
 	AnyEvent->condvar->recv;
 	print "GAME ENDING\n";
 }
@@ -338,49 +338,120 @@ sub handleMessage {
 	my ($msg, $conn) = @_;
 
 	if ($msg->{c} eq 'move'){
-        print "move:\n";
-        print Dumper($msg);
-		#$self->moveIfLegal($msg->{color}, $msg->{move});
-        print KungFuChess::Bitboards::pretty();
         ### + 0 to insure int
         KungFuChess::Bitboards::move($msg->{fr_bb} + 0, $msg->{to_bb} + 0);
         KungFuChess::Bitboards::resetAiBoards();
-        print KungFuChess::Bitboards::pretty();
-        print KungFuChess::Bitboards::pretty_ai();
+	} elsif ($msg->{c} eq 'moveAnimate'){
+        ### dodge that shit
+        if ($msg->{color} == 1) {
+            push @{$self->{inducedMoves}}, $msg->{to_bb};
+        }
 	} elsif ($msg->{c} eq 'suspend'){
         $self->{suspendedPieces}->{$msg->{to_bb}} = 
             KungFuChess::Bitboards::_getPieceBB($msg->{fr_bb} + 0);
 
-        print "suspended: $self->{suspendedPieces}->{$msg->{fr_bb}}\n";
-        print "bb: $msg->{fr_bb}\n";
         KungFuChess::Bitboards::_removePiece($msg->{fr_bb} + 0);
-        KungFuChess::Bitboards::resetAiBoards();
-        print KungFuChess::Bitboards::pretty();
-        print KungFuChess::Bitboards::pretty_ai();
+        ### keep that piece where it is for now
+        #KungFuChess::Bitboards::resetAiBoards();
     } elsif ($msg->{c} eq 'unsuspend'){
-        print "unsuspend\n";
-        print "$self->{suspendedPieces}->{$msg->{to_bb}}\n";
-        print "to_bb: $msg->{to_bb}\n";
         KungFuChess::Bitboards::_putPiece(
             $self->{suspendedPieces}->{$msg->{to_bb}},
             $msg->{to_bb} + 0
         );
         delete $self->{suspendedPieces}->{$msg->{to_bb}};
         KungFuChess::Bitboards::resetAiBoards();
-        print KungFuChess::Bitboards::pretty();
-        print KungFuChess::Bitboards::pretty_ai();
     } elsif ($msg->{c} eq 'kill'){
         KungFuChess::Bitboards::_removePiece($msg->{bb} + 0);
+        KungFuChess::Bitboards::resetAiBoards();
 	} elsif ($msg->{c} eq 'playerlost' || $msg->{c} eq 'resign'){
         exit;
 	} elsif ($msg->{c} eq 'gameBegins'){
         print "game begins\n";
         # to prevent autodraw from coming up right away
         my $startTime = time() + $msg->{seconds};
-        foreach my $piece ($self->getPieces()) {
-            $piece->{readyToMove} = $startTime;
+        #$self->{aiStates}->{uciok} = 0;
+
+        #usleep(($startTime + 0.1) * 1000);
+        my @moves = ();
+        my $rand = rand();
+        
+        if ($rand < 0.3) {
+            @moves = qw(e7e5 d7d6 c8f6 f8f7 g7g6 f8g7 b8b7 a8a7 b8c6);
+        } elsif ($rand < 0.6) {
+            @moves = qw(c7c5 d7d5 e7e6 b7b6 c8b7 b8c6 g7g6 f8g7 d8e7);
+        } else {
+            @moves = qw(e7e6 f8c5 d7d5 b8c6 b7b6 g8f6 c8b2 d8d6 e8c8);
         }
+
+        #print "setting ai interval:\n";
+        $self->{movesQueue} = \@moves;
+
+        $self->{aiInterval} = AnyEvent->timer(
+            after => 3.2,
+            interval => 0.5,
+            cb => sub {
+                if ($#{$self->{movesQueue}} > -1) {
+                        foreach my $move (@{$self->{movesQueue}}) {
+                            my ($fr_bb, $to_bb, $fr_rank, $fr_file, $to_rank, $to_file) = KungFuChess::Bitboards::parseMove($move);
+                            my $msg = {
+                                'fr_bb' => $fr_bb,
+                                'to_bb' => $to_bb,
+                                'c'     => 'move'
+                            };
+                            $self->send($msg);
+                            usleep(rand(1000));
+                        }
+                        $self->{movesQueue} = [];
+                } else {
+                    # depth, thinkTime
+                    KungFuChess::Bitboards::aiThink(2, 0.4);
+                    # color (2 == BLACK)
+                    my $suggestedMoves = KungFuChess::Bitboards::aiRecommendMoves(2);
+                    foreach my $move (@$suggestedMoves) {
+                        my $msg = {
+                            'fr_bb' => $move->[0],
+                            'to_bb' => $move->[1],
+                            'c'     => 'move'
+                        };
+                        $self->send($msg);
+                        usleep(rand(1000));
+                    }
+
+                    ### dodges or discovered attacks
+                    foreach my $induced_fr (@{$self->{inducedMoves}}) {
+                        $self->{lastMoved} = time();
+                        my ($best_to, $score) = KungFuChess::Bitboards::recommendMoveForBB($induced_fr, 2);
+                        if ($best_to) {
+                            my $msg = {
+                                'fr_bb' => $induced_fr,
+                                'to_bb' => $best_to,
+                                'c'     => 'move'
+                            };
+                            #print "sending:\n";
+                            #print Dumper($msg);
+                            #print KungFuChess::BBHash::getSquareFromBB($induced_fr);
+                            #print KungFuChess::BBHash::getSquareFromBB($best_to);
+                            #print "\n";
+                            $self->send($msg);
+                        }
+                    }
+                    $self->{inducedMoves} = [];
+                }
+
+                #$self->writeStockfishMsg('stop');
+                #$self->writeStockfishMsg('position fen ' . $self->getFENstring());
+                #$self->writeStockfishMsg('go');
+                #print "stockfish interval\n";
+                #$self->getStockfishMsgs();
+            }
+        );
 	}
+}
+
+sub doOpeningAndStart {
+    my $self = shift;
+    my $startTime = shift;
+    print "do opening...\n";
 }
 
 sub checkForForceDraw {
@@ -460,13 +531,9 @@ sub killPieceBB {
     my ($self, $bb) = @_;
 
     ### mark that it is no longer active, stopping any movement
-    print Dumper($self->{activeMoves});
     delete $self->{activeMoves}->{$bb};
-    print "killing piece $bb\n";
-    print Dumper($self->{activeMoves});
     my $piece = KungFuChess::Bitboards::_getPieceBB($bb);
     if ($piece) {
-        print "piece: $piece\n";
         my $killMsg = {
             'c'  => 'authkill',
             'bb' => $bb
@@ -477,7 +544,6 @@ sub killPieceBB {
                 'c' => 'playerlost',
                 'color' => 'black'
             };
-            print "sending black lost\n";
             $self->send($msg);
             exit; ### game over
         } elsif ($piece == KungFuChess::Bitboards::WHITE_KING) {
@@ -485,7 +551,6 @@ sub killPieceBB {
                 'c' => 'playerlost',
                 'color' => 'white'
             };
-            print "sending white lost\n";
             $self->send($msg);
             exit; ### game over
         }
