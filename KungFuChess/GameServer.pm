@@ -286,27 +286,6 @@ sub _init {
 
     $self->{client} = $client;
 
-    if ($ai) {
-        #$self->{aiStates}->{uciok} = 0;
-        $self->{aiInterval} = AnyEvent->timer(
-            after => 1,
-            interval => 1.0,
-            cb => sub {
-                my ($score, $bestMoves, $moves) = KungFuChess::Bitboards::aiThink(2);
-                foreach my $move (@{$bestMoves->[2]}) {
-                    my $fr_bb = $moves->[2]->{$move}->[0];
-                    my $to_bb = $moves->[2]->{$move}->[1];
-                    $self->moveIfLegal('black', $fr_bb, $to_bb);
-                }
-
-                #$self->writeStockfishMsg('stop');
-                #$self->writeStockfishMsg('position fen ' . $self->getFENstring());
-                #$self->writeStockfishMsg('go');
-                #print "stockfish interval\n";
-                #$self->getStockfishMsgs();
-            }
-        );
-    }
     AnyEvent->condvar->recv;
     print "GAME ENDING\n";
 }

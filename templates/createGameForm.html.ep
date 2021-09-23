@@ -54,9 +54,21 @@
                     </label>
                 </div>
                 <div class="form-radio">
-                    <input class="form-radio-input" type="radio" name="gameMode" id="aiRadio" value="ai" <%= $ENV{KFC_AI_DISABLED} ? 'disabled' : '' %>>
+                    <input class="form-radio-input" type="radio" name="gameMode" id="aiRadio" value="ai-easy">
                     <label class="form-radio-label" for="aiRadio">
-                        Against AI
+                        Against AI Easy
+                    </label>
+                </div>
+                <div class="form-radio">
+                    <input class="form-radio-input" type="radio" name="gameMode" id="aiRadio" value="ai-medium">
+                    <label class="form-radio-label" for="aiRadio">
+                        Against AI Medium
+                    </label>
+                </div>
+                <div class="form-radio">
+                    <input class="form-radio-input" type="radio" name="gameMode" id="aiRadio" value="ai-hard">
+                    <label class="form-radio-label" for="aiRadio">
+                        Against AI Hard
                     </label>
                 </div>
                 <div class="form-check">

@@ -325,8 +325,12 @@ post '/ajax/createChallenge' => sub {
         if (! $user) {
             app->db()->do("UPDATE games SET black_anon_key = white_anon_key WHERE game_id = ?", {}, $gameId);
         }
-    } elsif ($gameMode eq 'ai') {
-        $gameId = createGame($gameType, $gameSpeed, 0, ($user ? $user->{player_id} : ANON_USER), AI_USER);
+    } elsif ($gameMode eq 'ai-easy') {
+        $gameId = createGame($gameType, $gameSpeed, 0, ($user ? $user->{player_id} : ANON_USER), AI_USER, undef, undef, { 'ai_difficulty' => 1 });
+    } elsif ($gameMode eq 'ai-medium') {
+        $gameId = createGame($gameType, $gameSpeed, 0, ($user ? $user->{player_id} : ANON_USER), AI_USER, undef, undef, { 'ai_difficulty' => 2 });
+    } elsif ($gameMode eq 'ai-hard') {
+        $gameId = createGame($gameType, $gameSpeed, 0, ($user ? $user->{player_id} : ANON_USER), AI_USER, undef, undef, { 'ai_difficulty' => 3 });
     } else {
         $uid = createChallenge(($user ? $user->{player_id} : ANON_USER), $gameSpeed, $gameType, ($open ? 1 : 0), $rated, undef);
     }
@@ -390,7 +394,6 @@ sub handleChatCommand {
     my $value = shift;
     my $params = shift;
 
-    print "\n\n\nhandle command: $command $value\n\n";
     my $return = {};
     if ($command eq 'msg') {
         if ($value =~ m/^(.+?)\s(.*)/){
@@ -411,11 +414,9 @@ sub handleChatCommand {
             }
         }
     } elsif ($command eq 'invite') {
-        print "invite\n";
         if ($params && $params->{'uid'}) {
             my $screenname = $value;
             my $uid = $params->{'uid'};
-            print "$screenname $uid\n";
             my $myGame = getMyOpenGame($user, $uid);
             if ($myGame && $uid) {
                 my $msg = {
@@ -1009,7 +1010,7 @@ sub createRematchGame {
 
 sub createGame {
     my ($type, $speed, $rated, $white, $black, $red, $green, $options) = @_;
-    #app->log->debug("creating game with $type, $speed, $rated, $white, $black, $red, $green\n");
+    app->log->debug("creating game with $type, $speed, $rated, $white, $black, $red, $green\n");
 
     $options = $options // {};
 
@@ -1067,12 +1068,12 @@ sub createGame {
         my $aiUser = new KungFuChess::Player(
             { 'ai' => 1, 'auth_token' => $blackUid }
         );
-        my $cmdAi = sprintf('/usr/bin/perl ./kungFuChessGame%sAi.pl %s %s %s %s >%s  2>%s &',
+        my $cmdAi = sprintf('/usr/bin/perl ./kungFuChessGame%sAi.pl %s %s %s %s >%s 2>%s &',
             $type,
             $gameId,
             $blackUid,
             $speed,
-            1,       # ai
+            $options->{ai_difficulty} // 1,
             '/var/log/kungfuchess/game-ai.log',
             '/var/log/kungfuchess/error-ai.log'
         );
@@ -1313,7 +1314,7 @@ websocket '/ws' => sub {
         eval {
             $msg = decode_json($msg);
         } or do {
-            print "bad JSON: $msg\n";
+            #print "bad JSON: $msg\n";
             return 0;
         };
 
@@ -1324,7 +1325,7 @@ websocket '/ws' => sub {
                 app->db()->do('UPDATE players SET last_seen = NOW() WHERE auth_token = ?', {}, $msg->{userAuthToken});
             }
         } elsif ($msg->{'c'} eq 'chat'){
-            my $player = new KungFuChess::Player({auth_token => $msg->{userAuthToken}}, app->db());
+            my $player = new KungFuChess::Player({auth_token => $msg->{auth}}, app->db());
             my $return = chatGlobal($player, $msg->{message}, $msg->{gameId}, $msg);
             if ($return) {
                 $self->send(json_encode($return));
@@ -1341,7 +1342,7 @@ websocket '/ws' => sub {
                 if (
                     (   ($gameRow->{game_type} eq '2way') &&
                         exists($rematches{$gameId}->{white}) && 
-                        exists($rematches{$gameId}->{black})
+                        (exists($rematches{$gameId}->{black}) || $gameRow->{black_player} == ANON_USER  || $gameRow->{black_player} == AI_USER )
                     ) || 
                     (   ($gameRow->{game_type} eq '4way') &&
                         exists($rematches{$gameId}->{white}) && 
@@ -1584,8 +1585,8 @@ websocket '/ws' => sub {
             $game->setServerConnection($self->tx);
             $gamesByServerConn{$connId} = $game->{id};
         } else {
-            print "bad message: $msg\n";
-            print Dumper($msg);
+            #print "bad message: $msg\n";
+            #print Dumper($msg);
         }
     });
 };
@@ -1658,8 +1659,6 @@ sub globalBroadcast {
 sub gameBroadcast {
     my $msg = shift;
     my $gameId = shift;
-
-    print "game broadcast $gameId\n";
 
     foreach my $conn (values %{$gameConnections{$gameId}}) {
         eval {
@@ -1763,7 +1762,6 @@ sub updateRatings {
 
 sub calculateRating2way {
     my ($score, $whiteRating, $blackRating, $whiteProv, $blackProv) = @_;
-    print "caclu: $score $whiteRating $blackRating $whiteProv $blackProv\n";
 
     # k variable controls change rate
     my $k = 32;
@@ -1783,7 +1781,6 @@ sub calculateRating2way {
     $whiteChange = adjustProv($whiteChange, $whiteProv, $blackProv);
     $blackChange = adjustProv($blackChange, $blackProv, $whiteProv);
 
-    print "$whiteChange, $blackChange\n";
     return ($whiteChange, $blackChange);
 }
 
@@ -2471,7 +2468,7 @@ sub authGameColor {
     my $gameRow = app->db()->selectrow_hashref('SELECT * FROM games WHERE game_id = ?', { 'Slice' => {} }, $gameId);
     if ($playerAuth) {
         my $player = new KungFuChess::Player({auth_token => $playerAuth}, app->db());
-        if ($player) {
+        if ($player && $player->{player_id} != ANON_USER) {
             if ($player->{player_id} eq $gameRow->{white_player}) {
                 $authColor = 'white';
             }
@@ -2489,6 +2486,7 @@ sub authGameColor {
             return ($authColor, $gameRow, $playerAuth);
         }
     }
+    if (! $anonAuth) { $anonAuth = $playerAuth; } 
     if ($anonAuth) {
         if ($anonAuth eq $gameRow->{white_anon_key}) {
             $authColor = 'white';

@@ -401,6 +401,7 @@ var joinGame = function(){
     }
     var ret = {
         'c' : 'join',
+        'uid' : anonKey,
         'gameId' : gameId
     };
     gameId = gameId;

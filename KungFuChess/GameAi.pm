@@ -178,6 +178,7 @@ sub _init {
 	my $authKey = shift;
 	my $speed = shift;
 	my $mode = shift;
+    my $difficulty = shift;
 	my $ai = 1;
 
     print "game key: $gameKey, authkey: $authKey, speed: $speed, mode: $mode\n";
@@ -207,23 +208,42 @@ sub _init {
     print "AI: $ai\n";
     $self->{ai} = $ai;
 
-    if ($ai) {
-        #print "initalizing stockfish...\n";
-        #my($cout, $cin);
-        #my $pid = open2($cout, $cin, $cfg->param('path_to_stockfish') . ' 2>&1 | tee /var/log/stockfish/stockfish.log');
-        #$cout->blocking(0);
-        #$self->{ai_out} = $cout;
-        #$self->{ai_in}  = $cin;
-        #$self->{stockfishPid} = $pid;
-        #$self->getStockfishMsgs();
-    }
-
     if ($speed eq 'standard') {
         $self->{pieceSpeed} = 1;
         $self->{pieceRecharge} = 10;
+        if ($difficulty == 1) {
+            $self->{ai_thinkTime} = 1;
+            $self->{ai_depth} = 1;
+            $self->{ai_simul_moves} = 1;
+            $self->{ai_delay} = 1_000_000; ### random delay between moves in microseconds
+        } elsif ($difficulty == 2) {
+            $self->{ai_thinkTime} = 1;
+            $self->{ai_depth} = 2;
+            $self->{ai_simul_moves} = 2;
+            $self->{ai_delay} = 500_000; ### random delay between moves in microseconds
+        } else {
+            $self->{ai_thinkTime} = 1.25;
+            $self->{ai_depth} = 3;
+            $self->{ai_simul_moves} = 4;
+            $self->{ai_delay} = 40_000; ### random delay between moves in microseconds
+        }
     } elsif ($speed eq 'lightning') {
-        $self->{pieceSpeed} = 0.2;
-        $self->{pieceRecharge} = 2;
+        if ($difficulty == 1) {
+            $self->{ai_thinkTime} = 0.75;
+            $self->{ai_depth} = 1;
+            $self->{ai_simul_moves} = 1;
+            $self->{ai_delay} = 800_000; ### random delay between moves in microseconds
+        } elsif ($difficulty == 2) {
+            $self->{ai_thinkTime} = 0.5;
+            $self->{ai_depth} = 2;
+            $self->{ai_simul_moves} = 2;
+            $self->{ai_delay} = 300_000; ### random delay between moves in microseconds
+        } else {
+            $self->{ai_thinkTime} = 0.3;
+            $self->{ai_depth} = 2;
+            $self->{ai_simul_moves} = 4;
+            $self->{ai_delay} = 1_000; ### random delay between moves in microseconds
+        }
     } else {
         warn "unknown game speed $speed\n";
     }
@@ -341,6 +361,8 @@ sub handleMessage {
         ### + 0 to insure int
         KungFuChess::Bitboards::move($msg->{fr_bb} + 0, $msg->{to_bb} + 0);
         KungFuChess::Bitboards::resetAiBoards();
+        delete $self->{frozen}->{$msg->{fr_bb}};
+        $self->{frozen}->{$msg->{to_bb}} = time();
 	} elsif ($msg->{c} eq 'moveAnimate'){
         ### dodge that shit
         if ($msg->{color} == 1) {
@@ -351,16 +373,17 @@ sub handleMessage {
             KungFuChess::Bitboards::_getPieceBB($msg->{fr_bb} + 0);
 
         KungFuChess::Bitboards::_removePiece($msg->{fr_bb} + 0);
-        ### keep that piece where it is for now
-        #KungFuChess::Bitboards::resetAiBoards();
+        delete $self->{frozen}->{$msg->{fr_bb}};
     } elsif ($msg->{c} eq 'unsuspend'){
         KungFuChess::Bitboards::_putPiece(
             $self->{suspendedPieces}->{$msg->{to_bb}},
             $msg->{to_bb} + 0
         );
+        $self->{frozen}->{$msg->{to_bb}} = time();
         delete $self->{suspendedPieces}->{$msg->{to_bb}};
         KungFuChess::Bitboards::resetAiBoards();
     } elsif ($msg->{c} eq 'kill'){
+        delete $self->{frozen}->{$msg->{bb}};
         KungFuChess::Bitboards::_removePiece($msg->{bb} + 0);
         KungFuChess::Bitboards::resetAiBoards();
 	} elsif ($msg->{c} eq 'playerlost' || $msg->{c} eq 'resign'){
@@ -388,7 +411,7 @@ sub handleMessage {
 
         $self->{aiInterval} = AnyEvent->timer(
             after => 3.2,
-            interval => 0.5,
+            interval => $self->{ai_thinkTime} + ($self->{ai_thinkTime} / 3),
             cb => sub {
                 if ($#{$self->{movesQueue}} > -1) {
                         foreach my $move (@{$self->{movesQueue}}) {
@@ -399,22 +422,51 @@ sub handleMessage {
                                 'c'     => 'move'
                             };
                             $self->send($msg);
-                            usleep(rand(1000));
+                            usleep(rand($self->{ai_delay}));
                         }
                         $self->{movesQueue} = [];
                 } else {
                     # depth, thinkTime
-                    KungFuChess::Bitboards::aiThink(2, 0.4);
-                    # color (2 == BLACK)
-                    my $suggestedMoves = KungFuChess::Bitboards::aiRecommendMoves(2);
+                    my $start = time();
+                    KungFuChess::Bitboards::aiThink(1, $self->{ai_thinkTime});
+                    if ($self->{ai_depth} >= 2 &&
+                        time() - $start > $self->{ai_thinkTime}) {
+                        KungFuChess::Bitboards::aiThink(2, $self->{ai_thinkTime});
+                    }
+                    if ($self->{ai_depth} >= 3 &&
+                        time() - $start > $self->{ai_thinkTime}) {
+                        KungFuChess::Bitboards::aiThink(3, $self->{ai_thinkTime});
+                    }
+                    my $suggestedMoves = KungFuChess::Bitboards::aiRecommendMoves(2, $self->{ai_simul_moves});
+
+                    my $fr_moves = {};
+                    my $to_moves = {};
                     foreach my $move (@$suggestedMoves) {
+                        #print "moving...";
+                        #print KungFuChess::BBHash::getSquareFromBB($move->[0]);
+                        #print KungFuChess::BBHash::getSquareFromBB($move->[1]);
+                        #print "\n";
+                        ### skip frozen pieces or it will premove
+                        if (exists($self->{frozen}->{$move->[0]}) &&
+                            $self->{frozen}->{$move->[0]} + $self->{pieceRecharge} > time() ) {
+                            next;
+                        }
+                        ### don't move if we already moved from or to the same spot!
+                        if (exists($fr_moves->{$move->[1]})) {
+                            next;
+                        }
+                        if (exists($to_moves->{$move->[1]})) {
+                            next;
+                        }
+                        $fr_moves->{$move->[0]} = 1;
+                        $to_moves->{$move->[1]} = 1;
                         my $msg = {
                             'fr_bb' => $move->[0],
                             'to_bb' => $move->[1],
                             'c'     => 'move'
                         };
                         $self->send($msg);
-                        usleep(rand(1000));
+                        usleep(rand($self->{ai_delay}));
                     }
 
                     ### dodges or discovered attacks
@@ -469,8 +521,6 @@ sub endGame {
 sub send {
 	my $self = shift;
 	my $msg  = shift;
-
-    print "sending msgs $msg->{c}\n";
 
     ### this ensures bitboards are sent as strings
     #   some BB are too big for javascript and will

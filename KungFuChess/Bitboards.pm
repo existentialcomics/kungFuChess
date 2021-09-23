@@ -13,6 +13,12 @@ use base 'Exporter';
 # 1 for tree debugging, 2 for addition eval debugging
 my $aiDebug = 0;
 
+my $aiRandomness = 50; # in points, 100 = PAWN
+
+sub setDebugLevel {
+    $aiDebug = shift;
+}
+
 my $aiDebugEvalCount = 0;
 
 use constant ({
@@ -289,6 +295,9 @@ my $currentScore = 0;
 sub getCurrentMoves {
     return $currentMoves;
 }
+sub setCurrentMoves {
+    $currentMoves = $_;
+}
 
 ### ALL bitboards used to track position
 my $pawns    = 0x0000000000000000;
@@ -359,7 +368,7 @@ sub resetAiBoards {
     $ai_whiteQCastleR = $whiteQCastleR;
     $ai_blackQCastleR = $blackQCastleR;
 
-    $ai_frozenBB = $frozenBB;
+    #$ai_frozenBB = $frozenBB;
     $ai_movingBB = $movingBB;
 
     ### we were passed a to and fr, so this was a move
@@ -594,10 +603,12 @@ sub _removePiece_ai {
 sub setFrozen {
     my $bb = shift;
     $frozenBB |= $bb;
+    $ai_frozenBB |= $bb;
 }
 sub unsetFrozen {
     my $bb = shift;
     $frozenBB &= ~$bb;
+    $ai_frozenBB &= ~$bb;
 }
 sub setMoving {
     my $bb = shift;
@@ -1233,11 +1244,12 @@ sub do_move_ai {
     _putPiece_ai($piece, $to_bb);
 
     $ai_frozenBB |= $to_bb;
-    #print prettyBoard($ai_frozenBB);
 
     return $toPiece;
 }
 ### return 1 for success, 0 for failure (no piece on to_bb)
+### warning! unfreezes no matter what, you should not ai move
+### frozen pieces
 sub undo_move_ai {
     my ($fr_bb, $to_bb, $toPiece) = @_;
 
@@ -1287,6 +1299,49 @@ sub getPieceDisplay {
         return $color . 'K' . $normal;
     }
     return ' ';
+}
+
+sub getPieceDisplayFEN {
+    my $piece = shift;
+    if ($piece % 100 == PAWN) {
+        return ($piece > 200 ? 'p' : 'P');
+    }
+    if ($piece % 100 == ROOK) {
+        return ($piece > 200 ? 'r' : 'P');
+    }
+    if ($piece % 100 == BISHOP) {
+        return ($piece > 200 ? 'b' : 'B');
+    }
+    if ($piece % 100 == KNIGHT) {
+        return ($piece > 200 ? 'n' : 'N');
+    }
+    if ($piece % 100 == QUEEN) {
+        return ($piece > 200 ? 'q' : 'Q');
+    }
+    if ($piece % 100 == KING) {
+        return ($piece > 200 ? 'k' : 'K');
+    }
+    return ' ';
+}
+
+### ONLY for loading fen strings don't use for speed
+sub getPieceFromFENchr {
+    my $p = shift;
+    my %chrs = (
+        'p' => BLACK_PAWN,
+        'P' => WHITE_PAWN,
+        'n' => BLACK_KNIGHT,
+        'N' => WHITE_KNIGHT,
+        'b' => BLACK_BISHOP,
+        'B' => WHITE_BISHOP,
+        'r' => BLACK_ROOK,
+        'R' => WHITE_ROOK,
+        'q' => BLACK_QUEEN,
+        'Q' => WHITE_QUEEN,
+        'k' => BLACK_KING,
+        'K' => WHITE_KING
+    );
+    return $chrs{$p};
 }
 
 ### evaluate a single board position staticly, returns the score and moves
@@ -1370,10 +1425,11 @@ sub evaluate {
     foreach my $r ( 0 .. 7 ) {
         foreach my $f ( 0 .. 7 ) {
             my $fr = RANKS->[$r] & FILES->[$f];
-            my $frozen = ($fr & $ai_frozenBB);
             #if ($fr & $ai_frozenBB) { print "$r$f next;\n"; next; }
             my $piece = _getPieceBB_ai($fr);
             next if (! defined($piece));
+
+            my $frozen = ($fr & $ai_frozenBB);
 
             ### begin evaluating a piece
             my $pieceType = $piece % 100;
@@ -1453,7 +1509,7 @@ sub evaluate {
                             next;
                         }
                         if ($inXray == 0) {
-                            $mobilityBonus[$color] += 10;
+                            $mobilityBonus[$color] += 5;
                             if (! $frozen) {
                                 $moves[$color]->{sprintf('%s-%s', $fr, $to)} = [
                                     $fr,
@@ -1496,7 +1552,7 @@ sub evaluate {
                             $attackingUnFrozen[$color]->[$pieceType] |= $to;
                             $attackingUnFrozen[$color]->[ALL_P]      |= $to;
                         }
-                        $mobilityBonus[$color] += 25;
+                        $mobilityBonus[$color] += 15;
                         if (! ($to & $us) && ! $frozen) {
                             $moves[$color]->{sprintf('%s-%s', $fr, $to)} = [
                                 $fr,
@@ -1577,21 +1633,31 @@ sub evaluate {
         foreach my $pType (1 .. 7) {
             foreach my $bb (@{$pieces[$color]->[$pType]}) {
                 $pcount++;
-                #print prettyBoard($bb);
                 my $meFrozen = $bb & $ai_frozenBB;
                 my $safe = ($attacking[$us][ALL_P] & $bb);
-                if ($pType == BISHOP || $pType == KNIGHT) {
+                if ($pType == PAWN) {
+                    if ($safe) {
+                        $additionalBonus[$color] += 20;
+                    }
+                } elsif ($pType == BISHOP || $pType == KNIGHT) {
+                    if ($safe) {
+                        $additionalBonus[$color] += 40;
+                    }
                     if ($attackingUnFrozen[$them][PAWN] & $bb) {
                         $additionalPenalty[$color] += 200;
                     }
-                }
                 ### knight and rook "safe" checks all knights all rooks
-                if ($pType == ROOK) {
+                } elsif ($pType == ROOK) {
+                    if ($safe) {
+                        $additionalBonus[$color] += 40;
+                    }
                     if ($attackingUnFrozen[$them][PAWN] & $bb) {
                         $additionalPenalty[$color] += 400;
                     }
-                }
-                if ($pType == QUEEN) {
+                } elsif ($pType == QUEEN) {
+                    if ($safe) {
+                        $additionalBonus[$color] += 20;
+                    }
                     if ($attackingUnFrozen[$them][PAWN] & $bb) {
                         $additionalPenalty[$color] += 700;
                     }
@@ -1619,23 +1685,22 @@ sub evaluate {
                             $queenDangerPenalty[$us] += 750;
                         }
                     }
-                }
                 #### implement king ring
-                if ($pType == KING) {
+                } elsif ($pType == KING) {
                     if ($attackingUnFrozen[$them][PAWN] & $bb) {
-                        $additionalPenalty[$color] += 2500;
+                        $additionalPenalty[$color] += 1500;
                     }
                     if (($attackingUnFrozen[$them][QUEEN] & $bb)) {
-                        $kingDangerPenalty[$us] += 2500;
+                        $kingDangerPenalty[$us] += 1500;
                     }
                     if (($attackingUnFrozen[$them][ROOK] & $bb)) {
-                        $kingDangerPenalty[$us] += 2500;
+                        $kingDangerPenalty[$us] += 1500;
                     }
                     if (
                         ($attackingUnFrozen[$them][KNIGHT] & $bb) ||
                         ($attackingUnFrozen[$them][BISHOP] & $bb)
                     ) {
-                        $kingDangerPenalty[$us] += 2500;
+                        $kingDangerPenalty[$us] += 1500;
                     }
                 }
             }
@@ -1665,7 +1730,12 @@ penal   - ($additionalPenalty[1] - $additionalPenalty[2] )
     }
     $aiDebugEvalCount++;
 
-    return ($score, \@moves);
+    return ($score + rand($aiRandomness), \@moves);
+}
+
+sub clearAiMoves {
+    $currentMoves = undef;
+
 }
 
 sub aiThink {
@@ -1674,8 +1744,9 @@ sub aiThink {
 
     $aiDebugEvalCount = 0;
     if (! $currentMoves) {
-        print "doing eval\n";
+        #print "doing eval\n";
         ($currentScore, $currentMoves) = evaluate();
+        #print "eval score: $currentScore\n";
     }
 
     my $currentDepth = $depth;
@@ -1685,24 +1756,21 @@ sub aiThink {
         $currentDepth,          ### max depth to search
         time() + $timeToThink,  
         $currentMoves,
-        $currentScore
+        $currentScore,
+        ''
     );
 
-    print "AiEvalCount  : $aiDebugEvalCount\n";
-    print "currentScore : $currentScore\n";
+    #print "AiEvalCount  : $aiDebugEvalCount\n";
+    #print "currentScore : $currentScore\n";
 
     return $currentMoves;
 }
 
 sub aiRecommendMoves {
     my $color = shift;
-    print "considering moves\n";
+    my $maxMoves = shift;
     if (! $currentMoves) { return undef; }
-    print "moves found\n";
-    print "currentScore: $currentScore\n";
 
-    ### no more than this
-    my $maxMoves = 4;
     ### gap between good move and bad
     my $falloff  = 1;
     ### must improve on current score by this much
@@ -1725,19 +1793,22 @@ sub aiRecommendMoves {
 
     my $count = 0;
     my $bestScore = 0;
+    #print "current score rec: $currentScore\n";
     foreach my $moveKey (@myMoves) {
         my $move = $currentMoves->[$color]->{$moveKey};
+        next if (! defined($move->[MOVE_SCORE])); ### skip undef or maybe we want even zero? suspect that tree hasn't finished
+
         if ($count == 0) {
             $bestScore = $move->[MOVE_SCORE];
             push @$suggested, $move;
         } elsif ($count < $maxMoves
-            && abs($bestScore - $move->[MOVE_SCORE]) < $falloff) {
+            && abs($bestScore - $move->[MOVE_SCORE]) > $falloff) {
+        #) {
             push @$suggested, $move;
         } else {
-            return $suggested;
+            last;
         }
         $count++;
-
         #print "recommend: ";
         #print KungFuChess::BBHash::getSquareFromBB($move->[MOVE_FR]);
         #print KungFuChess::BBHash::getSquareFromBB($move->[MOVE_TO]);
@@ -1746,6 +1817,10 @@ sub aiRecommendMoves {
         #print $move->[MOVE_SCORE] // "(undef)";
         #print "\n";
     }
+
+
+
+    return $suggested;
 }
 
 sub recommendMoveForBB {
@@ -1783,10 +1858,10 @@ sub recommendMoveForBB {
 
 # return $score, [] bestMoves, [] $moves;
 sub evaluateTree {
-    my ($depth, $maxDepth, $stopTime, $moves, $score) = @_;
+    my ($depth, $maxDepth, $stopTime, $moves, $score, $moveString) = @_;
     #print "evalTree: $color, $depth, $maxDepth, $stopTime\n";
-    if ($depth > $maxDepth) { print "(max depth)"; return (undef, undef, undef); }
-    if ($stopTime < time()) { print "(timeout)";return (undef, undef, undef); }
+    if ($depth > $maxDepth) { return (undef, undef, undef); }
+    if ($stopTime < time()) { return (undef, undef, undef); }
     my $searchDepth = $depth;
 
     if (! $moves) {
@@ -1795,8 +1870,6 @@ sub evaluateTree {
 
     if ($aiDebug) {
         $| = 1;
-        #print "depth : $depth\n";
-        #print pretty_ai();
         print " " x $depth;
         print "$depth eval score:  $score -----\n";
     }
@@ -1834,30 +1907,39 @@ sub evaluateTree {
 
     foreach my $color (WHITE, BLACK) {
         while (my ($key, $move) = each %{$moves->[$color]}) {
+            my $moveS = "";
             if ($aiDebug) {
                 print " " x $depth;
-                print "- $depth move: ";
-                print KungFuChess::BBHash::getSquareFromBB($move->[MOVE_FR]);
-                print KungFuChess::BBHash::getSquareFromBB($move->[MOVE_TO]);
+                print ($color == WHITE ? 'w' : 'b');
+                print " $depth move: ";
+                $moveS = KungFuChess::BBHash::getSquareFromBB($move->[MOVE_FR]) . KungFuChess::BBHash::getSquareFromBB($move->[MOVE_TO]);
+                print "$moveString $moveS ";
                 print '(' . ($move->[MOVE_SCORE] // '') . ')';
                 print "\n";
+                if ($aiDebug > 1) {
+                    print pretty_ai();
+                    print prettyBoard($ai_frozenBB);
+                }
             }
+            ### because we are frozen in this line we don't consider future moves
+            #   other pieces have the opportunity to move first
+            next if ($move->[MOVE_FR] & $ai_frozenBB);
+
             my $undoPiece;
+            my $frozenUndo = $ai_frozenBB;
             $undoPiece = do_move_ai($move->[MOVE_FR], $move->[MOVE_TO]);
-            my ($newScore, $newMoves, $state) = evaluateTree($depth + 1, $maxDepth, $stopTime, $move->[MOVE_NEXT_MOVES], $move->[MOVE_SCORE]);
+            my ($newScore, $newMoves, $state) = evaluateTree($depth + 1, $maxDepth, $stopTime, $move->[MOVE_NEXT_MOVES], $move->[MOVE_SCORE], $moveString . $moveS . " ");
             undo_move_ai($move->[MOVE_FR], $move->[MOVE_TO], $undoPiece);
+            $ai_frozenBB = $frozenUndo;
+            if ($aiDebug > 1 || $moveString =~ m/h5f3/) {
+                print "unsetting frozenUndo: " . $ai_frozenBB . "\n";
+                $ai_frozenBB += 0;
+                print "ai_frozen unset: " . $ai_frozenBB . "\n";
+                $ai_frozenBB += 0;
+            }
+
             if (! defined($newScore)) {
                 last;
-            }
-            if ($aiDebug) {
-                print " " x $depth;
-                print "$depth newScore: $newScore\n";
-                print " " x $depth;
-                print "+ $depth move: ";
-                print KungFuChess::BBHash::getSquareFromBB($move->[MOVE_FR]);
-                print KungFuChess::BBHash::getSquareFromBB($move->[MOVE_TO]);
-                print '(' . ($move->[MOVE_SCORE] // '') . ')';
-                print "\n";
             }
             if ($newMoves) {
                 $moves->[$color]->{$key}->[MOVE_NEXT_MOVES] = $newMoves;
@@ -1932,10 +2014,9 @@ sub evaluateTree {
                     }
                 }
             }
-            #print " ---------------------- DONE --------------\n";
         }
+        $ai_frozenBB += 0;
     }
-
 
     my $treeScore = $score;
     if ($bestScores[WHITE]->[0] != -999999 && $bestScores[BLACK]->[0] != 999999) { ### this means we hit max depth
@@ -1957,7 +2038,7 @@ sub evaluateTree {
         }
 
     }
-    return ($treeScore, $moves, saveState());
+    return ($treeScore, $moves, []);
 }
 
 sub pretty {
@@ -1983,7 +2064,8 @@ sub pretty_ai {
         my $r = 7-$i;
         foreach my $f ( 0 .. 7 ) {
             if ($f == 0){ $board .= " " . ($r + 1) . " | "; }
-            my $chr = getPieceDisplay(_getPieceXY_ai($f, $r));
+            #my $chr = getPieceDisplay(_getPieceXY_ai($f, $r));
+            my $chr = getPieceDisplayFEN(_getPieceXY_ai($f, $r));
             $board .= "$chr | ";
         }
         $board .= "\n   +---+---+---+---+---+---+---+----\n";
@@ -2022,10 +2104,97 @@ sub prettyBoard {
     return $board;
 }
 
+sub prettyFrozen {
+    return prettyBoard($ai_frozenBB);
+}
+
 sub debug {
     #return _getPiece('a', '1');
     #print prettyBoard($occupied);
     return prettyBoard($ai_frozenBB);
 }
 
+### https://en.wikipedia.org/wiki/Forsyth%E2%80%93Edwards_Notation
+sub getFENstring {
+    my $self = shift;
+    my $fenString;
+
+    my $rowCount = 0;
+    my $rowGapCount = 0;
+    my $colCount = 0;
+    my $colGapCount = 0;
+
+    for ($colCount = 0; $colCount < 8; $colCount++) {
+        my $bb = _getBBat('a', (8 - $colCount));
+        for ($rowCount = 0; $rowCount < 8; $rowCount++) {
+
+            my $piece = _getPieceBB($bb);
+            if ($piece) {
+                if ($colGapCount > 0){
+                    $fenString .= $colGapCount;
+                    $colGapCount = 0;
+                }
+                $fenString .= getPieceDisplayFEN($piece);
+            } else {
+                $colGapCount ++;
+            }
+            $bb = shift_BB($bb, EAST);
+        }
+        if ($colGapCount > 0){
+            $fenString .= $colGapCount;
+            $colGapCount = 0;
+        }
+        if ($colCount != 7) {
+            $fenString .= '/';
+        }
+    }
+    ### black's turn because ai is black, no castling for now for ai
+    $fenString .= ' b - - 0 1';
+    return $fenString;
+}
+
+### for ai debugging only
+sub loadFENstring {
+    my $FEN = shift;
+
+    #### reset all boards
+    $pawns    = 0x0000000000000000;
+    $knights  = 0x0000000000000000;
+    $bishops  = 0x0000000000000000;
+    $rooks    = 0x0000000000000000;
+    $queens   = 0x0000000000000000;
+    $kings    = 0x0000000000000000;
+    $white     = 0x0000000000000000;
+    $black     = 0x0000000000000000;
+    $occupied  = 0x0000000000000000;
+    $enPassant = 0x0000000000000000;
+    $whiteCastleK  = RANKS->[0] & FILES->[4];
+    $blackCastleK  = RANKS->[7] & FILES->[4];
+    $whiteCastleR  = RANKS->[0] & FILES->[7];
+    $blackCastleR  = RANKS->[7] & FILES->[7];
+    $whiteQCastleR = RANKS->[0] & FILES->[0];
+    $blackQCastleR = RANKS->[7] & FILES->[0];
+    $frozenBB = 0x0000000000000000;
+    $movingBB = 0x0000000000000000;
+
+    my $col = 7;
+    my $row = 0;
+    foreach my $chr (split '', $FEN) {
+        if ($chr =~ m/\d+/){
+            $row += $chr;
+        } elsif ($chr eq '/') {
+            $col--;
+            $row = 0;
+        } elsif ($chr eq ' '){
+            last;
+        } else {  ### assume we get a piece here
+            my $piece = getPieceFromFENchr($chr);
+            my $bb = RANKS->[$col] & FILES->[$row];
+            _putPiece($piece, $bb);
+            $row ++;
+        }
+    }
+
+    resetAiBoards();
+}
 1;

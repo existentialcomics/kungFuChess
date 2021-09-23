@@ -6,6 +6,11 @@ use JSON::XS;
 use UUID::Tiny ':std';
 use Data::Dumper;
 
+use constant {
+    ANON_USER => -1,
+    AI_USER => -2,
+};
+
 sub new {
 	my $class = shift;
 
@@ -357,6 +362,12 @@ sub _loadAiUser {
 sub _loadById {
     my $self = shift;
     my $userId = shift;
+    if ($userId == ANON_USER) {
+        return $self->_loadAnonymousUser();
+    }
+    if ($userId == AI_USER) {
+        return $self->_loadAiUser();
+    }
 
     my $profileRows = $self->{dbh}->selectall_arrayref('
         SELECT *

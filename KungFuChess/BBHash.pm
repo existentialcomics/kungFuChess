@@ -93,6 +93,27 @@ sub displayBestMoves {
     }
 }
 
+### raw moves no color passed in
+sub displayMovesArray {
+    my $suggestedMoves = shift;
+    foreach my $move (@$suggestedMoves) {
+        print getSquareFromBB($move->[0]) . getSquareFromBB($move->[1]);
+        print "($move->[4])\n";
+    }
+
+    #foreach my $move (@$moves) {
+        ##print Dumper($move);
+        ##exit;
+        #print ref $move;
+        #print " $#$move\n";
+        #print "$moves->[0]->[0]\n";
+        #print "$moves->[1]\n";
+        #print getSquareFromBB($moves->[0]) . getSquareFromBB($moves->[1]);
+        #print "\n";
+
+    #}
+}
+
 # 0 = fr_bb
 # 1 = to_bb
 # 2 = piece
