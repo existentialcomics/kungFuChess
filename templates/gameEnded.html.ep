@@ -42,7 +42,6 @@
 </script>
 
 <script src="/pieces/pieces.js"></script>
-<script src="/game.js"></script>
-<script src="/main.js"></script>
+<script src="/game.js?cache=1.2"></script>
 
 %= include 'footer'
