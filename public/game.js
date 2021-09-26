@@ -1487,6 +1487,12 @@ $(function () {
     gameChatLog.slice().reverse().forEach(function (msg) {
         var dt   = new Date(Date.now() - (msg.unix_seconds_back * 1000))
         var screenname = msg.screenname;
+        if (screenname == null) {
+            screenname = 'anonymous';
+        }
+        if (screenname === 'thebalrog') {
+            screenname = 'thebalrog (ADMIN)';
+        }
         addGameMessage(
             screenname,
             msg.comment_text, 

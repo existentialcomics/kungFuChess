@@ -8,12 +8,10 @@
         <div class="col-3">
         <div class="container bg-light card">
             <span><%= ucfirst($gameType) %> • <%= $rated ? 'Rated' : 'Unrated' %> • <%= ucfirst($gameSpeed) %></span><br />
-            <span id='gameStatus'><%= $gameStatus %></span><br />
-            <span id='gameResult'><%= $result %></span><br />
-            <span id='gameScore'><%= $score %></span><br />
+            <span id='gameStatus'><%= $gameStatus %></span>
+            <span id='gameResult'><%= $result %></span>
+            <span id='gameScore'><%= $score %></span>
             %= include 'player', 'player' => $whitePlayer, 'ratingType' => $gameSpeed
-            <br />
-
             %= include 'player', 'player' => $blackPlayer, 'ratingType' => $gameSpeed
         </div>
             <div id="game-chat-log" disabled="true"></div>

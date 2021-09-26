@@ -161,7 +161,7 @@ get '/' => sub {
     $c->render('template' => 'home', format => 'html', handler => 'ep');
 };
 
-get '/learn' => sub {
+get '/tactics' => sub {
     my $c = shift;
 
     my $user = $c->current_user();
@@ -261,7 +261,7 @@ get '/tactics/advanced/block' => sub {
     $c->render('template' => 'tactic', format => 'html', handler => 'ep');
 };
 
-get '/tactics/expert/sweep' => sub {
+get '/tactics/advanced/sweep' => sub {
     my $c = shift;
 
     my $user = $c->current_user();
@@ -270,6 +270,18 @@ get '/tactics/expert/sweep' => sub {
     $c->stash('video' => '/sweep.webm');
     $c->stash('name' => 'Sweep');
     $c->stash('description' => 'The most dangerous and feared tactic in Kung Fu Chess: the sweep. Only experts can execute this move with any consistency, as it requires anticipating where your opponent is going to move before they even move their piece. If you move before them, sweeping through their path, you will kill them mid move. When two pieces collide, the piece that moved first kills the other piece, so you must set up the sweep very carefully, and make sure not to move too late or you will be the one getting killed.');
+    $c->render('template' => 'tactic', format => 'html', handler => 'ep');
+};
+
+get '/tactics/expert/punchthrough' => sub {
+    my $c = shift;
+
+    my $user = $c->current_user();
+    $c->stash('user' => $user);
+
+    $c->stash('video' => '/punchThrough.webm');
+    $c->stash('name' => 'Punch Through');
+    $c->stash('description' => 'Similar to the peekaboo tactic, you attack past pieces on the board, knowing they will have moved out of the way before you reach them so you can get to your true attack. This time though, you are relying on your opponent to move the pieces for you! In the video show, black must move his king, so the rook behind the king can be attacked. There are a lot of creative ways to use these attacks, so watch out.');
 
     $c->render('template' => 'tactic', format => 'html', handler => 'ep');
 };
@@ -310,7 +322,7 @@ post '/ajax/createChallenge' => sub {
     #   standard/light , 2way/4way , unrated/ai/etc, open to public
     my ($gameSpeed, $gameType, $gameMode, $open) =
         ($c->req->param('gameSpeed'),
-         $c->req->param('gamePlayersType'),
+         $c->req->param('gameType'),
          $c->req->param('gameMode'),
          $c->req->param('open'));
 
@@ -1325,7 +1337,8 @@ websocket '/ws' => sub {
                 app->db()->do('UPDATE players SET last_seen = NOW() WHERE auth_token = ?', {}, $msg->{userAuthToken});
             }
         } elsif ($msg->{'c'} eq 'chat'){
-            my $player = new KungFuChess::Player({auth_token => $msg->{auth}}, app->db());
+            my $auth = $msg->{userAuthToken} ? $msg->{userAuthToken} : $msg->{auth};
+            my $player = new KungFuChess::Player({auth_token => $auth}, app->db());
             my $return = chatGlobal($player, $msg->{message}, $msg->{gameId}, $msg);
             if ($return) {
                 $self->send(json_encode($return));
@@ -1721,7 +1734,7 @@ sub updateRatings {
     }
     
     if ($gameType eq '4way') { ### was a 4way game
-        my ($whiteChange, $blackChange, $redChange, $greenChange) = calculateRating2way(
+        my ($whiteChange, $blackChange, $redChange, $greenChange) = calculateRating4way(
             $score,
             $white->{$ratingColumn},
             $black->{$ratingColumn},
@@ -2466,6 +2479,7 @@ sub authGameColor {
     my ($playerAuth, $anonAuth, $gameId) = @_;
     my $authColor = undef;
     my $gameRow = app->db()->selectrow_hashref('SELECT * FROM games WHERE game_id = ?', { 'Slice' => {} }, $gameId);
+    print "here\n";
     if ($playerAuth) {
         my $player = new KungFuChess::Player({auth_token => $playerAuth}, app->db());
         if ($player && $player->{player_id} != ANON_USER) {

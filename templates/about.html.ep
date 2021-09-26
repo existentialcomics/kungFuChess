@@ -28,27 +28,27 @@
         <b>Belts:</b><br />
         <div style="margin-left:20px">
             <div id="greenbelt"></div>
-            <a class="beltText">Green Belt (provisional rating)</a><br />
+            <p class="beltText">Green Belt (provisional rating)</p><br />
             <div id="yellowbelt"></div>
-            <a class="beltText">Yellow Belt (0-1400)</a><br />
+            <p class="beltText">Yellow Belt (0-1400)</p><br />
             <div id="orangebelt"></div>
-            <a class="beltText">Orange Belt (1400-1599)</a><br />
+            <p class="beltText">Orange Belt (1400-1599)</p><br />
             <div id="redbelt"></div>
-            <a class="beltText">Red Belt (1600-1799)</a><br />
+            <p class="beltText">Red Belt (1600-1799)</p><br />
             <div id="brownbelt"></div>
-            <a class="beltText">Brown Belt (1800-1999)</a><br />
+            <p class="beltText">Brown Belt (1800-1999)</p><br />
             <div id="blackbelt"></div>
-            <a class="beltText">Black Belt (2000-2199)</a><br />
+            <p class="beltText">Black Belt (2000-2199)</p><br />
             <div id="doubleblackbelt"></div>
-            <a class="beltText">Double Black Belt (2200+)</a><br />
+            <p class="beltText">Double Black Belt (2200+)</p><br />
         </div>
     <br />
 
     <p>
-    Source code for <a href="https://github.com/existentialcomics/kungFuChess">this site can be found here, under the GLPv3 license.</a><br />
+    Source code for <a class='link-dark' href="https://github.com/existentialcomics/kungFuChess">this site can be found here, under the GLPv3 license.</a><br />
     </p>
     <p>
-    Contact: <a href="mailto:existentialcomics@gmail.com?subject=Kung Fu Chess">existentialcomics@gmail.com</a>
+    Contact: <a class='link-dark' href="mailto:existentialcomics@gmail.com?subject=Kung Fu Chess">existentialcomics@gmail.com</a>
     </p>
     </div>
 </div>

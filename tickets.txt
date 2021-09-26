@@ -1,5 +1,13 @@
-game log in profile
 begin removing things from Game.pm into database
 test en passant bug in 4way (kill doesn't clear) and fully fix in 2way
 reload config
-fix provisional ratings
+
+-------------AI------------------
+prune trees
+don't attack moving
+making dodging work for entire path
+discovered attacks
+threaten spot they move to
+king ring
+better bonuses for protecting your own pieces
+

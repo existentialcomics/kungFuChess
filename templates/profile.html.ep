@@ -7,7 +7,7 @@
         <div class="col">
             <h4>Standard</h4>
             <table class="table">
-            <th><a href="/profile/<%= $player->{screenname} %>/games/standard/2way">game log</a></th>
+            <th><a href="/profile/<%= $player->{screenname} %>/games/standard/2way" class='link-dark'>Game Log</a></th>
             <th>2way</th>
             <th>4way</th>
             <tr>
@@ -62,7 +62,7 @@
         <div class="col">
             <h4>Lightning</h4>
             <table class="table">
-            <th><a href="/profile/<%= $player->{screenname} %>/games/lightning/2way">Game Log</a></th>
+            <th><a href="/profile/<%= $player->{screenname} %>/games/lightning/2way" class='link-dark'>Game Log</a></th>
             <th>2way</th>
             <th>4way</th>
             <tr>

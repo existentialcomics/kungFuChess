@@ -5,34 +5,29 @@
         <p>KungFuChess has many tactics that are unique to it, due to the real time nature of the game. You have to always be aware of which pieces are recharging and which are not, because you can't rely on positions that are traditionally safe in chess to be unsafe when you opponent can move many pieces at the same time. Below are some of the most unque tactics explained, click on the tactic for more details and an example of how it can be used in a game.
         <br />
         <h4><b>Beginner</b></h4>
-        <h5><a href="/tactics/beginner/dodge">Dodge</a></h5> 
+        <h5><a href="/tactics/beginner/dodge" class='link-dark'>Dodge</a></h5> 
         <p>Being able to quickly dodge your opponent before they capture your piece is a core tactic of Kung Fu Chess.</p>
-        <h5><a href="/tactics/beginner/anticipate">Anticipate</a></h5> 
-        <p>If you can determine where a piece is header, you can often move to attack the space before the piece gets there.</p>
-        <h5><a href="/tactics/beginner/cutoff">Cutoff</a></h5> 
+        <h5><a href="/tactics/beginner/anticipate" class='link-dark'>Anticipate</a></h5> 
+        <p>If you can determine where a piece is headed, you can often move to attack the space before the piece gets there.</p>
+        <h5><a href="/tactics/beginner/cutoff" class='link-dark'>Cutoff</a></h5> 
         <p>Think you are gaurding one of your pieces? You might want to think again if your opponent can capture and cut you off at the same time.</p>
-        <h5><a href="/tactics/beginner/diversion">Diversion</a></h5>
+        <h5><a href="/tactics/beginner/diversion" class='link-dark'>Diversion</a></h5>
         <p>Watch out, just because your piece is ready to move, doesn't mean you will move it in time to dodge an attack.</p>
         <h4><b>Advanced</b></h4>
-        <h5><a href="/tactics/advanced/combo">Combo</a></h5>
+        <h5><a href="/tactics/advanced/combo" class='link-dark'>Combo</a></h5>
         <p>The most central tactic in Kung Fu Chess: setting up combination attacks that take out pieces and the pieces gaurding them at once.</p>
-        <h5><a href="/tactics/advanced/peekaboo">Peekaboo</a></h5>
+        <h5><a href="/tactics/advanced/peekaboo" class='link-dark'>Peekaboo</a></h5>
         <p>Discovered attacks taken to a whole new level, as you can move to spots not allowed in normal chess, anticpating that you will out of the way in time.</p>
-        <h4><b>Expert</b></h4>
-        <h5><a href="/tactics/expert/sweep">Sweep</a></h5>
+        <h5><a href="/tactics/advanced/sweep" class='link-dark'>Sweep</a></h5>
         <p>The most dangerous and feared tactic in all of Kung Fu Chess. Anticipate your opponent before he even moves for deadly results.</p>
-        <h5><a href="/tactics/expert/feint">Feint</a></h5>
+        <h4><b>Expert</b></h4>
+        <h5><a href="/tactics/expert/feint" class='link-dark'>Feint</a></h5>
         <p>Use your opponents knowledge and skill against him as you feign towards a promising spot, only to stop short.</p>
-        <h5><a href="/tactics/expert/selfkill">Self Kill</a></h5>
+        <h5><a href="/tactics/advanced/punchthrough" class='link-dark'>Punch Through</a></h5>
+        <p>Attack through an opponent, knowing they will dodge you, only to proceed to your real attack.</p>
+        <h5><a href="/tactics/expert/selfkill" class='link-dark'>Self Kill</a></h5>
         <p>A rare tactic that makes use of the special ability of the knight to kill your own pieces.</p>
     <br />
-
-    <p>
-    Source code for <a href="https://github.com/existentialcomics/kungFuChess">this site can be found here, under the GLPv3 license.</a><br />
-    </p>
-    <p>
-    Contact: <a href="mailto:existentialcomics@gmail.com?subject=Kung Fu Chess">existentialcomics@gmail.com</a>
-    </p>
     </div>
 </div>
 

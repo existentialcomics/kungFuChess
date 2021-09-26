@@ -1,7 +1,12 @@
 <% if (!$myGame) { %>
+<div class="d-grid gap-2">
     <a class="btn input-block-level btn-primary text-light" id="createGameBtn" role="button">
         Create Game
     </a>
+    <a class="btn input-block-level btn-primary text-light" id="createAiGameBtn" role="button">
+        Play Against the AI
+    </a>
+</div>
 <% } else { %>
     <div class="mx-auto" style="width: auto;">Your game (click to cancel)</div>
     <div class="mx-auto" style="width: auto;">type "/invite (screenname)" in chat to invite</div>

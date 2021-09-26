@@ -293,6 +293,7 @@ $(function () {
         $("#openGamesContent").hide();
         $("#activeGamesContent").hide();
         $("#createGameFormDiv").hide();
+        $("#createAiGameFormDiv").hide();
         $("#pool-matching").show();
         cancelActiveGames = true;
         cancelOpenGames = true;
@@ -317,6 +318,7 @@ $(function () {
         cancelOpenGames = false;
         getOpenGames();
         $("#createGameFormDiv").hide();
+        $("#createAiGameFormDiv").hide();
         $("#openGamesContent").show();
     });
   
@@ -338,6 +340,7 @@ $(function () {
         cancelActiveGames = false;
         getActiveGames();
         $("#createGameFormDiv").hide();
+        $("#createAiGameFormDiv").hide();
         $("#openGamesContent").hide();
         $("#activeGamesContent").show();
     });
@@ -346,6 +349,14 @@ $(function () {
         $("#pool-matching").hide();
         $("#openGamesContent").hide();
         $("#createGameFormDiv").show();
+        $("#createAiGameFormDiv").hide();
+    });
+  
+    $("#homeContent").delegate('#createAiGameBtn', 'click', function() {
+        $("#pool-matching").hide();
+        $("#openGamesContent").hide();
+        $("#createGameFormDiv").hide();
+        $("#createAiGameFormDiv").show();
     });
   
     $("#homeContent").delegate('.watch-game-row', 'click', function() {
@@ -377,6 +388,7 @@ $(function () {
                 $("#pool-matching").hide();
                 getOpenGames();
                 $("#createGameFormDiv").hide();
+                $("#createAiGameFormDiv").hide();
                 $("#openGamesContent").show();
             }
         });
@@ -395,6 +407,7 @@ $(function () {
                 $("#pool-matching").hide();
                 getOpenGames();
                 $("#createGameFormDiv").hide();
+                $("#createAiGameFormDiv").hide();
                 $("#openGamesContent").show();
             }
         });
@@ -404,7 +417,6 @@ $(function () {
         e.preventDefault();
         $("#pool-matching").hide();
         $("#openGamesContent").hide();
-        $("#createGameFormDev").show();
         $.ajax({
             type : 'POST',
             url  : '/ajax/createChallenge',
@@ -429,6 +441,41 @@ $(function () {
                 $("#pool-matching").hide();
                 getOpenGames();
                 $("#createGameFormDiv").hide();
+                $("#createAiGameFormDiv").hide();
+                $("#openGamesContent").show();
+            }
+        });
+    });
+
+    $("#homeContent").delegate('#createAiGameSubmit', 'click', function(e) {
+        e.preventDefault();
+        $("#pool-matching").hide();
+        $("#openGamesContent").hide();
+        $.ajax({
+            type : 'POST',
+            url  : '/ajax/createChallenge',
+            data: $("#createAiGameForm").serialize(),
+            dataType : 'json',
+            success : function(data){
+                var jsonRes = data;
+                if (jsonRes.hasOwnProperty('uid')) {
+                    currentGameUid = jsonRes.uid;
+                }
+                if (jsonRes.hasOwnProperty('gameId')) {
+                    var audio = new Audio('/sound/public_sound_standard_GenericNotify.ogg');
+                    audio.play();
+                    if (jsonRes.hasOwnProperty('anonKey')) {
+                        window.location.replace('/game/' + jsonRes.gameId + "?anonKey=" + jsonRes.anonKey);
+                    } else {
+                        window.location.replace('/game/' + jsonRes.gameId);
+                    }
+                }
+                $("#showOpenGames").addClass('active');
+                $("#showPool").removeClass('active');
+                $("#pool-matching").hide();
+                getOpenGames();
+                $("#createGameFormDiv").hide();
+                $("#createAiGameFormDiv").hide();
                 $("#openGamesContent").show();
             }
         });
@@ -573,6 +620,9 @@ $(function () {
     chatLog.slice().reverse().forEach(function (msg) {
         var dt   = new Date(Date.now() - (msg.unix_seconds_back * 1000))
         var screenname = msg.screenname;
+        if (screenname == null) {
+            screenname = 'anonymous';
+        }
         if (screenname === 'thebalrog') {
             screenname = 'thebalrog (ADMIN)';
         }

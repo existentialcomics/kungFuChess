@@ -1,0 +1,35 @@
+<div id="createAiGameContainer" class="card">
+    <div class="card-header">
+    Create a game
+    </div>
+    <div class="card-body">
+        <%= form_for createGame => (method => 'post',  id => 'createAiGameForm') => begin %>
+            <div class="form-group">
+                <label for="gameSpeed" class="col col-form-label col-form-label-lg">Game Speed</label>
+                <div class="btn-group d-flex" role="group" aria-label="Game Speed">
+                    <input type="radio" class="btn-check" name="gameSpeed" id="aiStandardRadio" autocomplete="off" value="standard" checked>
+                    <label class="btn btn-outline-primary" for="aiStandardRadio">Standard</label>
+                    <input type="radio" class="btn-check" name="gameSpeed" id="aiLightningRadio" autocomplete="off" value="lightning">
+                    <label class="btn btn-outline-primary" for="aiLightningRadio">Lightning</label>
+                </div>
+                <label for="gameType" class="col col-form-label col-form-label-lg">AI Difficulty</label>
+                <div class="btn-group d-flex" role="group" aria-label="AI Difficulty">
+                    <input type="radio" class="btn-check text-light" name="gameMode" id="practice" autocomplete="off" value="practice">
+                    <label class="btn btn-outline-primary" for="practice">Practice</label>
+                    <input type="radio" class="btn-check text-light" name="gameMode" id="ai-easy" autocomplete="off" value="ai-easy">
+                    <label class="btn btn-outline-primary" for="ai-easy">Easy</label>
+                    <input type="radio" class="btn-check text-light" name="gameMode" id="ai-medium" autocomplete="off" value="ai-medium" checked>
+                    <label class="btn btn-outline-primary" for="ai-medium">Medium</label>
+                    <input type="radio" class="btn-check text-light" name="gameMode" id="ai-hard" autocomplete="off" value="ai-hard">
+                    <label class="btn btn-outline-primary" for="ai-hard">Hard</label>
+                </div>
+            </div>
+            <input type="hidden" name="gameType" value="2way">
+            <input type="hidden" name="open" value="1">
+            <div class="d-grid gap-2 pt-3">
+                <button type="submit" class="btn btn-primary text-light" id='createAiGameSubmit'>Create Game</button>
+            </div>
+        </div>
+    <% end %>
+<%= jquery_ajax_csrf_protection %>
+</div>

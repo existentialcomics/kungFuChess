@@ -34,15 +34,21 @@
              </nav>
             <div id='pool-matching' style='<% if($activeTab ne 'pool') { %>display:none;<% } %>'>
                 <div class="d-grid gap-2">
-                <a class="btn btn-primary p-4 text-light" id="enter-pool-standard" role="button">
-                    Standard Pool
-                </a>
-                <a class="btn btn-primary p-4 text-light" id="enter-pool-lightning" role="button">
-                    Lightning Pool
-                </a>
-                <a class="btn btn-primary p-4 text-light" id="enter-pool-4way-lightning" role="button">
-                    4way Lightning Pool
-                </a>
+                    <a class="btn btn-primary p-4 text-light" id="enter-pool-standard" role="button">
+                        Standard Pool
+                    </a>
+                    <a class="btn btn-primary p-4 text-light" id="enter-pool-lightning" role="button">
+                        Lightning Pool
+                    </a>
+                    <a class="btn btn-primary p-4 text-light" id="enter-pool-4way-lightning" role="button">
+                        4way Lightning Pool
+                    </a>
+                    <a class="btn input-block-level btn-primary text-light" id="createGameBtn" role="button">
+                    Create Custom Game
+                    </a>
+                    <a class="btn input-block-level btn-primary text-light" id="createAiGameBtn" role="button">
+                    Play Against the AI
+                    </a>
                 </div>
                 <% if (!($user && $user->{player_id} != -1)) { %>
                     <small><a href="/login">Log in</a> to play rated games.</small>
@@ -54,6 +60,9 @@
             </div>
             <div id='createGameFormDiv' class='card shadow-m' style="display:none;">
                 %= include 'createGameForm'
+            </div>
+            <div id='createAiGameFormDiv' class='card shadow-m' style="display:none;">
+                %= include 'createAiGameForm'
             </div>
         </div>
 

@@ -1,75 +1,32 @@
-<div id="createGameContainer" class="container">
-<div class="card" style="width: 18rem;">
+<div class="card" id="createGameContainer">
     <div class="card-header">
     Create a game
     </div>
     <div class="card-body">
         <%= form_for createGame => (method => 'post',  id => 'createGameForm') => begin %>
             <div class="form-group">
-                <label for="colFormLabelLg" class="col col-form-label col-form-label-lg">Game Speed</label>
-                <div class="form-radio">
-                    <input class="form-radio-input" type="radio" name="gameSpeed" id="standardRatingRadio" value="standard" checked>
-                    <label class="form-radio-label" for="standardRatingRadio">
-                        Standard
-                    </label>
+                <label for="gameSpeed" class="col col-form-label col-form-label-lg">Game Speed</label>
+                <div class="btn-group d-flex" role="group" aria-label="Game Speed">
+                    <input type="radio" class="btn-check" name="gameSpeed" id="standardRadio" autocomplete="off" value="standard" checked>
+                    <label class="btn btn-outline-primary" for="standardRadio">Standard</label>
+                    <input type="radio" class="btn-check" name="gameSpeed" id="lightningRadio" autocomplete="off" value="lightning">
+                    <label class="btn btn-outline-primary" for="lightningRadio">Lightning</label>
                 </div>
-                <div class="form-radio">
-                    <input class="form-radio-input" type="radio" name="gameSpeed" id="lightningRatingRadio" value="lightning">
-                    <label class="form-radio-label" for="lightningRatingRadio">
-                        Lightning
-                    </label>
+                <label for="gameType" class="col col-form-label col-form-label-lg">Number of Players</label>
+                <div class="btn-group d-flex" role="group" aria-label="Board type">
+                    <input type="radio" class="btn-check" name="gameType" id="2wayRadio" autocomplete="off" value="2way" checked>
+                    <label class="btn btn-outline-primary" for="2wayRadio">2way</label>
+                    <input type="radio" class="btn-check" name="gameType" id="4wayRadio" autocomplete="off" value="4way">
+                    <label class="btn btn-outline-primary" for="4wayRadio">4way</label>
                 </div>
-                <label for="colFormLabelLg" class="col col-form-label col-form-label-lg">Number of Players</label>
-                <div class="form-radio">
-                    <input class="form-radio-input" type="radio" name="gamePlayersType" id="2wayRatingRadio" value="2way" checked>
-                    <label class="form-radio-label" for="2wayRatingRadio">
-                        2way
-                    </label>
-                </div>
-                <div class="form-radio">
-                    <input class="form-radio-input" type="radio" name="gamePlayersType" id="4wayRatingRadio" value="4way">
-                    <label class="form-radio-label" for="4wayRatingRadio">
-                        4way
-                    </label>
-                </div>
-                <label for="colFormLabelLg" class="col col-form-label col-form-label-lg">Game Type</label>
-                <div class="form-radio">
-                    <input class="form-radio-input" type="radio" name="gameMode" id="standardRatingRadio" value="rated" 
+                <label for="Rated" class="col col-form-label col-form-label-lg">Rated</label>
+                <div class="btn-group d-flex" role="group" aria-label="Rated">
+                    <input type="radio" class="btn-check" name="gameMode" id="ratedRadio" autocomplete="off" value="rated"
                         <% if ($user && $user->{player_id} != -1){ %> checked <% } else { %> disabled <% } %>>
-                    <label class="form-radio-label" for="ratedRadio">
-                        Rated
-                    </label>
-                </div>
-                <div class="form-radio">
-                    <input class="form-radio-input" type="radio" name="gameMode" id="unratedRadio" value="unrated" 
+                    <label class="btn btn-outline-primary" for="ratedRadio">Rated</label>
+                    <input type="radio" class="btn-check" name="gameMode" id="unratedRadio" autocomplete="off" value="unrated"
                         <% if (!($user && $user->{player_id} != -1)){ %> checked <% } %> >
-                    <label class="form-radio-label" for="unratedRadio">
-                        Unrated
-                    </label>
-                </div>
-                <div class="form-radio">
-                    <input class="form-radio-input" type="radio" name="gameMode" id="practiceRadio" value="practice">
-                    <label class="form-radio-label" for="practiceRadio">
-                        Practice
-                    </label>
-                </div>
-                <div class="form-radio">
-                    <input class="form-radio-input" type="radio" name="gameMode" id="aiRadio" value="ai-easy">
-                    <label class="form-radio-label" for="aiRadio">
-                        Against AI Easy
-                    </label>
-                </div>
-                <div class="form-radio">
-                    <input class="form-radio-input" type="radio" name="gameMode" id="aiRadio" value="ai-medium">
-                    <label class="form-radio-label" for="aiRadio">
-                        Against AI Medium
-                    </label>
-                </div>
-                <div class="form-radio">
-                    <input class="form-radio-input" type="radio" name="gameMode" id="aiRadio" value="ai-hard">
-                    <label class="form-radio-label" for="aiRadio">
-                        Against AI Hard
-                    </label>
+                    <label class="btn btn-outline-primary" for="unratedRadio">Unrated</label>
                 </div>
                 <div class="form-check">
                     <input class="form-check-input" type="checkbox" checked name="open" id="lightningRatingRadio">
@@ -78,9 +35,10 @@
                     </label>
                 </div>
             </div>
-            <button type="submit" class="btn btn-primary" id='createGameSubmit'>Create Game</button>
+            <div class="d-grid gap-2 pt-3">
+                <button type="submit" class="btn btn-primary text-light" id='createGameSubmit'>Create Game</button>
+            </div>
     <% end %>
     </div>
-</div>
-</div>
 <%= jquery_ajax_csrf_protection %>
+</div>
