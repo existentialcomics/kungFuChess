@@ -2064,8 +2064,8 @@ sub pretty_ai {
         my $r = 7-$i;
         foreach my $f ( 0 .. 7 ) {
             if ($f == 0){ $board .= " " . ($r + 1) . " | "; }
-            #my $chr = getPieceDisplay(_getPieceXY_ai($f, $r));
-            my $chr = getPieceDisplayFEN(_getPieceXY_ai($f, $r));
+            my $chr = getPieceDisplay(_getPieceXY_ai($f, $r));
+            #my $chr = getPieceDisplayFEN(_getPieceXY_ai($f, $r));
             $board .= "$chr | ";
         }
         $board .= "\n   +---+---+---+---+---+---+---+----\n";

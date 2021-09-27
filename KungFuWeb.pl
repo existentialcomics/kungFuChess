@@ -146,16 +146,13 @@ get '/' => sub {
         'post_time' => time,
         'game_id' => undef,
         'player_id' => 1,
-        'comment_text' => 'Welcome to KungFuChess (currently in beta). Enter the matching pools or start a game to play. Click the "about" tab to see more about the game, or "learn" to learn special tactics. WARNING: sweep rules have changed, you know sweep any piece that moved after you, even if it has fully stopped. Premove was also added.',
+        'comment_text' => 'Welcome to KungFuChess (currently in beta). Enter the matching pools or start a game to play. Click the "about" tab to see more about the game, or "tactics" to learn some of the unique tactics in this game.',
         'screenname' => 'SYSTEM',
         'color' => 'red',
         'text_color' => '#666666',
         'chat_log_id' => 1
     });
     my $chatLogString = ($chatLog ? encode_json \@{$chatLog} : '[]');
-    ### hacky but not sure how to do it proper. Because it is a javascript string
-    #   we must double escape "
-    #$chatLogString =~ s/\\"/\\\\"/g;
     $c->stash('chatLog' => $chatLogString);
 
     $c->render('template' => 'home', format => 'html', handler => 'ep');
@@ -273,7 +270,7 @@ get '/tactics/advanced/sweep' => sub {
     $c->render('template' => 'tactic', format => 'html', handler => 'ep');
 };
 
-get '/tactics/expert/punchthrough' => sub {
+get '/tactics/expert/punchThrough' => sub {
     my $c = shift;
 
     my $user = $c->current_user();
@@ -367,7 +364,7 @@ sub chatGlobal {
     my $gameId  = shift;
     my $origMsg  = shift;
 
-    my $return = {};
+    my $return = undef;
     if ($message =~ m#^/(\S+)\s(.*)#) {
         return handleChatCommand($user, $1, $2, $origMsg);
     }
@@ -1341,7 +1338,7 @@ websocket '/ws' => sub {
             my $player = new KungFuChess::Player({auth_token => $auth}, app->db());
             my $return = chatGlobal($player, $msg->{message}, $msg->{gameId}, $msg);
             if ($return) {
-                $self->send(json_encode($return));
+                connectionBroadcast($self, $return);
             }
         } elsif ($msg->{'c'} eq 'rematch'){
             my $gameId = $msg->{gameId};
@@ -1394,7 +1391,7 @@ websocket '/ws' => sub {
                 my $ret = {
                     'c' => 'joined',
                 };
-                $self->send(encode_json $ret);
+                connectionBroadcast($self, $ret);
 
                 ## pass msg to server to send piece pos
                 $msg->{connId} = $connId;
@@ -1404,7 +1401,7 @@ websocket '/ws' => sub {
                 my $retNotReady = {
                     'c' => 'notready',
                 };
-                $self->send(encode_json $retNotReady);
+                connectionBroadcast($self, $retNotReady);
             }
         } elsif ($msg->{'c'} eq 'chat'){
             my $player = new KungFuChess::Player({auth_token => $msg->{auth}}, app->db());
@@ -1651,6 +1648,8 @@ sub screennameBroadcast {
     if (! @userRow) { return -1; }
     if (! $globalConnectionsByAuth{ $userRow[1] }) { return 0; }
 
+    delete $msg->{userAuthToken};
+    delete $msg->{auth};
     my $connection = $globalConnectionsByAuth{ $userRow[1] };
     eval {
         $connection->send(encode_json $msg);
@@ -1660,6 +1659,8 @@ sub screennameBroadcast {
 sub globalBroadcast {
     my $msg = shift;
 
+    delete $msg->{userAuthToken};
+    delete $msg->{auth};
     foreach my $conn (values %globalConnections) {
         eval {
             if ($conn) {
@@ -1667,6 +1668,18 @@ sub globalBroadcast {
             }
         };
     }
+}
+
+sub connectionBroadcast {
+    my $conn = shift;
+    my $msg  = shift;
+    delete $msg->{userAuthToken};
+    delete $msg->{auth};
+    eval {
+        if ($conn) {
+            $conn->send(encode_json $msg);
+        }
+    };
 }
 
 sub gameBroadcast {

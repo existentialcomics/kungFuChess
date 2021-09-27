@@ -38,6 +38,13 @@ while ($go) {
         my ($fr_bb, $to_bb, $fr_rank, $fr_file, $to_rank, $to_file) = KungFuChess::Bitboards::parseMove($input);
         KungFuChess::Bitboards::setFrozen($fr_bb);
         KungFuChess::Bitboards::resetAiBoards();
+        print KungFuChess::Bitboards::prettyFrozen();
+    } elsif ($input =~ m/^unfreeze ([a-z][0-9])$/) {
+        my $input = $1 . $1;
+        my ($fr_bb, $to_bb, $fr_rank, $fr_file, $to_rank, $to_file) = KungFuChess::Bitboards::parseMove($input);
+        KungFuChess::Bitboards::unsetFrozen($fr_bb);
+        KungFuChess::Bitboards::resetAiBoards();
+        print KungFuChess::Bitboards::prettyFrozen();
     } elsif ($input =~ m/^induce [a-z][0-9][a-z][0-9]$/) {
         print "(not implemented)\n";
     } elsif ($input =~ m/^debug (\d+)$/) {
@@ -124,13 +131,15 @@ while ($go) {
         KungFuChess::BBHash::displayBestMoves($bestMoves, $mycolor, $score, $ponder, undef, $filter);
     } elsif ($input =~ m/^fen (.+)$/){
         KungFuChess::Bitboards::loadFENstring($1);
+        print KungFuChess::Bitboards::setCurrentMoves(undef);
+        print KungFuChess::Bitboards::pretty_ai();
     } elsif ($input =~ m/^frozen$/){
         print KungFuChess::Bitboards::prettyFrozen();
     } elsif ($input =~ m/^fen$/){
         print KungFuChess::Bitboards::getFENstring();
         print "\n";
     } elsif ($input =~ m/^clear$/) {
-        print KungFuChess::Bitboards::setCurrentMoves();
+        print KungFuChess::Bitboards::setCurrentMoves(undef);
     } elsif ($input =~ m/^show (white|black)\s?(\S+)?$/) {
         my $cIn = $1;
         my $ponder = $2;
@@ -147,6 +156,7 @@ while ($go) {
         print "  eval\n";
         print "  <move> (i.e. e2e4)\n";
         print "  freeze <move> (i.e. e2e4)\n";
+        print "  unfreeze <move> (i.e. e2e4)\n";
         print "  frozen (show frozen moves)\n";
         print "  debug <level>\n";
         print "  clear (clear ai moves)\n";

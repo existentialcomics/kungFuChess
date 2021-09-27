@@ -23,7 +23,7 @@
         <h4><b>Expert</b></h4>
         <h5><a href="/tactics/expert/feint" class='link-dark'>Feint</a></h5>
         <p>Use your opponents knowledge and skill against him as you feign towards a promising spot, only to stop short.</p>
-        <h5><a href="/tactics/advanced/punchthrough" class='link-dark'>Punch Through</a></h5>
+        <h5><a href="/tactics/expert/punchThrough" class='link-dark'>Punch Through</a></h5>
         <p>Attack through an opponent, knowing they will dodge you, only to proceed to your real attack.</p>
         <h5><a href="/tactics/expert/selfkill" class='link-dark'>Self Kill</a></h5>
         <p>A rare tactic that makes use of the special ability of the knight to kill your own pieces.</p>
