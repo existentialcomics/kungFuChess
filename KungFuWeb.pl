@@ -1067,8 +1067,8 @@ sub createGame {
         $auth,
         $speed,
         0,       # ai
-        '/var/log/kungfuchess/' . $gameId . ' . game.log',
-        '/var/log/kungfuchess/' . $gameId . ' . error.log'
+        '/var/log/kungfuchess/' . $gameId . '-game.log',
+        '/var/log/kungfuchess/' . $gameId . '-error.log'
     );
     app->log->debug($cmd);
     system($cmd);
@@ -1083,8 +1083,8 @@ sub createGame {
             $blackUid,
             $speed,
             $options->{ai_difficulty} // 1,
-            '/var/log/kungfuchess/' . $gameId . ' . game-ai.log',
-            '/var/log/kungfuchess/' . $gameId . ' . error-ai.log'
+            '/var/log/kungfuchess/' . $gameId . '-game-ai.log',
+            '/var/log/kungfuchess/' . $gameId . '-error-ai.log'
         );
         app->log->debug($cmdAi);
         system($cmdAi);
