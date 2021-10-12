@@ -611,7 +611,7 @@ function addChatMessage(author, message, usercolor, textcolor, dt) {
     }
     chatContent = $('#global-chat-log');
     chatContent.append('<span class="' + usercolor + 'beltColor" style="font-size: 14px;">' + author + '</span><span style="font-size: 10px;color:grey"> ' + dtString 
-            + '</span>&nbsp;&nbsp;<span style="font-size: 14px; color:' + textcolor + '">' + escapeHtml(message) + '</span>' + '<br />');
+            + '</span>&nbsp;&nbsp;<span style="font-size: 14px; color:' + textcolor + '">' + message + '</span>' + '<br />');
     $("#global-chat-log").scrollTop($("#global-chat-log")[0].scrollHeight);
 }
 

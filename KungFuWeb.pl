@@ -364,6 +364,8 @@ sub chatGlobal {
     my $gameId  = shift;
     my $origMsg  = shift;
 
+    $message = escape_html($message);
+
     my $return = undef;
     if ($message =~ m#^/(\S+)\s(.*)#) {
         return handleChatCommand($user, $1, $2, $origMsg);
