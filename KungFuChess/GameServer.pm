@@ -828,6 +828,13 @@ sub moveIfLegal {
             $self->{startMoves}->{$to_bb} = $startTime;
             print "setting startMove $to_bb = $startTime\n";
             $self->{timeoutSquares}->{$to_bb} = { 'time' => $time };
+            my $msg = {
+                'c' => 'authstop',
+                'expected' => 1,
+                'fr_bb'  => $to_bb,
+                'time_remaining' => $self->{pieceRecharge},
+            };
+            $self->send($msg);
             $self->{timeoutCBs}->{$to_bb} = AnyEvent->timer(
                 after => $self->{pieceRecharge} + $nextMoveSpeed,
                 cb => sub {

@@ -551,19 +551,21 @@ var handleMessage = function(msg) {
         setPieceBoardPos(pieceFrom, to);
         piecesByBoardPos[from] = null;
     } else if (msg.c == 'stop'){ // when pieces collides and one is forced to stop
-        let re = /([a-z])([0-9]{1,2})/;
-        var from = getSquareFromBB(msg.fr_bb);
+        if (! msg.hasOwnProperty('expected')) {
+            let re = /([a-z])([0-9]{1,2})/;
+            var from = getSquareFromBB(msg.fr_bb);
 
-        var m_from = from.match(re);
+            var m_from = from.match(re);
 
-        var y = rankToX[m_from[2]];
-        var x = parseInt(fileToY[m_from[1]]);
-        var pieceFrom = piecesByBoardPos[from];
+            var y = rankToX[m_from[2]];
+            var x = parseInt(fileToY[m_from[1]]);
+            var pieceFrom = piecesByBoardPos[from];
 
-        if (msg.hasOwnProperty('time_remaining')) {
-            pieceFrom.stop(x, y, msg.time_remaining);
-        } else {
-            pieceFrom.stop(x, y);
+            if (msg.hasOwnProperty('time_remaining')) {
+                pieceFrom.stop(x, y, msg.time_remaining);
+            } else {
+                pieceFrom.stop(x, y);
+            }
         }
 
     } else if (msg.c == 'moveAnimate'){ // called when a player moves a piece

@@ -1077,12 +1077,13 @@ sub createGame {
         my $aiUser = new KungFuChess::Player(
             { 'ai' => 1, 'auth_token' => $blackUid }
         );
-        my $cmdAi = sprintf('/usr/bin/perl ./kungFuChessGame%sAi.pl %s %s %s %s >%s 2>%s &',
+        my $cmdAi = sprintf('/usr/bin/perl ./kungFuChessGame%sAi.pl %s %s %s %s %s >%s 2>%s &',
             $type,
             $gameId,
             $blackUid,
             $speed,
             $options->{ai_difficulty} // 1,
+            2, ### color = BLACK
             '/var/log/kungfuchess/game-ai.log',
             '/var/log/kungfuchess/error-ai.log'
         );
@@ -2492,7 +2493,6 @@ sub authGameColor {
     my ($playerAuth, $anonAuth, $gameId) = @_;
     my $authColor = undef;
     my $gameRow = app->db()->selectrow_hashref('SELECT * FROM games WHERE game_id = ?', { 'Slice' => {} }, $gameId);
-    print "here\n";
     if ($playerAuth) {
         my $player = new KungFuChess::Player({auth_token => $playerAuth}, app->db());
         if ($player && $player->{player_id} != ANON_USER) {

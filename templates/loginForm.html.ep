@@ -4,7 +4,7 @@
         Sign In
         </div>
         <div class="card-body">
-            <%= form_for login => (method => 'post') => begin %>
+            <%= form_for login => (method => 'post', 'name' => 'login', 'id' => '_loginForm') => begin %>
                 <div class="form-group">
                     <label>User name</label>
                     <input class="form-inline" type='text' name='username' value=''>

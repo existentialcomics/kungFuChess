@@ -161,16 +161,16 @@ sub playerReady {
         if ($self->{"${color}Ready"} == 0) {
             $self->playerBroadcast($readyMsg);
         }
-        if ($color eq 'white' || $color eq 'both' || $self->{isAiGame}){
+        if ($color eq 'white' || $color eq 'both'){
             $self->{whiteReady} = time();
         } 
-        if($color eq 'black' || $color eq 'both' || $self->{isAiGame}){
+        if($color eq 'black' || $color eq 'both'){
             $self->{blackReady} = time();
         }
-        if($color eq 'red'   || $color eq 'both' || $self->{isAiGame}){
+        if($color eq 'red'   || $color eq 'both'){
             $self->{redReady} = time();
         }
-        if($color eq 'green'   || $color eq 'both' || $self->{isAiGame}){
+        if($color eq 'green'   || $color eq 'both'){
             $self->{greenReady} = time();
         }
         if (

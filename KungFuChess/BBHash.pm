@@ -130,20 +130,19 @@ sub displayMoves {
     $ponder = $ponder ? $ponder : '';
     $indent = $indent ? $indent : '';
 
-    print "current score: $score\n";
-    foreach my $k (sort {$moves->[$color]->{$a}[4] <=> $moves->[$color]->{$b}[4] } keys  %{$moves->[$color]}) {
+    foreach my $move (@{$moves->[$color]}) {
         #print $k;
-        my $move = getSquareFromBB($moves->[$color]->{$k}[0]) . getSquareFromBB($moves->[$color]->{$k}[1]);
-        if (! $filter || ($move =~ m/^$filter/)) {
+        my $moveS = getSquareFromBB($move->[0]) . getSquareFromBB($move->[1]);
+        if (! $filter || ($moveS =~ m/^$filter/)) {
             print $indent;
-            print $move;
-            my $mScore = $moves->[$color]->{$k}[4];
+            print $moveS;
+            my $mScore = $move->[4];
             print ($mScore > $score ? " * " : "   ") ;
             print  $mScore;
             print "\n";
-            if (($move eq $ponder) || $ponder eq 'all') {
+            if (($moveS eq $ponder) || $ponder eq 'all') {
                 displayMoves(
-                    $moves->[$color]->{$k}[5],
+                    $move->[5],
                     $color == 2 ? 1 : 2,
                     $mScore,
                     '',
@@ -152,7 +151,7 @@ sub displayMoves {
             }
             if (($move eq $ponder) || $ponder eq 'all') {
                 displayMoves(
-                    $moves->[$color]->{$k}[5],
+                    $move->[5],
                     $color,
                     $mScore,
                     '',
