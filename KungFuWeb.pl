@@ -1077,12 +1077,14 @@ sub createGame {
         my $aiUser = new KungFuChess::Player(
             { 'ai' => 1, 'auth_token' => $blackUid }
         );
-        my $cmdAi = sprintf('/usr/bin/perl ./kungFuChessGame%sAi.pl %s %s %s %s %s >%s 2>%s &',
+        my $cmdAi = sprintf('/usr/bin/perl ./kungFuChessGame%sAi.pl %s %s %s %s %s %s 1>%s 2>%s &',
             $type,
             $gameId,
             $blackUid,
             $speed,
             $options->{ai_difficulty} // 1,
+            2, # BLACK
+            'ws://localhost:3000/ws',
             '/var/log/kungfuchess/' . $gameId . '-game-ai.log',
             '/var/log/kungfuchess/' . $gameId . '-error-ai.log'
         );
