@@ -1478,6 +1478,7 @@ sub evaluate {
                 foreach my $shift (@MOVES_Q) {
                     my $to = $fr;
                     $to = shift_BB($to, $shift);
+                    $kingRing[$color] |= $to;
                     if ($to != 0 && !($to & $us) && !($to & $ai_movingBB) ){
                         if (! $frozen) {
                             #$moves[$color]->{sprintf('%s-%s', $fr, $to)} = [
@@ -1722,20 +1723,17 @@ sub evaluate {
                     }
                 #### implement king ring
                 } elsif ($pType == KING) {
-                    if ($attackingUnFrozen[$them][PAWN] & $bb) {
-                        $additionalPenalty[$color] += 1500;
+                    if ($attackingUnFrozen[$them][ALL_P] & $bb) {
+                        $kingDangerPenalty[$color] += 1500;
                     }
-                    if (($attackingUnFrozen[$them][QUEEN] & $bb)) {
-                        $kingDangerPenalty[$us] += 1500;
+                    if ($attackingFrozen[$them][ALL_P] & $bb) {
+                        $kingDangerPenalty[$color] += 200;
                     }
-                    if (($attackingUnFrozen[$them][ROOK] & $bb)) {
-                        $kingDangerPenalty[$us] += 1500;
+                    if ($attackingUnFrozen[$them][ALL_P] & $kingRing[$us]) {
+                        $kingDangerPenalty[$color] += 180;
                     }
-                    if (
-                        ($attackingUnFrozen[$them][KNIGHT] & $bb) ||
-                        ($attackingUnFrozen[$them][BISHOP] & $bb)
-                    ) {
-                        $kingDangerPenalty[$us] += 1500;
+                    if ($attackingFrozen[$them][ALL_P] & $kingRing[$us]) {
+                        $kingDangerPenalty[$color] += 30;
                     }
                 }
             }
