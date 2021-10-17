@@ -184,6 +184,8 @@ sub _init {
 	my $ai = 1;
 
     print "game key: $gameKey, authkey: $authKey, speed: $speed, mode: $mode, diff: $difficulty, color: $color\n";
+
+    $self->{startTime} = time();
     
     my $cfg = new Config::Simple('kungFuChess.cnf');
     $self->{config} = $cfg;
@@ -476,6 +478,13 @@ sub handleMessage {
             after => 3.2,
             interval => $self->{ai_thinkTime} + ($self->{ai_thinkTime} / 3),
             cb => sub {
+                if (time() - $self->{startTime} > (60 * 10)) {
+                    my $msg = {
+                        'c'     => 'resign'
+                    };
+                    $self->send($msg);
+                    exit;
+                }
                 if ($#{$self->{movesQueue}} > -1) {
                         foreach my $move (@{$self->{movesQueue}}) {
                             my ($fr_bb, $to_bb, $fr_rank, $fr_file, $to_rank, $to_file) = KungFuChess::Bitboards::parseMove($move);
@@ -493,35 +502,25 @@ sub handleMessage {
                     # depth, thinkTime
                     my $start = time();
                     KungFuChess::Bitboards::aiThink(1, $self->{ai_thinkTime});
-                    print "aiThink: $self->{ai_thinkTime}\n";
-                    print (time() - $start);
-                    print "\ndepth $self->{ai_depth}\n";
-                    print "\n";
                     if ($self->{ai_depth} >= 2 && (time() - $start) < $self->{ai_thinkTime}) {
-                        print "thinking 2...\n";
                         KungFuChess::Bitboards::aiThink(2, $self->{ai_thinkTime});
-                        print time() - $start;
-                        print "\n";
                     }
                     if ($self->{ai_depth} >= 3 && (time() - $start) < $self->{ai_thinkTime}) {
-                        print "thinking 3...\n";
                         KungFuChess::Bitboards::aiThink(3, $self->{ai_thinkTime});
-                        print time() - $start;
-                        print "\n";
                     }
-                    print KungFuChess::Bitboards::getFENstring();
-                    print KungFuChess::Bitboards::pretty_ai();
+                    #print KungFuChess::Bitboards::getFENstring();
+                    #print KungFuChess::Bitboards::pretty_ai();
                     my $suggestedMoves = KungFuChess::Bitboards::aiRecommendMoves($self->{color}, $self->{ai_simul_moves});
 
                     my $fr_moves = {};
                     my $to_moves = {};
                     foreach my $move (@$suggestedMoves) {
-                        print "moving...";
-                        print KungFuChess::BBHash::getSquareFromBB($move->[0]);
-                        print KungFuChess::BBHash::getSquareFromBB($move->[1]);
-                        print "\n";
+                        #print "moving...";
+                        #print KungFuChess::BBHash::getSquareFromBB($move->[0]);
+                        #print KungFuChess::BBHash::getSquareFromBB($move->[1]);
+                        #print "\n";
                         ### skip frozen pieces or it will premove
-                        if (exists($self->{frozen}->{$move->[0]}) &&
+                        if (defined($self->{frozen}->{$move->[0]}) &&
                             $self->{frozen}->{$move->[0]} + $self->{pieceRecharge} > time() ) {
                             next;
                         }

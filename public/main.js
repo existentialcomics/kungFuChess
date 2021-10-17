@@ -97,7 +97,7 @@ function getActiveGames(originalThread = false) {
                         function() {
                             getActiveGames(true);
                         },
-                        2500
+                        3500
                     );
                 }
             }
@@ -125,7 +125,7 @@ function getPlayers(originalThread = false) {
                         function() {
                             getPlayers(true);
                         },
-                        4000
+                        5000
                     );
                 }
             }
@@ -470,6 +470,12 @@ $(function () {
                         window.location.replace('/game/' + jsonRes.gameId);
                     }
                 }
+                if (jsonRes.hasOwnProperty('error')) {
+                    console.log("ERROR:");
+                    console.log(jsonRes.error);
+                    $("#error-alert").html('<div class="alert alert-danger alert-dismissible" id="error-alert" role="alert">' + jsonRes.error + "</div>");
+    
+                }
                 $("#showOpenGames").addClass('active');
                 $("#showPool").removeClass('active');
                 $("#pool-matching").hide();
@@ -517,7 +523,7 @@ var bindEvents = function(ws_conn) {
                 };
                 sendGlobalMsg(heartbeat_msg);
             } 
-        }, 3000); 
+        }, 4000); 
     }
 
     main_conn.onmessage = function(evt) {

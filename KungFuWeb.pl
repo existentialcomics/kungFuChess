@@ -26,6 +26,7 @@ use KungFuChess::Player;
 use constant {
     ANON_USER => -1,
     AI_USER => -2,
+    GAME_ERROR_AI_FULL => -1,
 };
 
 my $cfg = new Config::Simple('kungFuChess.cnf');
@@ -146,7 +147,7 @@ get '/' => sub {
         'post_time' => time,
         'game_id' => undef,
         'player_id' => 1,
-        'comment_text' => 'Welcome to KungFuChess (currently in beta). Enter the matching pools or start a game to play. Click the "about" tab to see more about the game, or "tactics" to learn some of the unique tactics in this game.',
+        'comment_text' => 'Welcome to KungFuChess (currently in beta). Enter the matching pools or start a game to play. Click the "about" tab to see more about the game, or "tactics" to learn some of the unique tactics in this game. There are bugs moving pieces with the Brave browser, please use Firefox or Chrome.',
         'screenname' => 'SYSTEM',
         'color' => 'red',
         'text_color' => '#666666',
@@ -345,10 +346,15 @@ post '/ajax/createChallenge' => sub {
     }
 
     my $return = {};
+
+    if ($gameId == GAME_ERROR_AI_FULL) {
+        $return->{error} = "Too many AI games running, try again later.";
+    }
+
     if ($uid){
         $return->{uid} = $uid;
     }
-    if ($gameId){
+    if ($gameId > 0){
         $return->{gameId} = $gameId;
         if (! $user) {
             my $row = app->db()->selectrow_arrayref("SELECT white_anon_key FROM games WHERE game_id = ?", {}, $gameId);
@@ -405,7 +411,12 @@ sub handleChatCommand {
     my $value = shift;
     my $params = shift;
 
-    my $return = {};
+    my $return = {
+        'c' => 'globalchat',
+        'author' => 'SYSTEM',
+        'color' => 'red',
+        'text_color' => '#666666',
+    };
     if ($command eq 'msg') {
         if ($value =~ m/^(.+?)\s(.*)/){
             my $screenname = $1;
@@ -450,8 +461,10 @@ sub handleChatCommand {
                 $return->{'message'} = "You must have an open game to send invites.";
             }
         } else {
-            $return->{'message'} = "Unknown command. Available commands: /invite, /msg";
+            $return->{'message'} = "You must open a game before sending an invite.";
         }
+    } else {
+        $return->{'message'} = "Unknown command. Available commands: /invite, /msg";
     }
     return $return;
 }
@@ -1021,7 +1034,7 @@ sub createRematchGame {
 
 sub createGame {
     my ($type, $speed, $rated, $white, $black, $red, $green, $options) = @_;
-    app->log->debug("creating game with $type, $speed, $rated, $white, $black, $red, $green\n");
+    #app->log->debug("creating game with $type, $speed, $rated, $white, $black, $red, $green\n");
 
     $options = $options // {};
 
@@ -1059,6 +1072,14 @@ sub createGame {
         $auth,
         $isAiGame
     );
+
+    if ($isAiGame) {
+        my $lines = `ps aux | grep kungFuChessGame2wayAi.pl | wc -l`;
+        my $activeAiGames = $lines - 1;
+        if ($activeAiGames > 1) {
+            return GAME_ERROR_AI_FULL;
+        }
+    }
 
     # spin up game server, wait for it to send authjoin
     app->log->debug( "starting game client $gameId, $auth" );
@@ -2499,16 +2520,16 @@ sub authGameColor {
     if ($playerAuth) {
         my $player = new KungFuChess::Player({auth_token => $playerAuth}, app->db());
         if ($player && $player->{player_id} != ANON_USER) {
-            if ($player->{player_id} eq $gameRow->{white_player}) {
+            if (defined($gameRow->{white_player}) && $player->{player_id} eq $gameRow->{white_player}) {
                 $authColor = 'white';
             }
-            if ($player->{player_id} eq $gameRow->{black_player}) {
+            if (defined($gameRow->{black_player}) && $player->{player_id} eq $gameRow->{black_player}) {
                 $authColor = ($authColor ? 'both' : 'black'); 
             }
-            if ($player->{player_id} eq $gameRow->{red_player}) {
+            if (defined($gameRow->{red_player}) && $player->{player_id} eq $gameRow->{red_player}) {
                 $authColor = ($authColor ? 'both' : 'red'); 
             }
-            if ($player->{player_id} eq $gameRow->{green_player}) {
+            if (defined($gameRow->{green_player}) && $player->{player_id} eq $gameRow->{green_player}) {
                 $authColor = ($authColor ? 'both' : 'green'); 
             }
         }
@@ -2518,16 +2539,16 @@ sub authGameColor {
     }
     if (! $anonAuth) { $anonAuth = $playerAuth; } 
     if ($anonAuth) {
-        if ($anonAuth eq $gameRow->{white_anon_key}) {
+        if (defined($gameRow->{white_anon_key}) && $anonAuth eq $gameRow->{white_anon_key}) {
             $authColor = 'white';
         }
-        if ($anonAuth eq $gameRow->{black_anon_key}) {
+        if (defined($gameRow->{black_anon_key}) && $anonAuth eq $gameRow->{black_anon_key}) {
             $authColor = ($authColor ? 'both' : 'black'); 
         }
-        if ($anonAuth eq $gameRow->{red_anon_key}) {
+        if (defined($gameRow->{red_anon_key}) && $anonAuth eq $gameRow->{red_anon_key}) {
             $authColor = ($authColor ? 'both' : 'red'); 
         }
-        if ($anonAuth eq $gameRow->{green_anon_key}) {
+        if (defined($gameRow->{green_anon_key}) && $anonAuth eq $gameRow->{green_anon_key}) {
             $authColor = ($authColor ? 'both' : 'green'); 
         }
         if ($authColor) {

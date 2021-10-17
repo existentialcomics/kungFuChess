@@ -1047,6 +1047,7 @@ var getY = function(x, y){
 };
 
 var getPieceImage = function(x, y, image){
+    console.log("get image piece: " + x + " , " + y);
     var pieceImage = new Konva.Image({
         image: image,
         x: getX(x * width / boardSize, y * height / boardSize),
@@ -1426,6 +1427,8 @@ stage.on("dragend", function(e){
 	e.target.offsetY(0);
 
     piece = piecesByImageId[e.target._id];
+    console.log('dragend');
+    console.log(piece);
 
     piece.setImagePos(piece.x, piece.y);
     boardPos = getBoardPos(pos);

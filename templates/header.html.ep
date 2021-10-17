@@ -47,11 +47,13 @@
         <a href="/about">About</a>
     </li>
 </ul>
-<% if (defined(stash('error')) && stash('error')) { %>
-<div class="alert alert-danger" role="alert">
-    <%== stash('error') %>
+<div id="error-alert">
+    <% if (defined(stash('error')) && stash('error')) { %>
+    <div class="alert alert-danger" id="error-alert" role="alert">
+        <%== stash('error') %>
+    </div>
+    <% } %>
 </div>
-<% } %>
 <script>
     <% if ($user){ %>
         var userAuthToken = "<%= $user->{auth_token} %>";
