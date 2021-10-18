@@ -1411,6 +1411,7 @@ var text = new Konva.Text({
 stage.on("dragstart", function(e){
     //e.target.moveTo(tempLayer);
     var pos = stage.getPointerPosition();
+    console.log('dragstart');
 	e.target.offsetX(e.target.x() - pos.x + (width  / boardSize / 2));
 	e.target.offsetY(e.target.y() - pos.y + (height / boardSize / 2));
     pieceLayer.draw();
