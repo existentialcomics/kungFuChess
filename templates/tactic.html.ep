@@ -12,7 +12,7 @@
         <p><%= $description %></p>
     </div>
     <div>
-        <a href="/learn">Back to the tactics list</a>
+        <a href="/tactics" class='link-dark'>Back to the tactics list</a>
     </div>
 </div>
 

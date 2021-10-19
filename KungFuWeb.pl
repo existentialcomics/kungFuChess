@@ -240,7 +240,7 @@ get '/tactics/advanced/peekaboo' => sub {
     $c->stash('user' => $user);
 
     $c->stash('video' => '/peekaboo.webm');
-    $c->stash('name' => 'Combo');
+    $c->stash('name' => 'Peekaboo');
     $c->stash('description' => 'This deceptive tactic makes use of the fact that are you allowed to move to spaces that would be illegal in regular chess play. For example, just because a piece is sitting inbetween you and a square, doesn\'t mean you can\'t attempt to move there. After all, since the game takes place in real time, who is to say if the piece will still be obstructing you by the time you reach it? This allows you to disguise your moves for powerful discovered attacks. You can even move through enemy pieces, anticipating that they will move them before you reach the spot, for truly unexpected play.');
 
     $c->render('template' => 'tactic', format => 'html', handler => 'ep');
@@ -306,6 +306,19 @@ get '/tactics/expert/selfkill' => sub {
     $c->stash('video' => '/selfKill.webm');
     $c->stash('name' => 'Self Kill');
     $c->stash('description' => 'As was discussed in other tactics, such as the block and peekabo, since we don\'t know what the state of the board will be when we begin a move, you are allowed to make normally illegal moves. For knights in particular, this means you can move anywhere, even on top of your own pieces. If you don\'t move your piece away in time, you will kill it. However, in rare circumstances, this can be used to your advantage. As you can see in the video, the white king is trapped, and the black bishop is quickly coming in for the kill. White however can kill their own pawn, clearing a desperate escape route for the king.');
+
+    $c->render('template' => 'tactic', format => 'html', handler => 'ep');
+};
+
+get '/tactics/expert/knightSweepCounter' => sub {
+    my $c = shift;
+
+    my $user = $c->current_user();
+    $c->stash('user' => $user);
+
+    $c->stash('video' => '/knightSweepCounter.webm');
+    $c->stash('name' => 'Knight Sweep Counter');
+    $c->stash('description' => 'The knight, because it must land after being moved, kills whatever it lands on. This means that it is the only piece that can kill a moving piece, even when it was moved after the enemy\'s piece. In the tactics video, white is in a desperate sitution, so he puts his king in danger to tempt the queen to move. Then he must time the knight just right to land on the d3 right after the queen gets there. Too early, and the knight will be swept, too late, and the queen will escape. Always be on gaurd for knights, and their tricksy ways.');
 
     $c->render('template' => 'tactic', format => 'html', handler => 'ep');
 };
