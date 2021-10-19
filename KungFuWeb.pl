@@ -1887,14 +1887,14 @@ sub adjustProv {
     if ($provMe > 0) {
         # rating changes more
         my $factor = ($provMe / 2);
-        if ($factor > 20) { $factor = 20; }
+        if ($factor > 10) { $factor = 10; }
         if ($factor < 1) { $factor = 1; }
 
         $ratingChange *= $factor;
     }
     if ($provThem > $provMe) {
         # rating changes less
-        my $factor = 1 - ($provThem - $provMe) / 20;
+        my $factor = 1 - ($provThem - $provMe) / 10;
         if ($factor > 1) { $factor = 1; }
         if ($factor < 0) { $factor = 0; }
 

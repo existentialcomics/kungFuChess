@@ -57,10 +57,10 @@ sub getProvisionalFactor {
     my $gameType = shift;
 
     my $gamesPlayed = $self->getGamesPlayed($gameSpeed, $gameType);
-    if ($gamesPlayed > 20) {
+    if ($gamesPlayed > 10) {
         return 0;
     }
-    return (20 - $gamesPlayed);
+    return (10 - $gamesPlayed);
 }
 
 sub getBelt {
@@ -80,7 +80,7 @@ sub getBelt {
     my $rating = $self->{'rating_' . $gameSpeed . $wayAdd};
 
     # provisional belt
-    if ($self->getGamesPlayed($gameSpeed, $gameType) < 20) {
+    if ($self->getGamesPlayed($gameSpeed, $gameType) < 10) {
         return 'green';
     }
     return getBeltStatic($rating);
