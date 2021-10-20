@@ -387,7 +387,6 @@ sub chatGlobal {
     my $origMsg  = shift;
 
     $message = escape_html($message);
-    print "\n\n\n   $message\n\n\n";
 
     my $return = undef;
     if ($message =~ m#^/(\S+)\s(.*)#) {
@@ -405,8 +404,6 @@ sub chatGlobal {
         'user_id'   => $user->{player_id},
         'message'   => $message
     };
-
-    print Dumper($msg);
 
     app->db()->do('INSERT INTO chat_log (comment_text, player_id, player_color, game_id, post_time) VALUES (?,?,?,?,NOW())', {},
         $msg->{'message'},
