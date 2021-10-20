@@ -1380,7 +1380,6 @@ websocket '/ws' => sub {
             }
         } elsif ($msg->{'c'} eq 'chat'){
             my $auth = $msg->{userAuthToken} ? $msg->{userAuthToken} : $msg->{auth};
-            print Dumper($msg);
             my $player = new KungFuChess::Player({auth_token => $auth}, app->db());
             my $return = chatGlobal($player, $msg->{message}, $msg->{gameId}, $msg);
             if ($return) {
