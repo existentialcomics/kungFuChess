@@ -14,8 +14,6 @@
                 </div>
                 <label for="gameType" class="col col-form-label col-form-label-lg">AI Difficulty</label>
                 <div class="btn-group d-flex" role="group" aria-label="AI Difficulty">
-                    <input type="radio" class="btn-check text-light" name="gameMode" id="practice" autocomplete="off" value="practice">
-                    <label class="btn btn-outline-primary" for="practice">Practice</label>
                     <input type="radio" class="btn-check text-light" name="gameMode" id="ai-easy" autocomplete="off" value="ai-easy">
                     <label class="btn btn-outline-primary" for="ai-easy">Easy</label>
                     <input type="radio" class="btn-check text-light" name="gameMode" id="ai-medium" autocomplete="off" value="ai-medium" checked>

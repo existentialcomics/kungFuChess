@@ -14,7 +14,9 @@ use Config::Simple;
 use HTML::Escape qw/escape_html/;
 # via the Digest module (recommended)
 use Digest;
+use Encode qw(encode_utf8);
 use POSIX;
+use utf8;
 
 use Cwd qw( abs_path );
 use File::Basename qw( dirname );
@@ -60,6 +62,7 @@ app->plugin('database', {
     password => $cfg->param('dbpassword'),
     options  => {
         'pg_enable_utf8' => 1,
+        'mysql_enable_utf8' => 1,
         'RaiseError' => 1
     },
     helper   => 'db',
@@ -384,6 +387,7 @@ sub chatGlobal {
     my $origMsg  = shift;
 
     $message = escape_html($message);
+    print "\n\n\n   $message\n\n\n";
 
     my $return = undef;
     if ($message =~ m#^/(\S+)\s(.*)#) {
@@ -401,6 +405,8 @@ sub chatGlobal {
         'user_id'   => $user->{player_id},
         'message'   => $message
     };
+
+    print Dumper($msg);
 
     app->db()->do('INSERT INTO chat_log (comment_text, player_id, player_color, game_id, post_time) VALUES (?,?,?,?,NOW())', {},
         $msg->{'message'},
@@ -1358,10 +1364,11 @@ websocket '/ws' => sub {
 
     $self->on(message => sub {
         my ($self, $msg) = @_;
+        $msg = encode_utf8($msg);
         eval {
             $msg = decode_json($msg);
         } or do {
-            #print "bad JSON: $msg\n";
+            print "bad JSON: $msg\n";
             return 0;
         };
 
@@ -1373,6 +1380,7 @@ websocket '/ws' => sub {
             }
         } elsif ($msg->{'c'} eq 'chat'){
             my $auth = $msg->{userAuthToken} ? $msg->{userAuthToken} : $msg->{auth};
+            print Dumper($msg);
             my $player = new KungFuChess::Player({auth_token => $auth}, app->db());
             my $return = chatGlobal($player, $msg->{message}, $msg->{gameId}, $msg);
             if ($return) {

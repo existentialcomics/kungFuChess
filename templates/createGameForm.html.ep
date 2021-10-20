@@ -27,6 +27,8 @@
                     <input type="radio" class="btn-check" name="gameMode" id="unratedRadio" autocomplete="off" value="unrated"
                         <% if (!($user && $user->{player_id} != -1)){ %> checked <% } %> >
                     <label class="btn btn-outline-primary" for="unratedRadio">Unrated</label>
+                    <input type="radio" class="btn-check" name="gameMode" id="practiceRadio" autocomplete="off" value="practice">
+                    <label class="btn btn-outline-primary" for="practiceRadio">Practice</label>
                 </div>
                 <div class="form-check">
                     <input class="form-check-input" type="checkbox" checked name="open" id="lightningRatingRadio">

@@ -615,6 +615,7 @@ function addChatMessage(author, message, usercolor, textcolor, dt) {
             (dt.getMinutes() < 10 ? '0' + dt.getMinutes() : dt.getMinutes()) + ':' + 
             (dt.getSeconds() < 10 ? '0' + dt.getSeconds() : dt.getSeconds());
     }
+    message = decodeURIComponent(escape(message));
     chatContent = $('#global-chat-log');
     chatContent.append('<span class="' + usercolor + 'beltColor" style="font-size: 14px;">' + author + '</span><span style="font-size: 10px;color:grey"> ' + dtString 
             + '</span>&nbsp;&nbsp;<span style="font-size: 14px; color:' + textcolor + '">' + message + '</span>' + '<br />');
