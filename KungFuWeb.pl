@@ -866,8 +866,8 @@ get '/rankings' => sub {
     my $user = $c->current_user();
     $c->stash('user' => $user);
 
-    my $playersStandard  = getTopPlayers('standard', 15);
-    my $playersLightning = getTopPlayers('lightning', 15);
+    my $playersStandard  = getTopPlayers('standard', 20);
+    my $playersLightning = getTopPlayers('lightning', 20);
     $c->stash('playersStandard' => $playersStandard);
     $c->stash('playersLightning' => $playersLightning);
 
@@ -2153,17 +2153,20 @@ sub getTopPlayers {
     my $number = shift;
 
     my $ratingsColumn = '';
+    my $countColumn;
     if ($ratingsType eq 'standard') {
         $ratingsColumn = 'rating_standard';
+        $countColumn   = 'games_played_standard';
     } elsif ($ratingsType eq 'lightning') {
         $ratingsColumn = 'rating_lightning';
+        $countColumn   = 'games_played_lightning';
     } else {
         return [];
     }
 
     my $playerRows = app->db()->selectall_arrayref("
         SELECT *
-        FROM players
+        FROM players WHERE $countColumn > 9
         ORDER BY $ratingsColumn DESC LIMIT $number",
         { 'Slice' => {} }
     );
