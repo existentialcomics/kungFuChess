@@ -7,6 +7,4 @@
         <% } elsif ($blackReady > 0) { %>
         <span id='blackReady'><br /><small>ready</small></span>
         <% } %>
-        <% if ($gameType eq '4way') { %>
-            <span>(black)</span>
-        <% } %>
+        <span>(black)</span>

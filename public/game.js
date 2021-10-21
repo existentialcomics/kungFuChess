@@ -35,8 +35,8 @@ $(function () {
     });
     $("#rematch").click(function() {
         if (rematchPoolRunning) {
-            var dataPost = { 'uid' : currentGameUid,
-                'anonKey' : anonKey,
+            var dataPost = {
+                'uid' : anonKey,
                 'gameId' : gameId,
                 'c' : 'cancelRematch',
             };
@@ -44,8 +44,8 @@ $(function () {
             sendMsg(dataPost);
             $(this).html('Rematch');
         } else {
-            var dataPost = { 'uid' : currentGameUid,
-                'auth' : anonKey,
+            var dataPost = {
+                'uid' : anonKey,
                 'gameId' : gameId,
                 'c' : 'rematch',
             };
@@ -53,7 +53,6 @@ $(function () {
             sendMsg(dataPost);
 
             $(this).html('Requesting Rematch...<br /><span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>');
-            rematchPool();
         }
     });
 });

@@ -13,6 +13,10 @@
             <span id='gameScore'><%= $score %></span>
             %= include 'player', 'player' => $whitePlayer, 'ratingType' => $gameSpeed
             %= include 'player', 'player' => $blackPlayer, 'ratingType' => $gameSpeed
+            <% if ($gameType eq '4way') { %>
+                %= include 'player', 'player' => $redPlayer, 'ratingType' => $gameSpeed
+                %= include 'player', 'player' => $greenPlayer, 'ratingType' => $gameSpeed
+            <% } %>
         </div>
             <div id="game-chat-log" disabled="true"></div>
             <div class='form-line'>

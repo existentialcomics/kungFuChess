@@ -363,14 +363,14 @@ post '/ajax/createChallenge' => sub {
 
     my $return = {};
 
-    if ($gameId == GAME_ERROR_AI_FULL) {
+    if ($gameId && $gameId == GAME_ERROR_AI_FULL) {
         $return->{error} = "Too many AI games running, try again later.";
     }
 
     if ($uid){
         $return->{uid} = $uid;
     }
-    if ($gameId > 0){
+    if ($gameId && $gameId > 0){
         $return->{gameId} = $gameId;
         if (! $user) {
             my $row = app->db()->selectrow_arrayref("SELECT white_anon_key FROM games WHERE game_id = ?", {}, $gameId);
@@ -2310,6 +2310,11 @@ sub enterUpdatePool {
     my $gameType        = $options->{gameType}   // '2way';
     my $uuid            = $options->{uuid}       // 0;
 
+    ### 4way is always unrated for now
+    if ($gameType eq '4way') {
+        $rated = 0;
+    }
+
     if ($uuid) {
         my $poolRow = app->db()->selectrow_hashref('SELECT * FROM pool WHERE private_game_key = ?',
             { 'Slice' => {} },
@@ -2482,7 +2487,7 @@ sub matchPool {
     ### now we try to find if any player matched them.
     my $needed = $gameType eq '4way' ? 3 : 1;
     my $matchSql = 
-        'SELECT p.player_id, p.private_game_key FROM pool p
+        'SELECT p.player_id, p.private_game_key, p.rated FROM pool p
             LEFT JOIN players pl ON p.player_id = pl.player_id
             WHERE p.private_game_key != ?
             AND game_speed = ?
@@ -2502,6 +2507,7 @@ sub matchPool {
 
     if ($#{$playerMatchedRow} + 1 >= $needed) {
         my $playerMatchedId = $playerMatchedRow->[0][0];
+        my $rated           = $playerMatchedRow->[0][2];
         my $playerMatchedId2 = ($gameType eq '4way' ? $playerMatchedRow->[1][0] : undef);
         my $playerMatchedId3 = ($gameType eq '4way' ? $playerMatchedRow->[2][0] : undef);
 
@@ -2515,8 +2521,8 @@ sub matchPool {
             'redUuid'   => $uuid3,
             'greenUuid' => $uuid4,
         };
-                  # speed, rated, whiteId, blackId, redId, greenId, options
-        my $gameId = createGame($gameType, $gameSpeed, 1, $playerId, $playerMatchedId, $playerMatchedId2, $playerMatchedId3, $options);
+                  # type, speed, rated, whiteId, blackId, redId, greenId, options
+        my $gameId = createGame($gameType, $gameSpeed, $rated, $playerId, $playerMatchedId, $playerMatchedId2, $playerMatchedId3, $options);
 
         app->db()->do('UPDATE pool SET matched_game = ? WHERE private_game_key = ?', {}, $gameId, $uuid);
         app->db()->do('UPDATE pool SET matched_game = ? WHERE private_game_key = ?', {}, $gameId, $playerMatchedRow->[0][1]);

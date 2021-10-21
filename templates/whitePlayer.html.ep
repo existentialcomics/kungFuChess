@@ -7,6 +7,4 @@
         <% } elsif ($whiteReady > 0) { %>
         <br /><span id='whiteReady'><small>ready</small></span>
         <% } %>
-        <% if ($gameType eq '4way') { %>
-            <span>(white)</span>
-        <% } %>
+        <span>(white)</span>

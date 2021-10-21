@@ -36,12 +36,18 @@
                 <div class="d-grid gap-2">
                     <a class="btn btn-primary p-4 text-light" id="enter-pool-standard" role="button">
                         Standard Pool
+                        <% if (!($user && $user->{player_id} != -1)) { %>
+                            (unrated)
+                        <% } %>
                     </a>
                     <a class="btn btn-primary p-4 text-light" id="enter-pool-lightning" role="button">
                         Lightning Pool
+                        <% if (!($user && $user->{player_id} != -1)) { %>
+                            (unrated)
+                        <% } %>
                     </a>
                     <a class="btn btn-primary p-4 text-light" id="enter-pool-4way-lightning" role="button">
-                        4way Lightning Pool
+                        4way Lightning Pool (unrated)
                     </a>
                     <a class="btn input-block-level btn-primary text-light" id="createGameBtn" role="button">
                     Create Custom Game
