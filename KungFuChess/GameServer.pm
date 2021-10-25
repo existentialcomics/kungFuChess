@@ -493,7 +493,6 @@ sub moveIfLegal {
     my ($colorbit, $moveType, $moveDir, $fr_bb, $to_bb)
         = KungFuChess::Bitboards::isLegalMove($move_fr_bb, $move_to_bb, $fr_rank, $fr_file, $to_rank, $to_file);
 
-    print "moveType: $moveType\n";
     if ($moveType == 0) {
         return 0;
     }
@@ -538,6 +537,7 @@ sub moveIfLegal {
         # remove the active move from the old space
         delete $self->{activeMoves}->{$fr_bb};
 
+        my $usColor   = KungFuChess::Bitboards::occupiedColor($fr_bb);
         my $done = 0;
         my $nextMoveSpeed = $self->{pieceSpeed};
 
@@ -564,7 +564,6 @@ sub moveIfLegal {
             ### TODO replace this with a perfect hash of all 64 bb destinations
             ### only check this if the moving bitboard is occupied.
             ### if the piece is ours, stop here.
-            my $usColor   = KungFuChess::Bitboards::occupiedColor($fr_bb);
             if ($usColor == 0) {
                 print "trying to move a piece that doesn't exist!\n";
                 return 0;
@@ -577,7 +576,7 @@ sub moveIfLegal {
                 if (exists($self->{activeMoves}->{$moving_to_bb})) {
                     my $themStartTime = $self->{activeMoves}->{$moving_to_bb}->{start_time};
                     if ($themStartTime < $startTime) {
-                        print "     and so we must die\n";
+                        print "     and so we must die $themStartTime < $startTime\n";
                         ### the place we are moving has a piece that started before
                         ### so we get killed.
                         $self->killPieceBB($fr_bb);
@@ -618,19 +617,13 @@ sub moveIfLegal {
 
                     print "killing on $moving_to_bb\n";
                     if ($shouldStop) {
-                        $self->{"stoptimer_$moving_to_bb"} = AnyEvent->timer(
-                            after => $self->{pieceSpeed},
-                            cb => sub {
-                                print "delay authstop\n";
-                                my $msg = {
-                                    'c' => 'authstop',
-                                    'color' => $colorbit,
-                                    'fr_bb' => $moving_to_bb,
-                                };
-                                $self->send($msg);
-                                delete $self->{"stoptimer_$moving_to_bb"};
-                            }
-                        );
+                        my $msg = {
+                            'c' => 'authstop',
+                            'color' => $colorbit,
+                            'fr_bb' => $moving_to_bb,
+                        };
+                        $self->send($msg);
+                        delete $self->{"stoptimer_$moving_to_bb"};
 
                         ### to make us done
                         $to_bb = $moving_to_bb;
@@ -675,13 +668,26 @@ sub moveIfLegal {
             if ($moving_to_bb == $to_bb) {
                 $done = 1;
             }
+            $next_fr_bb = $moving_to_bb;
+
+            my $next_movingToBB = KungFuChess::Bitboards::shift_BB($next_fr_bb, $dir);
+            my $themNextColor = KungFuChess::Bitboards::occupiedColor($next_movingToBB);
+            if ($themNextColor == $usColor) { ## we will hit ourselves on the next move, stop!
+                $done = 1;
+                my $msg = {
+                    'c' => 'authstop',
+                    'expected' => 1,
+                    'fr_bb'  => $to_bb,
+                    'time_remaining' => $self->{pieceRecharge},
+                };
+                $self->send($msg);
+            }
             if (! $done){
                 $self->{activeMoves}->{$moving_to_bb} = {
                     'to_bb' => $to_bb,
                     'start_time' => $startTime
                 };
             }
-            $next_fr_bb = $moving_to_bb;
         } elsif ($moveType == KungFuChess::Bitboards::MOVE_KNIGHT) {
             ### we remove the piece then put it next turn
             $piece = KungFuChess::Bitboards::_getPieceBB($fr_bb);
@@ -836,7 +842,7 @@ sub moveIfLegal {
             };
             $self->send($msg);
             $self->{timeoutCBs}->{$to_bb} = AnyEvent->timer(
-                after => $self->{pieceRecharge} + $nextMoveSpeed,
+                after => $self->{pieceRecharge},
                 cb => sub {
                     KungFuChess::Bitboards::clearEnPassant($to_bb);
                     # TODO replicate in Bitboards
@@ -864,6 +870,7 @@ sub moveIfLegal {
         } else {
             KungFuChess::Bitboards::unsetMoving($fr_bb);
             KungFuChess::Bitboards::setMoving($next_fr_bb);
+            
             $timer = AnyEvent->timer(
                 after => $nextMoveSpeed,
                 cb => sub {
@@ -884,12 +891,17 @@ sub moveIfLegal {
     $self->send($msg);
 
     my $startTime = time();
-    ### usually times are set here but we set just to 1 to show it exists
     $self->{activeMoves}->{$fr_bb} = {
         to_bb => $to_bb,
-        start_time => 1
+        start_time => time()
     };
-    $moveStep->($self, $moveStep, $fr_bb, $to_bb, $moveDir, $startTime, $moveType, '', $colorbit);
+    $timer = AnyEvent->timer(
+        after => $self->{pieceSpeed},
+        cb => sub {
+            $moveStep->($self, $moveStep, $fr_bb, $to_bb, $moveDir, $startTime, $moveType, '', $colorbit);
+        }
+    );
+    #$moveStep->($self, $moveStep, $fr_bb, $to_bb, $moveDir, $startTime, $moveType, '', $colorbit);
 
     KungFuChess::Bitboards::resetAiBoards();
     return 1;
