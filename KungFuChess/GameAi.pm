@@ -221,21 +221,31 @@ sub _init {
             $self->{ai_depth} = 1;
             $self->{ai_simul_moves} = 1;
             $self->{ai_delay} = 1_000_000; ### random delay between moves in microseconds
+            $self->{ai_min_delay} = 0; 
         } elsif ($difficulty == 2) {
             $self->{ai_thinkTime} = 1;
             $self->{ai_depth} = 2;
             $self->{ai_simul_moves} = 2;
             $self->{ai_delay} = 500_000; ### random delay between moves in microseconds
+            $self->{ai_min_delay} = 0; 
         } elsif ($difficulty == 3) {
             $self->{ai_thinkTime} = 1.50;
             $self->{ai_depth} = 3;
             $self->{ai_simul_moves} = 4;
             $self->{ai_delay} = 200_000; ### random delay between moves in microseconds
+            $self->{ai_min_delay} = 0; 
         } elsif ($difficulty == 3) {
             $self->{ai_thinkTime} = 2.50;
             $self->{ai_depth} = 4;
             $self->{ai_simul_moves} = 3;
             $self->{ai_delay} = 300_000; ### random delay between moves in microseconds
+            $self->{ai_min_delay} = 0; 
+        } elsif ($difficulty == 'human_a') {
+            $self->{ai_thinkTime} = 3.00;
+            $self->{ai_depth} = 3;
+            $self->{ai_simul_moves} = 2;
+            $self->{ai_delay} = 500_000; ### random delay between moves in microseconds
+            $self->{ai_min_delay} = 200_000; 
         } else {
             $self->{ai_thinkTime} = 1.50;
             $self->{ai_depth} = 3;
@@ -253,6 +263,17 @@ sub _init {
             $self->{ai_depth} = 2;
             $self->{ai_simul_moves} = 2;
             $self->{ai_delay} = 300_000; ### random delay between moves in microseconds
+        } elsif ($difficulty == 3) {
+            $self->{ai_thinkTime} = 0.3;
+            $self->{ai_depth} = 2;
+            $self->{ai_simul_moves} = 3;
+            $self->{ai_delay} = 1_000; ### random delay between moves in microseconds
+        } elsif ($difficulty == 'human_a') {
+            $self->{ai_thinkTime} = 0.50;
+            $self->{ai_depth} = 2;
+            $self->{ai_simul_moves} = 1;
+            $self->{ai_delay} = 200_000; ### random delay between moves in microseconds
+            $self->{ai_min_delay} = 200_000; 
         } else {
             $self->{ai_thinkTime} = 0.3;
             $self->{ai_depth} = 2;
@@ -494,7 +515,7 @@ sub handleMessage {
                                 'c'     => 'move'
                             };
                             $self->send($msg);
-                            usleep(rand($self->{ai_delay}));
+                            usleep(rand($self->{ai_delay}) + $self->{ai_min_delay});
                         }
                         $self->{movesQueue} = [];
                 } else {
@@ -539,7 +560,7 @@ sub handleMessage {
                             'c'     => 'move'
                         };
                         $self->send($msg);
-                        usleep(rand($self->{ai_delay}));
+                        usleep(rand($self->{ai_delay}) + $self->{ai_min_delay});
                     }
 
                     ### dodges or discovered attacks

@@ -257,7 +257,7 @@ get '/tactics/advanced/block' => sub {
 
     $c->stash('video' => '/block.webm');
     $c->stash('name' => 'Block');
-    $c->stash('description' => 'Similarly to the peekaboo tactic and anticipate tactics, this takes advantage of knowing where your opponent is moving, and the fact that you can alter the board before they arrive. In this case we don\'t simply guard or dodge from the spot, we move and sacrifice one of our own pieces into their path to stop them in their tracks.');
+    $c->stash('description' => 'Similarly to the peekaboo tactic and anticipate tactics, this takes advantage of knowing where your opponent is moving, and the fact that you can alter the board before they arrive. In this case we don\'t simply guard or dodge from the spot, we move and sacrifice one of our own pieces into their path to stop them in their tracks. Be careful, and make sure your piece arrives in time, or it could get swept! In the video, white\'s queen goes for the black king, but black quickly moves a pawn into the path, causing the queen to stop on a vulerable square.');
 
     $c->render('template' => 'tactic', format => 'html', handler => 'ep');
 };
@@ -270,7 +270,7 @@ get '/tactics/advanced/sweep' => sub {
 
     $c->stash('video' => '/sweep.webm');
     $c->stash('name' => 'Sweep');
-    $c->stash('description' => 'The most dangerous and feared tactic in Kung Fu Chess: the sweep. Only experts can execute this move with any consistency, as it requires anticipating where your opponent is going to move before they even move their piece. If you move before them, sweeping through their path, you will kill them mid move. When two pieces collide, the piece that moved first kills the other piece, so you must set up the sweep very carefully, and make sure not to move too late or you will be the one getting killed.');
+    $c->stash('description' => 'The most dangerous and feared tactic in Kung Fu Chess: the sweep. Only experts can execute this move with any consistency, as it requires anticipating where your opponent is going to move before they even move their piece. If you move before them, sweeping through their path, you will kill them mid move (as long as their piece is still moving). When two pieces collide, the piece that moved first kills the other piece, so you must set up the sweep very carefully, and make sure not to move too late or you will be the one getting killed.');
     $c->render('template' => 'tactic', format => 'html', handler => 'ep');
 };
 
@@ -341,7 +341,7 @@ post '/ajax/createChallenge' => sub {
          $c->req->param('open'));
 
     my $rated = ($gameMode eq 'rated' ? 1 : 0);
-    app->log->debug( "speed, type, mode, open: $gameSpeed, $gameType, $gameMode, $open" );
+    #app->log->debug( "speed, type, mode, open: $gameSpeed, $gameType, $gameMode, $open" );
 
     my $gameId = undef;
     my $uid = undef;
@@ -932,11 +932,11 @@ get '/game/:gameId' => sub {
     $c->stash('gameChatLog' => $chatLogString);
 
     if (defined($white->{player_id})){
-        my $matchedKey = 1;
+        my $matchedKey = 0;
         if ($white->{player_id} == -1) {
             my @row = app->db()->selectrow_array('SELECT white_anon_key FROM games WHERE game_id = ?', {}, $gameId);
-            if (@row) {
-                $matchedKey = ($row[0] && $row[0] eq $c->param('anonKey'));
+            if (@row && $c->param('anonKey') && $row[0]) {
+                $matchedKey = ($row[0] eq $c->param('anonKey'));
             }
         }
         if ($white->{player_id} == $user->{player_id} && $matchedKey){
@@ -945,11 +945,11 @@ get '/game/:gameId' => sub {
         }
     }
     if (defined($black->{player_id})){
-        my $matchedKey = 1;
+        my $matchedKey = 0;
         if ($black->{player_id} == -1) {
             my @row = app->db()->selectrow_array('SELECT black_anon_key FROM games WHERE game_id = ?', {}, $gameId);
-            if (@row) {
-                $matchedKey = ($row[0] && $row[0] eq $c->param('anonKey'));
+            if (@row && $c->param('anonKey') && $row[0]) {
+                $matchedKey = ($row[0] eq $c->param('anonKey'));
             }
         }
         if ($black->{player_id} == $user->{player_id} && $matchedKey){
@@ -958,11 +958,11 @@ get '/game/:gameId' => sub {
         }
     }
     if (defined($red->{player_id})){
-        my $matchedKey = 1;
+        my $matchedKey = 0;
         if ($red->{player_id} == -1) {
             my @row = app->db()->selectrow_array('SELECT red_anon_key FROM games WHERE game_id = ?', {}, $gameId);
-            if (@row) {
-                $matchedKey = ($row[0] && $row[0] eq $c->param('anonKey'));
+            if (@row && $c->param('anonKey') && $row[0]) {
+                $matchedKey = ($row[0] eq $c->param('anonKey'));
             }
         }
         if ($red->{player_id} == $user->{player_id} && $matchedKey){
@@ -971,11 +971,11 @@ get '/game/:gameId' => sub {
         }
     }
     if (defined($green->{player_id})){
-        my $matchedKey = 1;
+        my $matchedKey = 0;
         if ($green->{player_id} == -1) {
             my @row = app->db()->selectrow_array('SELECT green_anon_key FROM games WHERE game_id = ?', {}, $gameId);
-            if (@row) {
-                $matchedKey = ($row[0] && $row[0] eq $c->param('anonKey'));
+            if (@row && $c->param('anonKey') && $row[0]) {
+                $matchedKey = ($row[0] eq $c->param('anonKey'));
             }
         }
         if ($green->{player_id} == $user->{player_id} && $matchedKey){

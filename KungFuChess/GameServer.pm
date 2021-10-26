@@ -191,7 +191,8 @@ sub _init {
     $self->{activeMoves}    = {};
 
     ### keep track of original move times for stopped pieces
-    $self->{startMoves}    = {};
+    $self->{startMoves} = {};
+    $self->{stopMoves}  = {};
     ### squares that are on hold before they can move again
     $self->{timeoutSquares} = {};
     $self->{timeoutCBs} = {};
@@ -577,15 +578,13 @@ sub moveIfLegal {
                 if (exists($self->{activeMoves}->{$moving_to_bb})) {
                     my $themStartTime = $self->{activeMoves}->{$moving_to_bb}->{start_time};
                     if ($themStartTime < $startTime) {
-                        print "     and so we must die\n";
                         ### the place we are moving has a piece that started before
                         ### so we get killed.
-                        $self->killPieceBB($fr_bb);
+                        $self->killPieceBB($fr_bb, 1);
 
                         return 1;
                     } else {
-                        print "    THEY die\n";
-                        $self->killPieceBB($moving_to_bb);
+                        $self->killPieceBB($moving_to_bb, 1);
 
                         KungFuChess::Bitboards::move($fr_bb, $moving_to_bb);
                         my $msgStep = {
@@ -598,15 +597,18 @@ sub moveIfLegal {
                     }
                 } else { ### we hit a stopped enemy
 
+                    ### UNCOMMENT to restore full sweep
                     ### stop unless the piece starting moving after us;
-                    my $shouldStop = (! $self->{startMoves}->{$moving_to_bb}
-                        || $self->{startMoves}->{$moving_to_bb} < $startTime);
+                    #my $shouldStop = (! $self->{startMoves}->{$moving_to_bb}
+                        #|| $self->{startMoves}->{$moving_to_bb} < $startTime);
 
-                    if ($self->{startMoves}->{$moving_to_bb}) {
-                        print "$self->{startMoves}->{$moving_to_bb} vs $startTime\n";
-                    }
+                    ### stop if the piece has been still for at least one beat (1 sec standard)
+                    my $shouldStop = (! $self->{stopMoves}->{$moving_to_bb}
+                        || $self->{stopMoves}->{$moving_to_bb} < time() - $self->{pieceSpeed});
 
-                    $self->killPieceBB($moving_to_bb);
+                    # 2nd arg is for isSweep, technically if we don't stop here it's a sweep
+                    # they didn't arrive in time to complete the animation and stand their ground
+                    $self->killPieceBB($moving_to_bb, ($shouldStop ? undef : 1));
                     KungFuChess::Bitboards::move($fr_bb, $moving_to_bb);
                     my $msgStep = {
                         'c' => 'authmovestep',
@@ -616,27 +618,18 @@ sub moveIfLegal {
                     };
                     $self->send($msgStep);
 
-                    print "killing on $moving_to_bb\n";
                     if ($shouldStop) {
-                        $self->{"stoptimer_$moving_to_bb"} = AnyEvent->timer(
-                            after => $self->{pieceSpeed},
-                            cb => sub {
-                                print "delay authstop\n";
-                                my $msg = {
-                                    'c' => 'authstop',
-                                    'color' => $colorbit,
-                                    'fr_bb' => $moving_to_bb,
-                                };
-                                $self->send($msg);
-                                delete $self->{"stoptimer_$moving_to_bb"};
-                            }
-                        );
+                        my $msg = {
+                            'c' => 'authstop',
+                            'delay' => $self->{pieceSpeed},
+                            'color' => $colorbit,
+                            'fr_bb' => $moving_to_bb,
+                        };
+                        $self->send($msg);
+                        delete $self->{"stoptimer_$moving_to_bb"};
 
                         ### to make us done
                         $to_bb = $moving_to_bb;
-                    } else {
-                        print " killing stopped piece that moved after use\n";
-
                     }
                 }
             } elsif ($themColor == $usColor) { ## we hit ourselves, stop!
@@ -826,6 +819,7 @@ sub moveIfLegal {
         if ($done) {
             my $time = time();
             $self->{startMoves}->{$to_bb} = $startTime;
+            $self->{stopMoves}->{$to_bb}  = time();
             print "setting startMove $to_bb = $startTime\n";
             $self->{timeoutSquares}->{$to_bb} = { 'time' => $time };
             my $msg = {
@@ -896,17 +890,21 @@ sub moveIfLegal {
 }
 
 sub killPieceBB {
-    my ($self, $bb) = @_;
+    my ($self, $bb, $isSweep) = @_;
 
     ### mark that it is no longer active, stopping any movement
     my $piece = KungFuChess::Bitboards::_getPieceBB($bb);
     delete $self->{startMoves}->{$bb};
+    delete $self->{stopMoves}->{$bb};
     delete $self->{activeMoves}->{$bb};
     if ($piece) {
         my $killMsg = {
             'c'  => 'authkill',
             'bb' => $bb
         };
+        if ($isSweep) {
+            $killMsg->{is_sweep} = 1;
+        }
         $self->send($killMsg);
         if ($piece % 100 == KungFuChess::Bitboards::KING) {
             KungFuChess::Bitboards::_removeColorByPiece($piece);

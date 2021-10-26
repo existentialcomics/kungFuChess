@@ -6,9 +6,9 @@
         <h4><b>What is KungFuChess?</b></h4>
         <p>A real time chess variant created around 2001 by Shizmoo games. It was shut down somewhere around 2007. All the pieces can move at once, but after you move a piece it must wait a little while before it can move again.</p>
         <h4><b>What happens if two pieces collide while moving?</b></h4>
-        <p>If opposing pieces are currently moving, the piece which moved first kills the other piece. If you collide with an enemy piece that is stopped you will kill it and stop. If you collide with you you will.</p>
+        <p>If opposing pieces are currently moving or not, the piece which moved first kills the other piece and you will continue moving. If you collide with  you will.</p>
         <h4><b>How fast do the pieces move, and how long do they have to wait before they can move again?</b></h4>
-        <p>There are two modes, "standard" and "lightning". In standard the pieces take 10 seconds to recharge, and move one square per second. In lightning they pieces take a fifth of a second to recharge, and five squares per second.</p>
+        <p>There are two modes, "standard" and "lightning". In standard the pieces take 10 seconds to recharge, and move one square per second. In lightning they pieces take 2 second to recharge, and one square every fifth of a second (five times faster than standard).</p>
         <h4><b>What are some of the key tactical differences in Kung Fu Chess compared to regular chess?</b></h4>
         <p>You can see most of the advanced tactics on the <a href="/tactics" class='link-dark'>tactics</a> page. In general, it's that you must keep in mind which pieces are currently recharging, and the timing of how long it will take pieces to get to where they are going. Remeber, the board can change dramtically by the time your move even finishes.</p>
         <h4><b>Wait, 4way? What is that.</b></h4>

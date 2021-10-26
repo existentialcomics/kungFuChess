@@ -1,6 +1,5 @@
 %= include 'header'
 <script src="/konva.min.js"></script>
-<script src="/pixi.min.js"></script>
 <script src="/jquery-3.2.min.js"></script>
 <%= jquery_ajax_csrf_protection %>
 <div class="container bg-light card">
@@ -150,6 +149,6 @@
 </script>
 
 <script src="/pieces/pieces.js"></script>
-<script src="/game.js?cache=1.2"></script>
+<script src="/game.js?cache=1.3"></script>
 
 %= include 'footer'

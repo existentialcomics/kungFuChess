@@ -21,6 +21,8 @@ if (gameType == '4way') {
 
 var rematches = [];
 
+var sweepAudio = null;
+
 $(function () {
     $("#enter-pool").click(function() {
         if (checkPoolRunning) {
@@ -541,7 +543,6 @@ var getPieceSquare = function(piece) {
 }
 
 var handleMessage = function(msg) {
-    console.log(msg);
     if (msg.c == 'move'){  // called when a piece changes positions (many times in one "move")
         var from = getSquareFromBB(msg.fr_bb);
         var to   = getSquareFromBB(msg.to_bb);
@@ -560,10 +561,22 @@ var handleMessage = function(msg) {
             var x = parseInt(fileToY[m_from[1]]);
             var pieceFrom = piecesByBoardPos[from];
 
-            if (msg.hasOwnProperty('time_remaining')) {
-                pieceFrom.stop(x, y, msg.time_remaining);
+            console.log('message stopping...');
+            console.log(pieceFrom);
+
+            var stopFunction = function() {
+                if (pieceFrom) {
+                    if (msg.hasOwnProperty('time_remaining')) {
+                        pieceFrom.stop(x, y, msg.time_remaining);
+                    } else {
+                        pieceFrom.stop(x, y);
+                    }
+                }
+            }
+            if (msg.hasOwnProperty('delay')) {
+                setTimeout(stopFunction, msg.delay * 1000);
             } else {
-                pieceFrom.stop(x, y);
+                stopFunction();
             }
         }
 
@@ -719,17 +732,31 @@ var handleMessage = function(msg) {
     } else if (msg.c == 'kill'){
         var square = getSquareFromBB(msg.bb);
         var piece  = piecesByBoardPos[square];
+        if (msg.hasOwnProperty('is_sweep')) {
+            if (sweepAudio) {
+                sweepAudio.play();
+            }
+        } else {
+            if (piece.killSound) {
+                piece.killSound.play();
+            }
+        }
         if (piece.type == 'king') {
             killPlayer(piece.color);
         }
 
         if (piece != null) {
             piece.image.destroy();
+            if (piece.anim) {
+                piece.anim.stop();
+                piece.anim = null;
+            }
             if (piece.delayRect){
                 piece.delayRect.destroy();
             }
             delete pieces[piece.id];
             piecesByBoardPos[square] = null;
+            piece = null;
 
             pieceLayer.draw();
         }
@@ -771,7 +798,6 @@ var handleMessage = function(msg) {
     } else if (msg.c == 'gameOver') {
         var dt = new Date();
         //endGame();
-        console.log(msg);
         var msgText = "game over (" + msg.result + ")";
         if (msg.hasOwnProperty('ratingsAdj')) {
             if (msg.ratingsAdj.hasOwnProperty('white')) {
@@ -1015,6 +1041,14 @@ var getBoardPos = function(pos){
     return bPos;
 };
 
+var getPieceAtBoardPos = function(boardPos) {
+    var file = xToFile[boardPos.x];
+    var rank = yToRank[boardPos.y];
+
+    var square = "" + file + rank;
+    return piecesByBoardPos[square];
+};
+
 var getPixelPos = function(pos){
     var bPos = {};
     bPos.x = Math.floor(getX(pos.x, pos.y) * width / boardSize);
@@ -1046,7 +1080,6 @@ var getY = function(x, y){
 };
 
 var getPieceImage = function(x, y, image){
-    console.log("get image piece: " + x + " , " + y);
     var pieceImage = new Konva.Image({
         image: image,
         x: getX(x * width / boardSize, y * height / boardSize),
@@ -1071,6 +1104,7 @@ var getPawn = function(x, y, color){
     }
     var piece = getPiece(x, y, color, pawnImage);
     piece.type = 'pawn';
+    piece.killSound = new Audio('/sound/kung_fu_punch-Mike_Koenig-2097967259.mp3');
 
     piece.legalMove = function(x, y){
         var yDir = 1;
@@ -1099,6 +1133,7 @@ var getQueen = function(x, y, color){
     }
     var piece = getPiece(x, y, color, queenImage);
     piece.type = 'queen';
+    piece.killSound = new Audio('/sound/Roundhouse Kick-SoundBible.com-1663225804.mp3');
 
     piece.legalMove = function(x, y){
         if (x == 0){ return true; }
@@ -1122,6 +1157,7 @@ var getKing = function(x, y, color){
     }
     var piece = getPiece(x, y, color, kingImage);
     piece.type = 'king';
+    piece.killSound = new Audio('/sound/Spin Kick-SoundBible.com-1263586030.mp3');
 
     piece.legalMove = function(x, y){
         if (x == 0){ return true; }
@@ -1145,6 +1181,7 @@ var getRook = function(x, y, color){
     }
     var piece = getPiece(x, y, color, rookImage);
     piece.type = 'rook';
+    piece.killSound = new Audio('/sound/Strong_Punch-Mike_Koenig-574430706.mp3');
 
     piece.legalMove = function(x, y){
         if (x == 0){ return true; }
@@ -1167,6 +1204,7 @@ var getBishop = function(x, y, color){
     }
     var piece = getPiece(x, y, color, bishopImage);
     piece.type = 'bishop';
+    piece.killSound = new Audio('/sound/Right Cross-SoundBible.com-1721311663.mp3');
 
     piece.legalMove = function(x, y){
         if (Math.abs(x) == Math.abs(y)){ return true; }
@@ -1188,6 +1226,7 @@ var getKnight = function(x, y, color){
     }
     var piece = getPiece(x, y, color, knightImage);
     piece.type = 'knight';
+    piece.killSound = new Audio('/sound/Kick-SoundBible.com-1331196005.mp3');
 
     piece.legalMove = function(x, y){
         if (Math.abs(x) == 2 && Math.abs(y) == 1){ return true; }
@@ -1254,6 +1293,8 @@ var getPiece = function(x, y, color, image){
                 piece.image.setY(getY(new_x, new_y));
 
                 if ((frame.time > piece.anim_length)){
+                    console.log('stopping...');
+                    console.log(piece);
                     this.stop();
                     if (piece.color == myColor || myColor == 'both'){
                         piece.image.draggable(true);
@@ -1307,8 +1348,8 @@ var getPiece = function(x, y, color, image){
             y: getY(piece.x * width / boardSize, piece.y * width / boardSize) + heightBuffer,
             width: width / boardSize,
             height: (height / boardSize) * (startRatio),
-            fill: '#888822',
-            opacity: 0.6
+            fill: '#d7c31d',
+            opacity: 0.5
         });
         delayLayer.add(rect);
 
@@ -1355,9 +1396,13 @@ var setupBoard = function(){
 
     for(var i = 0; i < boardSize; i++){
         for(var j = 0; j < boardSize; j++){
-            var color = (( (j + (i % 2) ) % 2) != 0 ? '#c1978e' : '#EEEEEE');
+            var light = '#b2aca3';
+            var dark  = '#6a655e';
+            var color;
             if (myColor == 'black' || myColor == 'green') {
-                color = (( (j + (i % 2) ) % 2) != 0 ? '#EEEEEE' : '#c1978e');
+                color = (( (j + (i % 2) ) % 2) != 0 ? light : dark);
+            } else {
+                color = (( (j + (i % 2) ) % 2) != 0 ? dark : light);
             }
             var rect = new Konva.Rect({
               x: i * (width / boardSize),
@@ -1382,7 +1427,7 @@ var setupBoard = function(){
         var file = new Konva.Text({
             x: height + 6,
             y: i * (width / boardSize) + (boardSize * 2),
-            text: boardSize - i,
+            text: (myColor == 'black' ? i + 1 : boardSize - i),
             fontSize: 14,
             fontFamily: 'Calibri',
             fill: 'black'
@@ -1394,8 +1439,8 @@ var setupBoard = function(){
     stage.add(boardLayer);
 
     pieceLayer.draw();
-    stage.add(pieceLayer);
     stage.add(delayLayer);
+    stage.add(pieceLayer);
 
     return stage;
 } 
@@ -1410,10 +1455,10 @@ var text = new Konva.Text({
 stage.on("dragstart", function(e){
     //e.target.moveTo(tempLayer);
     var pos = stage.getPointerPosition();
-    console.log('dragstart');
 	e.target.offsetX(e.target.x() - pos.x + (width  / boardSize / 2));
 	e.target.offsetY(e.target.y() - pos.y + (height / boardSize / 2));
     pieceLayer.draw();
+    e.target.opacity(0.5);
 });
 
 var previousShape;
@@ -1427,8 +1472,6 @@ stage.on("dragend", function(e){
 	e.target.offsetY(0);
 
     piece = piecesByImageId[e.target._id];
-    console.log('dragend');
-    console.log(piece);
 
     piece.setImagePos(piece.x, piece.y);
     boardPos = getBoardPos(pos);
@@ -1442,6 +1485,7 @@ stage.on("dragend", function(e){
 	}
     sendMsg(msg);
 
+    e.target.opacity(1);
     pieceLayer.draw();
 });
 stage.on("dragenter", function(e){
@@ -1459,12 +1503,6 @@ stage.on("dragover", function(e){
 
 stage.on("drop", function(e){
     var pos = stage.getPointerPosition();
-    //e.target.fill('red');
-
-    //var anim = new Konva.Animation(function(frame) {
-        //var piece = e.target;
-        //piece.setX(amplitude * Math.sin(frame.time * 2 * Math.PI / period) + centerX);
-    //}, pieceLayer);
     pieceLayer.draw();
 });
 
@@ -1475,19 +1513,33 @@ stage.on("drop", function(e){
  * Add message to the chat window
  */
 function addGameMessage(author, message, color, textcolor, dt) {
+    message = decodeURIComponent(escape(message));
     $('#game-chat-input').removeAttr('disabled'); // let the user write another message
     game_chatContent.append('<span style="color:' + color + '">' + author + '</span><span style="font-size: 12px;color:grey"> ' +
             + (dt.getHours() < 10 ? '0' + dt.getHours() : dt.getHours()) + ':'
             + (dt.getMinutes() < 10 ? '0' + dt.getMinutes() : dt.getMinutes())
             + '</span> ' + message + '<br />');
-    //game_chatContent.scrollTop = game_chatContent.scrollHeight;
     $("#game-chat-log").scrollTop($("#game-chat-log")[0].scrollHeight);
 }
 
 //$(document).ready(function () {
 $(function () {
-    console.log('document ready');
     var dt = new Date();
+
+    sweepAudio = new Audio('/sound/Sweep Kick-SoundBible.com-808409893.mp3');
+
+    // fix for brave to not use getImageData()
+    Konva.Layer._getIntersection = function(pos) {
+        var boardPos = getBoardPos(pos);
+        var piece = getPieceAtBoardPos(boardPos);
+        if (piece) {
+            return {
+                shape: piece.image
+            }
+        } else {
+            return {};
+        }
+    };
 
     gameChatLog.slice().reverse().forEach(function (msg) {
         var dt   = new Date(Date.now() - (msg.unix_seconds_back * 1000))
@@ -1514,7 +1566,6 @@ $(function () {
     });
     $("#replayGame").click(function() {
         replayMode = true;
-        console.log("replaying game...");
         clearBoard();
 
         // clears all active timeouts
@@ -1549,7 +1600,6 @@ $(function () {
         });
     });
     // game chat
-    console.log('binding enter key for game-chat-input');
     $('#game-chat-input').bind("enterKey",function(e){
         var dataPost = {
             'message' : $(this).val(),
