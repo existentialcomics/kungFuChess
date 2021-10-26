@@ -932,7 +932,7 @@ get '/game/:gameId' => sub {
     $c->stash('gameChatLog' => $chatLogString);
 
     if (defined($white->{player_id})){
-        my $matchedKey = 0;
+        my $matchedKey = 1;
         if ($white->{player_id} == -1) {
             my @row = app->db()->selectrow_array('SELECT white_anon_key FROM games WHERE game_id = ?', {}, $gameId);
             if (@row && $c->param('anonKey') && $row[0]) {
@@ -945,7 +945,7 @@ get '/game/:gameId' => sub {
         }
     }
     if (defined($black->{player_id})){
-        my $matchedKey = 0;
+        my $matchedKey = 1;
         if ($black->{player_id} == -1) {
             my @row = app->db()->selectrow_array('SELECT black_anon_key FROM games WHERE game_id = ?', {}, $gameId);
             if (@row && $c->param('anonKey') && $row[0]) {
@@ -958,7 +958,7 @@ get '/game/:gameId' => sub {
         }
     }
     if (defined($red->{player_id})){
-        my $matchedKey = 0;
+        my $matchedKey = 1;
         if ($red->{player_id} == -1) {
             my @row = app->db()->selectrow_array('SELECT red_anon_key FROM games WHERE game_id = ?', {}, $gameId);
             if (@row && $c->param('anonKey') && $row[0]) {
@@ -971,7 +971,7 @@ get '/game/:gameId' => sub {
         }
     }
     if (defined($green->{player_id})){
-        my $matchedKey = 0;
+        my $matchedKey = 1;
         if ($green->{player_id} == -1) {
             my @row = app->db()->selectrow_array('SELECT green_anon_key FROM games WHERE game_id = ?', {}, $gameId);
             if (@row && $c->param('anonKey') && $row[0]) {
