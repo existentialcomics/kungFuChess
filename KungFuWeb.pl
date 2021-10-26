@@ -935,8 +935,8 @@ get '/game/:gameId' => sub {
         my $matchedKey = 1;
         if ($white->{player_id} == -1) {
             my @row = app->db()->selectrow_array('SELECT white_anon_key FROM games WHERE game_id = ?', {}, $gameId);
-            if (@row && $c->param('anonKey') && $row[0]) {
-                $matchedKey = ($row[0] eq $c->param('anonKey'));
+            if (! (@row && $c->param('anonKey') && $row[0] && $row[0] eq $c->param('anonKey'))) {
+                $matchedKey = 0;
             }
         }
         if ($white->{player_id} == $user->{player_id} && $matchedKey){
@@ -948,8 +948,8 @@ get '/game/:gameId' => sub {
         my $matchedKey = 1;
         if ($black->{player_id} == -1) {
             my @row = app->db()->selectrow_array('SELECT black_anon_key FROM games WHERE game_id = ?', {}, $gameId);
-            if (@row && $c->param('anonKey') && $row[0]) {
-                $matchedKey = ($row[0] eq $c->param('anonKey'));
+            if (! (@row && $c->param('anonKey') && $row[0] && $row[0] eq $c->param('anonKey'))) {
+                $matchedKey = 0;
             }
         }
         if ($black->{player_id} == $user->{player_id} && $matchedKey){
@@ -961,8 +961,8 @@ get '/game/:gameId' => sub {
         my $matchedKey = 1;
         if ($red->{player_id} == -1) {
             my @row = app->db()->selectrow_array('SELECT red_anon_key FROM games WHERE game_id = ?', {}, $gameId);
-            if (@row && $c->param('anonKey') && $row[0]) {
-                $matchedKey = ($row[0] eq $c->param('anonKey'));
+            if (! (@row && $c->param('anonKey') && $row[0] && $row[0] eq $c->param('anonKey'))) {
+                $matchedKey = 0;
             }
         }
         if ($red->{player_id} == $user->{player_id} && $matchedKey){
@@ -974,8 +974,8 @@ get '/game/:gameId' => sub {
         my $matchedKey = 1;
         if ($green->{player_id} == -1) {
             my @row = app->db()->selectrow_array('SELECT green_anon_key FROM games WHERE game_id = ?', {}, $gameId);
-            if (@row && $c->param('anonKey') && $row[0]) {
-                $matchedKey = ($row[0] eq $c->param('anonKey'));
+            if (! (@row && $c->param('anonKey') && $row[0] && $row[0] eq $c->param('anonKey'))) {
+                $matchedKey = 0;
             }
         }
         if ($green->{player_id} == $user->{player_id} && $matchedKey){
