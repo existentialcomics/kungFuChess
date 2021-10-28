@@ -1,4 +1,4 @@
-<table id='playerstable' class='table'>
+<table id='playerstable' class='table' style='margin:0px; padding:0px;'>
 <tr class=''>
     <th>Belt</th>
     <th>Rating</th>
@@ -8,13 +8,19 @@
 <% foreach my $player (@{$players}){ %>
     <tr>
         <td>
+           <small>
              <div id="<%= $player->getBelt($ratingType) %>belt"></div>
+           </small>
         </td>
         <td>
+           <small>
             <%= $player->getRating($ratingType) %>
+           </small>
         </td>
         <td>
-            <a href=/profile/<%= $player->{screenname} %> class='link-dark'><%= $player->{screenname} %></a>
+           <small>
+           <a href=/profile/<%= $player->{screenname} %> class='link-dark'><%= $player->{screenname} %></a>
+           </small>
         </td>
     </tr>
 <% } %>

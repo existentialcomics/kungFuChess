@@ -907,6 +907,10 @@ get '/game/:gameId' => sub {
     $c->stash('positionGameMsgs' => $gameRow->{final_position});
     $c->stash('gameLog'          => $gameRow->{game_log} ? $gameRow->{game_log} : '[]');
     $c->stash('gameStatus'       => $gameRow->{status});
+    if (! $gameRow->{game_speed}) {
+        print "\n\nno game speed found!\n";
+        print Dumper($gameRow);
+    }
     my ($timerSpeed, $timerRecharge) = getPieceSpeed($gameRow->{game_speed});
     $c->stash('gameSpeed'     => $gameRow->{game_speed});
     $c->stash('gameType'      => $gameRow->{game_type});
@@ -1065,35 +1069,21 @@ sub createGame {
 
     my $auth = create_uuid_as_string();
 
-    my $sth = app->db()->prepare("INSERT INTO games (game_id, game_speed, game_type, white_player, black_player, red_player, green_player, rated, white_anon_key, black_anon_key, red_anon_key, green_anon_key, ws_server)
-        VALUES (NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-    $sth->execute($speed, $type, $white, $black, $red, $green, $rated, $whiteUid, $blackUid, $redUid, $greenUid, $cfg->param('ws_domain'));
+    my $sth = app->db()->prepare("INSERT INTO games (game_id, game_speed, game_type, white_player, black_player, red_player, green_player, rated, white_anon_key, black_anon_key, red_anon_key, green_anon_key, ws_server, server_auth_key)
+        VALUES (NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+    $sth->execute($speed, $type, $white, $black, $red, $green, $rated, $whiteUid, $blackUid, $redUid, $greenUid, $cfg->param('ws_domain'), $auth);
 
     my $gameId = $sth->{mysql_insertid};
 
-    $games{$gameId} = {
-        'players' => {},
-        'serverConn' => '',
-        'auth'       => $auth,
-        'begun'      => 0,
-    };
-
     my $isAiGame =  ($black == AI_USER ? 1 : 0);
-
-
-    $currentGames{$gameId} = KungFuChess::Game->new(
-        $gameId,
-        $type,
-        $speed,
-        $auth,
-        $isAiGame
-    );
 
     if ($isAiGame) {
         my $lines = `ps aux | grep kungFuChessGame2wayAi.pl | wc -l`;
-        my $activeAiGames = $lines - 1;
-        if ($activeAiGames > 1) {
-            return GAME_ERROR_AI_FULL;
+        if ($lines) {
+            my $activeAiGames = $lines - 1;
+            if ($activeAiGames > 1) {
+                return GAME_ERROR_AI_FULL;
+            }
         }
     }
 
@@ -1110,7 +1100,10 @@ sub createGame {
         '/var/log/kungfuchess/' . $gameId . '-error.log'
     );
     app->log->debug($cmd);
-    system($cmd);
+    my $ret = system($cmd);
+    if ($ret > 0) {
+        print "WARNING: failed command: $cmd\n";
+    }
 
     if ($isAiGame) {
         my $aiUser = new KungFuChess::Player(
@@ -1411,13 +1404,49 @@ websocket '/ws' => sub {
                 my $count = 0;
                 gameBroadcast($returnMsg, $gameId);
             }
+        } elsif ($msg->{'c'} eq 'authjoin'){
+            #if (! gameauth($msg) ){ return 0; }
+            my $row = app()->db->selectrow_hashref(
+                'SELECT * FROM games WHERE server_auth_key = ? AND game_id = ?',
+                { 'Slice' => {} },
+                $msg->{auth},
+                $msg->{gameId}
+            );
+            if ($row) {
+                $games{$msg->{gameId}} = {
+                    'players' => {},
+                    'serverConn' => '',
+                    'auth'       => $msg->{auth},
+                    'begun'      => 0,
+                };
+
+                my $isAi = ($row->{black_player_id} == AI_USER);
+                my $game = KungFuChess::Game->new(
+                    $row->{game_id},
+                    $row->{game_type},
+                    $row->{game_speed},
+                    $msg->{auth},
+                    $isAi
+                );
+                $currentGames{$msg->{gameId}} = $game;
+                $game->setServerConnection($self->tx);
+                $gamesByServerConn{$connId} = $game->{id};
+            }
         }
 
         #app->log->debug('message about to be game checked ' . $msg->{c});
         #### below are the in game only msgs
         return 0 if (! $msg->{gameId} );
         my $game = $currentGames{$msg->{gameId}};
-        return 0 if (! $game);
+        if (! $game) {
+            if ($msg->{'c'} eq 'join') {
+                my $retNotReady = {
+                    'c' => 'notready',
+                };
+                connectionBroadcast($self, $retNotReady);
+            }
+            return 0;
+        }
         #app->log->debug('message game checked ' . $msg->{c});
 
         if ($msg->{'c'} eq 'join'){
@@ -1427,6 +1456,21 @@ websocket '/ws' => sub {
             $playerGamesByServerConn{$connId} = $msg->{gameId};
             if ($color) {
                 $game->addPlayer($successAuth, $color);
+            } else {
+                my $player = new KungFuChess::Player({auth_token => $msg->{auth}}, app->db());
+                my $watcherMsg = {
+                    'c' => 'watcherAdded',
+                    'screenname' => $player->{screenname}
+                };
+                $game->addWatcher($player);
+                # TODO make more efficient, sends all every time
+                foreach my $user ($game->getWatchers()) {
+                    my $watcherMsg = {
+                        'c' => 'watcherAdded',
+                        'screenname' => $player->{screenname}
+                    };
+                    connectionBroadcast($self, $watcherMsg);
+                }
             }
 
             if ($game->serverReady()) {
@@ -1631,11 +1675,6 @@ websocket '/ws' => sub {
             if (! gameauth($msg) ){ return 0; }
 
             $game->playerBroadcast($msg);
-        } elsif ($msg->{'c'} eq 'authjoin'){
-            if (! gameauth($msg) ){ return 0; }
-
-            $game->setServerConnection($self->tx);
-            $gamesByServerConn{$connId} = $game->{id};
         } else {
             #print "bad message: $msg\n";
             #print Dumper($msg);

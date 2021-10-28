@@ -115,6 +115,8 @@
             <% } else { %>
                 %= include 'whitePlayer'
             <% } %>
+            <br /><br />watchers:<br />
+            <div id="game-watchers">(none)</div>
         </div>
     </div>
 </div>

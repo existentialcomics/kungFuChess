@@ -29,5 +29,16 @@ $theme-colors: (
     'dark':          $dark
 );
 
+#navigation,.navbar .navbar-default {
+    height: 95px;
+    background-image: url("/greenBelt.png");
+    background-repeat: repeat-x;
+}
+
+#navigation ul {
+    border-radius: 15px;
+    background: rgba(0,0,0,0.5);
+}
+
 @import "global";
 @import "bootstrap/scss/bootstrap";

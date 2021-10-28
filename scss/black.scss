@@ -29,5 +29,9 @@ $theme-colors: (
     'dark':          $dark,
 );
 
+#navigation,.navbar .navbar-default {
+    background-image: url("/blackBelt.png");
+}
+
 @import "global";
 @import "bootstrap/scss/bootstrap";

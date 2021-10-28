@@ -15,18 +15,20 @@
         <b>Rules:</b><br />
         <div style="margin-left:20px">
         <ul class="bg-light">
-            <li>Pieces all move at the same time.</li>
-            <li>A cooldown is applied after a piece moves before it can move again.</li>
-            <li>The length of the cooldown and how fast the pieces move vary on game speed.</li>
-            <li>All the normal rules of chess apply, but there is no such thing as checkmate, you must kill the King to win.</li>
-            <li>If two enemy pieces collide while they are both moving the piece that moved first kills the other piece. Knights can't collide.</li>
-            <li>If two friendly pieces collide while they are both moving the piece moving into the occupied space stops (different from the rules on the old site which ignored physics, i.e. let pieces move through each other).</li>
-            <li>Warning, if the knight lands on a occupied spot, that piece must be killed. This is the only way you can kill your own pieces.</li>
-            <li>You can make certain illegal chess moves (such as move through pieces), because you may be able to move those pieces out of the way in time, or the enemy might move their pieces before you get there.</li>
+            <li>Pieces all move at the same time.</li><br />
+            <li>A cooldown is applied after a piece moves before it can move again.</li><br />
+            <li>The length of the cooldown and how fast the pieces move vary on game speed.</li><br />
+            <li>All the normal rules of chess apply, but there is no such thing as checkmate, you must kill the King to win.</li><br />
+            <li>If two enemy pieces collide while they are both moving the piece that moved first kills the other piece. Knights can't collide.</li><br />
+            <li>If two friendly pieces collide while they are both moving the piece moving into the occupied space stops (different from the rules on the old site which ignored physics, i.e. let pieces move through each other).</li><br />
+            <li>Warning, if the knight lands on a occupied spot, that piece must be killed. This is the only way you can kill your own pieces.</li><br />
+            <li>You can make certain illegal chess moves (such as move through pieces), because you may be able to move those pieces out of the way in time, or the enemy might move their pieces before you get there.</li><br />
         </ul>
         </div>
         <b>Belts:</b><br />
         <div style="margin-left:20px">
+            <div id="whitebelt"></div>
+            <p class="beltText">White Belt (logged out user)</p><br />
             <div id="greenbelt"></div>
             <p class="beltText">Green Belt (provisional rating)</p><br />
             <div id="yellowbelt"></div>

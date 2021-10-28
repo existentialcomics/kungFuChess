@@ -17,7 +17,7 @@
     <% } %>
 </head>
 <body>
-<div id="navbar">
+<div id="navigation" class="navbar navbar-default">
 <ul>
     <li>
     <a href="/"><img src='/kfcBanner.png' height=50 alt="Home"><img></a>
@@ -63,4 +63,5 @@
         var screenname    = "anonymous";
     <% } %>
 </script>
+<div class="float-right" id="chessMen"></div>
 </div>

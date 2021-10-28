@@ -30,5 +30,10 @@ $theme-colors: (
     'dark':          $dark
 );
 
+#navigation,.navbar .navbar-default {
+    background-image: url("/orangeBelt.png");
+}
+
+
 @import "global";
 @import "bootstrap/scss/bootstrap";

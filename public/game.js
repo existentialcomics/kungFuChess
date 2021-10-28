@@ -23,6 +23,7 @@ var rematches = [];
 
 var sweepAudio = null;
 
+
 $(function () {
     $("#enter-pool").click(function() {
         if (checkPoolRunning) {
@@ -89,6 +90,19 @@ var greenPing = null;
 var boardLayer = new Konva.Layer();
 var pieceLayer = new Konva.Layer();
 var delayLayer = new Konva.Layer();
+
+// fix for brave to not use getImageData()
+pieceLayer._getIntersection = function(pos) {
+    var boardPos = getBoardPos(pos);
+    var piece = getPieceAtBoardPos(boardPos);
+    if (piece) {
+        return {
+            shape: piece.image
+        }
+    } else {
+        return {};
+    }
+};
 
 var pieces = {};
 var piecesByImageId = {};
@@ -561,9 +575,6 @@ var handleMessage = function(msg) {
             var x = parseInt(fileToY[m_from[1]]);
             var pieceFrom = piecesByBoardPos[from];
 
-            console.log('message stopping...');
-            console.log(pieceFrom);
-
             var stopFunction = function() {
                 if (pieceFrom) {
                     if (msg.hasOwnProperty('time_remaining')) {
@@ -892,13 +903,14 @@ var handleMessage = function(msg) {
         }
     } else if (msg.c == 'watcherAdded') {
             var dt = new Date();
-            addGameMessage(
-                "SYSTEM",
-                msg.screenname + " is watching.",
-                "red",
-                'black',
-                dt
-            );
+            var line = '<small>' + msg.screenname + '</small><br />';
+            if ($('#game-watchers').html().indexOf(">" + msg.screenname + "<") == -1) {
+                if ($('#game-watchers').html() == '(none)') {
+                    $('#game-watchers').html(line);
+                } else {
+                    $('#game-watchers').append(line);
+                }
+            }
     } else {
         console.log("unknown msg recieved");
         console.debug(msg);
@@ -1293,8 +1305,6 @@ var getPiece = function(x, y, color, image){
                 piece.image.setY(getY(new_x, new_y));
 
                 if ((frame.time > piece.anim_length)){
-                    console.log('stopping...');
-                    console.log(piece);
                     this.stop();
                     if (piece.color == myColor || myColor == 'both'){
                         piece.image.draggable(true);
@@ -1527,19 +1537,6 @@ $(function () {
     var dt = new Date();
 
     sweepAudio = new Audio('/sound/Sweep Kick-SoundBible.com-808409893.mp3');
-
-    // fix for brave to not use getImageData()
-    Konva.Layer._getIntersection = function(pos) {
-        var boardPos = getBoardPos(pos);
-        var piece = getPieceAtBoardPos(boardPos);
-        if (piece) {
-            return {
-                shape: piece.image
-            }
-        } else {
-            return {};
-        }
-    };
 
     gameChatLog.slice().reverse().forEach(function (msg) {
         var dt   = new Date(Date.now() - (msg.unix_seconds_back * 1000))

@@ -1,3 +1,4 @@
+$whiteBeltColor:  white;
 $greenBeltColor:  green;
 $yellowBeltColor: #ffc300 ;
 $orangeBeltColor: #ff7c00;
@@ -19,6 +20,30 @@ ul {
     overflow: hidden;
     background-color: #333;
 }
+
+#navigation,.navbar .navbar-default {
+    height: 95px;
+    background-repeat: repeat-x;
+}
+
+#navigation ul {
+    border-radius: 15px;
+    margin-left: 20px;
+    padding-left: 0px;
+    background: rgba(0,0,0,0.5);
+}
+
+#chessMen {
+    background-image: url(/chessMen.png);
+    height: 80px;
+    width: 200px;
+    float: right;
+    margin-right:25px;
+    padding-top: 8px;
+    padding-bottom: 8px;
+}
+
+
 li {
     float: left;
 }
@@ -38,11 +63,13 @@ li a {
 
 /* Change the link color to #111 (black) on hover */
 li a:hover {
-    background-color: #111;
+    /*background: rgba(0,0,0,0.7);*/
+    /*background-color: #111;*/
 }
 
 .button a:hover {
-    background-color: #111;
+    /*background: rgba(0,0,0,0.7);*/
+    /*background-color: #111;*/
 }
 
 #game-chat-log {
@@ -172,6 +199,18 @@ li a:hover {
 }
 .yellowbeltColor {
     color: $yellowBeltColor;
+}
+
+#whitebelt {
+    width:20px;
+    height:20px;
+    background-color:$whiteBeltColor;
+    display:inline-block;
+    padding:2px;
+    border: 1px solid grey ;
+}
+.greenbeltColor {
+    color:$whiteBeltColor;
 }
 
 #greenbelt {

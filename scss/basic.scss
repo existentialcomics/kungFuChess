@@ -3,14 +3,14 @@
 @import "bootstrap/scss/_variables";
 
 // Changing the theme colors
-$primary: green;  // light green
-$secondary: #ffff66; // gold
+$primary: white;
+$secondary: gray;
 /*$success: #65ff9f;*/
 /*$info: #7164ff;*/
 /*$warning: #ff9f65;*/
 /*$danger: #ff457b;*/
-$light: #ccffbb;  // very light green
-$dark: #999977;   // dark green
+$light: #909090;
+$dark: #585858;
 
 /*// Your variable overrides*/
 $body-bg: $dark;
@@ -28,6 +28,10 @@ $theme-colors: (
     'light':         $light,
     'dark':          $dark
 );
+
+#navigation,.navbar .navbar-default {
+    background-image: url("/whiteBelt.png");
+}
 
 @import "global";
 @import "bootstrap/scss/bootstrap";
