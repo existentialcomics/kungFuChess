@@ -10,7 +10,7 @@ Environment=MYAPP_HOME=/var/www/kungfuchess
 User=root
 Type=simple
 WorkingDirectory=/var/www/kungfuchess/
-ExecStart=/usr/bin/perl /var/www/kungfuchess/KungFuWeb.pl daemon -l 'http://*:3000' -m production > /var/log/kungfuchess-server 2>&1
+ExecStart=/usr/bin/perl /var/www/kungfuchess/KungFuWeb.pl daemon -l 'http://*:3000' -m production
 StandardOutput=file:/var/log/kungfuchess/web.log
 StandardError=file:/var/log/kungfuchess/web-error.log
 KillMode=process

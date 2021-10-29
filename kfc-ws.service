@@ -1,10 +1,10 @@
 [Unit]
-Description=HTTP server for Kung Fu Chess
+Description=ws server for Kung Fu Chess
 After=network.target
  
 [Service]
-Environment=SYSTEMD_SERVICE_FILE=/etc/systemd/system/kungfuchessweb.service
-Environment=MOJO_SERVER_PID_FILE=/var/run/kungfuchessweb.pid
+Environment=SYSTEMD_SERVICE_FILE=/etc/systemd/system/kungfuchessws.service
+Environment=MOJO_SERVER_PID_FILE=/var/run/kungfuchess-ws.pid
 Environment=MYAPP_HOME=/var/www/kungfuchess
  
 User=root
