@@ -1,0 +1,19 @@
+[Unit]
+Description=HTTP server for Kung Fu Chess
+After=network.target
+ 
+[Service]
+Environment=SYSTEMD_SERVICE_FILE=/etc/systemd/system/kungfuchessweb.service
+Environment=MOJO_SERVER_PID_FILE=/var/run/kungfuchessweb.pid
+Environment=MYAPP_HOME=/var/my_app
+EnvironmentFile=-/etc/default/my_app
+ 
+User=www
+Type=forking
+PIDFile=/var/run/kfc_ws.pid
+ExecStart=/usr/bin/perl /var/www/kungfuchess/KungFuChessWeb.pl daemon -l 'http://*:3001' -m production
+KillMode=process
+SyslogIdentifier=my_app
+ 
+[Install]
+WantedBy=multi-user.target
