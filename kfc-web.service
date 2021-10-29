@@ -5,15 +5,16 @@ After=network.target
 [Service]
 Environment=SYSTEMD_SERVICE_FILE=/etc/systemd/system/kungfuchessweb.service
 Environment=MOJO_SERVER_PID_FILE=/var/run/kungfuchessweb.pid
-Environment=MYAPP_HOME=/var/my_app
-EnvironmentFile=-/etc/default/my_app
+Environment=MYAPP_HOME=/var/www/kungfuchess
  
-User=www
-Type=forking
-PIDFile=/var/run/kfc_web.pid
-ExecStart=/usr/bin/perl /var/www/kungfuchess/KungFuChessWeb.pl daemon -l 'http://*:3000' -m production
+User=root
+Type=simple
+WorkingDirectory=/var/www/kungfuchess/
+ExecStart=/usr/bin/perl /var/www/kungfuchess/KungFuWeb.pl daemon -l 'http://*:3000' -m production > /var/log/kungfuchess-server 2>&1
+StandardOutput=file:/var/log/kungfuchess/web.log
+StandardError=file:/var/log/kungfuchess/web-error.log
 KillMode=process
-SyslogIdentifier=my_app
+SyslogIdentifier=kungfuchess_web
  
 [Install]
 WantedBy=multi-user.target
