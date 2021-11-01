@@ -6,6 +6,12 @@
     <div class="row">
         <div class="col">
             <h4>Standard</h4>
+            <% if ($globalScoreStandard) { %>
+                Your lifetime score against them: 
+                &nbsp;+<%== $globalScoreStandard->{win_count} %>
+                &nbsp;-<%== $globalScoreStandard->{loss_count} %>
+                &nbsp;=<%== $globalScoreStandard->{draw_count} %>
+            <% } %>
             <table class="table">
             <th><a href="/profile/<%= $player->{screenname} %>/games/standard/2way" class='link-dark'>Game Log</a></th>
             <th>2way</th>
@@ -61,6 +67,12 @@
         </div>
         <div class="col">
             <h4>Lightning</h4>
+            <% if ($globalScoreLightning) { %>
+                Your lifetime score against them: 
+                &nbsp;+<%== $globalScoreLightning->{win_count} %>
+                &nbsp;-<%== $globalScoreLightning->{loss_count} %>
+                &nbsp;=<%== $globalScoreLightning->{draw_count} %>
+            <% } %>
             <table class="table">
             <th><a href="/profile/<%= $player->{screenname} %>/games/lightning/2way" class='link-dark'>Game Log</a></th>
             <th>2way</th>

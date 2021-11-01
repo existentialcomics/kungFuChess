@@ -150,7 +150,7 @@ get '/' => sub {
         'post_time' => time,
         'game_id' => undef,
         'player_id' => 1,
-        'comment_text' => 'Welcome to KungFuChess (currently in beta). Enter the matching pools or start a game to play. Click the "about" tab to see more about the game, or "tactics" to learn some of the unique tactics in this game. There are bugs moving pieces with the Brave browser, please use Firefox or Chrome.',
+        'comment_text' => 'Welcome to KungFuChess (currently in beta). Enter the matching pools or start a game to play. Click the "about" tab to see more about the game, or "tactics" to learn some of the unique tactics in this game.',
         'screenname' => 'SYSTEM',
         'color' => 'red',
         'text_color' => '#666666',
@@ -385,6 +385,7 @@ sub chatGlobal {
     my $message = shift;
     my $gameId  = shift;
     my $origMsg  = shift;
+    my $color = shift;
 
     $message = escape_html($message);
 
@@ -402,8 +403,13 @@ sub chatGlobal {
         'c' => 'globalchat',
         'author'    => $screename,
         'user_id'   => $user->{player_id},
-        'message'   => $message
+        'message'   => $message,
     };
+    if ($color) {
+        $msg->{authColor} = $color;
+    } else {
+        $msg->{authColor} = 'none';
+    }
 
     app->db()->do('INSERT INTO chat_log (comment_text, player_id, player_color, game_id, post_time) VALUES (?,?,?,?,NOW())', {},
         $msg->{'message'},
@@ -686,6 +692,14 @@ get '/profile/:screenname' => sub {
     my $player = new KungFuChess::Player($data, app->db());
 
     $c->stash('player' => $player);
+
+    if ($user && $user->{player_id} > 0 && $user->{player_id} != $player->{player_id}) {
+        $c->stash('globalScoreStandard', getGlobalScore($user, $player, 'standard'));
+        $c->stash('globalScoreLightning', getGlobalScore($user, $player, 'lightning'));
+    } else {
+        $c->stash('globalScoreStandard', undef);
+        $c->stash('globalScoreLightning', undef);
+    }
 
     return $c->render('template' => 'profile', format => 'html', handler => 'ep');
 };
@@ -989,6 +1003,18 @@ get '/game/:gameId' => sub {
     }
     $c->stash('color', $color);
     $c->stash('watchers', []);
+    if ($gameRow->{game_type} eq '2way'
+        && $white->{player_id} > 0
+        && $black->{player_id} > 0) {
+
+        if ($color eq 'black') {
+            $c->stash('globalScore', getGlobalScore($black, $white, $gameRow->{game_speed}));
+        } else  {
+            $c->stash('globalScore', getGlobalScore($white, $black, $gameRow->{game_speed}));
+        }
+    } else {
+        $c->stash('globalScore', undef);
+    }
 
     $c->render('template' => 'board', format => 'html', handler => 'ep');
     return;
@@ -1116,17 +1142,32 @@ sub createGame {
             $speed,
             $options->{ai_difficulty} // 1,
             2, # BLACK
-            'ws://localhost:3000/ws',
+            'ws://localhost:3001/ws',
             '/var/log/kungfuchess/' . $gameId . '-game-ai.log',
             '/var/log/kungfuchess/' . $gameId . '-error-ai.log'
         );
         app->log->debug($cmdAi);
         system($cmdAi);
-        $currentGames{$gameId}->addPlayer($blackUid, 'black');
     }
 
     return $gameId;
 }
+
+post '/ajax/updateOptions' => sub {
+    my $c = shift;
+    my $user = $c->current_user();
+
+    if ($c->param('chatOption') && $user && $user->{player_id} > 0) {
+        if ($c->param('chatOption') =~ m/^public|players|none$/) {
+            app()->db->do("UPDATE players SET show_chat = ? WHERE player_id = ?", {}, $c->param('chatOption'), $user->{player_id});
+        }
+    }
+
+    my $return = {
+        'success' => 1,
+    };
+    $c->render('json' => $return );
+};
 
 get '/register' => sub {
     my $c = shift;
@@ -1369,9 +1410,12 @@ websocket '/ws' => sub {
                 app->db()->do('UPDATE players SET last_seen = NOW() WHERE auth_token = ?', {}, $msg->{userAuthToken});
             }
         } elsif ($msg->{'c'} eq 'chat'){
+            my $gameId = $msg->{gameId};
+            my ($color, $gameRow, $successAuth) = authGameColor($msg->{auth}, $msg->{uid}, $gameId);
             my $auth = $msg->{userAuthToken} ? $msg->{userAuthToken} : $msg->{auth};
             my $player = new KungFuChess::Player({auth_token => $auth}, app->db());
-            my $return = chatGlobal($player, $msg->{message}, $msg->{gameId}, $msg);
+            print "AUTH COLOR : $color\n";
+            my $return = chatGlobal($player, $msg->{message}, $msg->{gameId}, $msg, $color);
             if ($return) {
                 connectionBroadcast($self, $return);
             }
@@ -1420,7 +1464,7 @@ websocket '/ws' => sub {
                     'begun'      => 0,
                 };
 
-                my $isAi = ($row->{black_player_id} == AI_USER);
+                my $isAi = (defined($row->{black_player_id}) && $row->{black_player_id} == AI_USER);
                 my $game = KungFuChess::Game->new(
                     $row->{game_id},
                     $row->{game_type},
@@ -2621,6 +2665,27 @@ sub authGameColor {
         }
     }
     return (undef, $gameRow, undef);
+}
+
+### get the total score of two players
+sub getGlobalScore {
+    my ($white, $black, $gameSpeed) = @_;
+
+    my $sql = '
+    SELECT
+        SUM(CASE WHEN result = "win" THEN 1 ELSE 0 END) AS win_count,
+        SUM(CASE WHEN result = "loss" THEN 1 ELSE 0 END) AS loss_count,
+        SUM(CASE WHEN result = "draw" THEN 1 ELSE 0 END) AS draw_count
+    FROM game_log WHERE player_id = ? AND opponent_id = ? AND game_speed = ? AND rated = 1';
+
+    my $result = app->db()->selectrow_hashref(
+       $sql,
+       { 'Slice' => {} },
+       $white->{player_id},
+       $black->{player_id},
+       $gameSpeed
+   );
+    return $result; 
 }
 
 app->start;

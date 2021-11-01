@@ -21,6 +21,19 @@
             <div class='form-line'>
             <input type="text" id="game-chat-input" class="form-control input-lg"></input><br/>
             </div>
+            <%= form_for '/ajax/updateOptions' => (method => 'post',  id => 'updateChatOptionsForm', url => 'test') => begin %>
+            <div class="form-group">
+                <div class="btn-group d-flex" role="group" aria-label="Chat Options">
+                    <input type="radio" class="btn-check" name="chatOption" id="chatPublicRadio" autocomplete="off" value="public" <% if (! $user || ! $user->{show_chat} || $user->{show_chat} eq 'public') { %>checked<% } %>>
+                    <label class="btn btn-outline-primary" for="chatPublicRadio">Public</label>
+                    <input type="radio" class="btn-check" name="chatOption" id="chatOpponentRadio" autocomplete="off" value="players" <% if ($user && $user->{show_chat} && $user->{show_chat} eq 'players') { %>checked<% } %>>
+                    <label class="btn btn-outline-primary" for="chatOpponentRadio">Players</label>
+                    <input type="radio" class="btn-check" name="chatOption" id="chatNoneRadio" autocomplete="off" value="none" <% if ($user && $user->{show_chat} && $user->{show_chat} eq 'none') { %>checked<% } %>>
+                    <label class="btn btn-outline-primary" for="chatNoneRadio">None</label>
+                </div>
+            </div>
+            <% end %>
+            <%= jquery_ajax_csrf_protection %>
         </div>
         <div id="boardContainer" class="col-6">
             <div id="container">
@@ -115,6 +128,12 @@
             <% } else { %>
                 %= include 'whitePlayer'
             <% } %>
+            <% if ($globalScore) { %>
+                <br /><br />Lifetime score:<br /> 
+                &nbsp;+<%== $globalScore->{win_count} %>
+                &nbsp;-<%== $globalScore->{loss_count} %>
+                &nbsp;=<%== $globalScore->{draw_count} %>
+            <% } %>
             <br /><br />watchers:<br />
             <div id="game-watchers">(none)</div>
         </div>
@@ -152,5 +171,18 @@
 
 <script src="/pieces/pieces.js"></script>
 <script src="/game.js?cache=1.3"></script>
+
+<script>
+$('input[type=radio]').on('change', function() {
+    $.ajax({
+        url:'/ajax/updateOptions',
+        method: 'POST',
+        data: $(this).closest("form").serialize(),
+        success: function (data) {
+            //alert($textbox.attr("id"));
+        }
+    });
+});
+</script>
 
 %= include 'footer'

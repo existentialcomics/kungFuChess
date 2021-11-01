@@ -301,8 +301,8 @@ sub _init {
         ssl_no_verify => 1,   
     );
 
-    my $wsDomain = $domain // 'ws://localhost:3000/ws';
-    print "wsDomain: $wsDomain\n";
+    my $wsDomain = $domain // 'ws://localhost:3001/ws';
+    print "$wsDomain\n";
 
     $client->connect($wsDomain)->cb(sub {
 		# make $connection an our variable rather than
@@ -319,6 +319,8 @@ sub _init {
          exit;
 		}
 		   
+        sleep(1);
+        # TODO do a proper "repeat until confirmed" like the js does here
 		my $msg = {
 		   'c' => 'join',
 		};
@@ -389,6 +391,29 @@ sub _init {
             #}
         #);
     #}
+
+    $self->{aiPing} = AnyEvent->timer(
+        after => 1,
+        interval => 2.5,
+        cb => sub {
+            if (! defined($self->{gameStartTime}) && 
+                time() - $self->{startTime} > 60
+            ) {
+                my $abortMsg = {
+                    'c' => 'abort',
+                };
+                $self->send($abortMsg);
+                exit;
+            }
+            my $msg = {
+                'c' => 'ping',
+                'timestamp' => time(),
+                'ping' => int(rand(100) + 50) # don't care about really figuring out our true ping
+            };
+            $self->send($msg);
+        }
+    );
+
 	AnyEvent->condvar->recv;
 	print "GAME ENDING\n";
 }
@@ -452,6 +477,7 @@ sub handleMessage {
         exit;
 	} elsif ($msg->{c} eq 'gameBegins'){
         print "game begins\n";
+        $self->{gameStartTime} = time();
         # to prevent autodraw from coming up right away
         my $startTime = time() + $msg->{seconds};
         #$self->{aiStates}->{uciok} = 0;
@@ -480,20 +506,6 @@ sub handleMessage {
 
         #print "setting ai interval:\n";
         $self->{movesQueue} = \@moves;
-
-        $self->{aiPing} = AnyEvent->timer(
-            after => 1,
-            interval => 3,
-            cb => sub {
-                my $msg = {
-                    'c' => 'ping',
-                    'timestamp' => time(),
-                    'ping' => rand(100) + 50 # don't care about really figuring out our true ping
-                };
-                $self->send($msg);
-
-            }
-        );
 
         $self->{aiInterval} = AnyEvent->timer(
             after => 3.2,

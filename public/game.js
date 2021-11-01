@@ -463,12 +463,14 @@ var bindGameEvents = function(ws_conn) {
         isConnectedGame = false;
         var dt = new Date();
         console.log('Disconnected!');
+        var authColor = 'white';
         addGameMessage(
             "SYSTEM",
             "Disconnected, attempting to reconnect...",
             "red",
             'black',
-            dt
+            dt,
+            'system'
         );
         game_reconnectInterval = setTimeout(
             game_reconnectMain,
@@ -737,7 +739,8 @@ var handleMessage = function(msg) {
             msg.color + " resigns.",
             "red",
             'black',
-            dt
+            dt,
+            'system'
         );
         killPlayer(msg.color);
     } else if (msg.c == 'kill'){
@@ -789,12 +792,14 @@ var handleMessage = function(msg) {
         setTimeout(startGame, 3000)
     } else if (msg.c == 'gamechat') {
         var dt = new Date();
+        console.log(msg);
         addGameMessage(
             msg.author,
             msg.message,
             msg.color,
             'black',
-            dt
+            dt,
+            msg.authColor
         );
     } else if (msg.c == 'serverDisconnect') {
         var dt = new Date();
@@ -804,7 +809,8 @@ var handleMessage = function(msg) {
             "game ended due to server error",
             "red",
             'black',
-            dt
+            dt,
+            'system'
         );
     } else if (msg.c == 'gameOver') {
         var dt = new Date();
@@ -833,7 +839,8 @@ var handleMessage = function(msg) {
             msgText,
             "red",
             'black',
-            dt
+            dt,
+            'system'
         );
         endGame();
     } else if (msg.c == 'playerlost') {
@@ -843,7 +850,8 @@ var handleMessage = function(msg) {
             msg.color + " has lost.",
             "red",
             'black',
-            dt
+            dt,
+            'system'
         );
     } else if (msg.c == 'refresh') {
         location.reload();
@@ -854,7 +862,8 @@ var handleMessage = function(msg) {
             msg.msg,
             "red",
             'black',
-            dt
+            dt,
+            'system'
         );
     } else if (msg.c == 'playerReady') {
         var dt = new Date();
@@ -866,7 +875,8 @@ var handleMessage = function(msg) {
             msg.color + " is ready.",
             "red",
             'black',
-            dt
+            dt,
+            'system'
         );
     } else if (msg.c == 'requestDraw') {
         var dt = new Date();
@@ -875,7 +885,8 @@ var handleMessage = function(msg) {
             msg.color + " has requested a draw.",
             "red",
             'black',
-            dt
+            dt,
+            'system'
         );
     } else if (msg.c == 'revokeDraw') {
         var dt = new Date();
@@ -884,7 +895,8 @@ var handleMessage = function(msg) {
             msg.color + " has revoked draw request.",
             "red",
             'black',
-            dt
+            dt,
+            'system'
         );
     } else if (msg.c == 'rematch') {
         if (rematches[msg.color] !== 'seen') {
@@ -894,7 +906,8 @@ var handleMessage = function(msg) {
                 msg.color + " has requested a rematch.",
                 "red",
                 'black',
-                dt
+                dt,
+                'system'
             );
         }
         rematches[msg.color] = 'seen';
@@ -1522,14 +1535,19 @@ stage.on("drop", function(e){
 /**
  * Add message to the chat window
  */
-function addGameMessage(author, message, color, textcolor, dt) {
-    message = decodeURIComponent(escape(message));
-    $('#game-chat-input').removeAttr('disabled'); // let the user write another message
-    game_chatContent.append('<span style="color:' + color + '">' + author + '</span><span style="font-size: 12px;color:grey"> ' +
-            + (dt.getHours() < 10 ? '0' + dt.getHours() : dt.getHours()) + ':'
-            + (dt.getMinutes() < 10 ? '0' + dt.getMinutes() : dt.getMinutes())
-            + '</span> ' + message + '<br />');
-    $("#game-chat-log").scrollTop($("#game-chat-log")[0].scrollHeight);
+function addGameMessage(author, message, color, textcolor, dt, authColor) {
+    var chatOptionVal = $("input[name='chatOption']:checked").val();
+    var doLog = (chatOptionVal == 'public' || (chatOptionVal == 'players' && authColor != "none"));
+    if (doLog) {
+        console.log(chatOptionVal);
+        message = decodeURIComponent(escape(message));
+        $('#game-chat-input').removeAttr('disabled'); // let the user write another message
+        game_chatContent.append('<span style="color:' + color + '">' + author + '</span><span style="font-size: 12px;color:grey"> ' +
+                + (dt.getHours() < 10 ? '0' + dt.getHours() : dt.getHours()) + ':'
+                + (dt.getMinutes() < 10 ? '0' + dt.getMinutes() : dt.getMinutes())
+                + '</span> ' + message + '<br />');
+        $("#game-chat-log").scrollTop($("#game-chat-log")[0].scrollHeight);
+    }
 }
 
 //$(document).ready(function () {
@@ -1552,7 +1570,8 @@ $(function () {
             msg.comment_text, 
             (msg.color ? msg.color : 'green'),
             (msg.text_color ? msg.text_color : 'black'),
-            dt
+            dt,
+            'system'
         );
     });
     $("#abortGame").click(function() {
