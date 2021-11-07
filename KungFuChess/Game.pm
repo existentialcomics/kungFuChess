@@ -76,6 +76,15 @@ sub _init {
 	return 1;
 }
 
+sub isAlive {
+    my $self  = shift;
+    my $color = shift;
+    if ($color eq 'both') {
+        return 1;
+    }
+    return $self->{$color}->{alive};
+}
+
 ### returns false for game is still active
 #   otherwise returns the score
 sub killPlayer {

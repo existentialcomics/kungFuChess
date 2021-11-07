@@ -177,6 +177,7 @@ sub _init {
 	my $gameKey = shift;
 	my $authKey = shift;
 	my $speed = shift;
+	my $speedAdj = shift;
 	my $mode  = shift;
     my $difficulty = shift;
     my $color = shift;

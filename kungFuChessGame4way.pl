@@ -4,6 +4,7 @@ use strict; use warnings;
 my $gameKey = shift;
 my $authKey = shift;
 my $speed = shift;
+my $speedAdj = shift;
 my $isAI = shift;
 
 use Cwd qw( abs_path );
@@ -14,4 +15,4 @@ use KungFuChess::Bitboards4way;
 use KungFuChess::GameServer;
 
 print "init game... ($gameKey, $authKey, $speed, 4way, $isAI)\n";
-my $kfc = KungFuChess::GameServer->new($gameKey, $authKey, $speed, '4way', $isAI);
+my $kfc = KungFuChess::GameServer->new($gameKey, $authKey, $speed, $speedAdj, '4way', $isAI);

@@ -163,15 +163,55 @@ sub writeStockfishMsg {
     my $cin = $self->{ai_in};
 }
 
+sub setAdjustedSpeed {
+    my ($self, $speed, $speedAdj) = @_;
+
+    my $whiteAdj = 1;
+    my $blackAdj = 1;
+    my $redAdj = 1;
+    my $greenAdj = 1;
+    if ($speedAdj) {
+        ($whiteAdj, $blackAdj, $redAdj, $greenAdj) = split(':', $speedAdj);
+    }
+
+    if ($speed eq 'standard') {
+        $self->{1}->{pieceSpeed} = 1 * $whiteAdj;
+        $self->{1}->{pieceRecharge} = 10 * $whiteAdj;
+
+        $self->{2}->{pieceSpeed} = 1 * $blackAdj;
+        $self->{2}->{pieceRecharge} = 10 * $blackAdj;
+        
+        $self->{3}->{pieceSpeed} = 1 * $redAdj;
+        $self->{3}->{pieceRecharge} = 10 * $redAdj;
+
+        $self->{4}->{pieceSpeed} = 1 * $greenAdj;
+        $self->{4}->{pieceRecharge} = 10 * $greenAdj;
+    } elsif ($speed eq 'lightning') {
+        $self->{1}->{pieceSpeed} = 0.2 * $whiteAdj;
+        $self->{1}->{pieceRecharge} = 2 * $whiteAdj;
+
+        $self->{2}->{pieceSpeed} = 0.2 * $blackAdj;
+        $self->{2}->{pieceRecharge} = 2 * $blackAdj;
+
+        $self->{3}->{pieceSpeed} = 0.2 * $redAdj;
+        $self->{3}->{pieceRecharge} = 2 * $redAdj;
+
+        $self->{4}->{pieceSpeed} = 0.2 * $greenAdj;
+        $self->{4}->{pieceRecharge} = 2 * $greenAdj;
+    } else {
+        warn "unknown game speed $speed\n";
+    }
+}
+
 sub _init {
     my $self = shift;
     my $gameKey = shift;
     my $authKey = shift;
     my $speed = shift;
+    my $speedAdj = shift;
     my $gameType = shift;
-    my $ai = shift;
 
-    print "game key: $gameKey, authkey: $authKey, speed: $speed, gameType: $gameType\n";
+    print "game key: $gameKey, authkey: $authKey, speed: $speed, adj: $speedAdj, gameType: $gameType\n";
     
     my $cfg = new Config::Simple('kungFuChess.cnf');
     $self->{config} = $cfg;
@@ -197,7 +237,12 @@ sub _init {
     $self->{timeoutSquares} = {};
     $self->{timeoutCBs} = {};
 
+    $self->{speed} = $speed;
+
+    my $ai = 0;
     $self->{ai} = $ai;
+
+    $self->setAdjustedSpeed($speed, $speedAdj);
 
     if ($ai) {
         #print "initalizing stockfish...\n";
@@ -208,16 +253,6 @@ sub _init {
         #$self->{ai_in}  = $cin;
         #$self->{stockfishPid} = $pid;
         #$self->getStockfishMsgs();
-    }
-
-    if ($speed eq 'standard') {
-        $self->{pieceSpeed} = 1;
-        $self->{pieceRecharge} = 10;
-    } elsif ($speed eq 'lightning') {
-        $self->{pieceSpeed} = 0.2;
-        $self->{pieceRecharge} = 2;
-    } else {
-        warn "unknown game speed $speed\n";
     }
 
     $self->{board} = {};
@@ -308,6 +343,8 @@ sub handleMessage {
         } elsif($msg->{fr_bb}) {
             $self->moveIfLegal($msg->{color}, $msg->{fr_bb}, $msg->{to_bb});
         }
+    } elsif ($msg->{c} eq 'berserk'){
+        $self->setAdjustedSpeed($self->{speed}, $msg->{speedAdj});
     } elsif ($msg->{c} eq 'gameOver'){
         gameOver();
     } elsif ($msg->{c} eq 'gameBegins'){
@@ -358,10 +395,12 @@ sub sendAllGamePieces {
         }
     }
     while (my ($key, $value) = each %{$self->{timeoutSquares}}) {
+        ### TODO we need to adjust for color here on speed advantage games.
+        ### not a huge deal since this is only on refresh
         my $msg = {
             'c' => 'authstop',
             'fr_bb'  => $key,
-            'time_remaining' => $self->{pieceRecharge} - (time() - $value->{'time'}),
+            'time_remaining' => $self->{1}->{pieceRecharge} - (time() - $value->{'time'}),
             'connId' => $connId
         };
         push @msgs, $msg;
@@ -487,14 +526,12 @@ sub moveIfLegal {
         $self->{timeoutSquares}->{$move_fr_bb}->{'fr_bb'} = $move_fr_bb;
         $self->{timeoutSquares}->{$move_fr_bb}->{'to_bb'} = $move_to_bb;
         $self->{timeoutSquares}->{$move_fr_bb}->{'color'} = $color;
-        print "setting premove $color $move_fr_bb\n";
         return 0;
     }
 
     my ($colorbit, $moveType, $moveDir, $fr_bb, $to_bb)
         = KungFuChess::Bitboards::isLegalMove($move_fr_bb, $move_to_bb, $fr_rank, $fr_file, $to_rank, $to_file);
 
-    print "moveType: $moveType\n";
     if ($moveType == 0) {
         return 0;
     }
@@ -540,7 +577,7 @@ sub moveIfLegal {
         delete $self->{activeMoves}->{$fr_bb};
 
         my $done = 0;
-        my $nextMoveSpeed = $self->{pieceSpeed};
+        my $nextMoveSpeed = $self->{$colorbit}->{pieceSpeed};
 
         if ($moveType == KungFuChess::Bitboards::MOVE_EN_PASSANT) {
             my @kill_bbs = KungFuChess::Bitboards::getEnPassantKills($fr_bb, $to_bb);
@@ -604,7 +641,7 @@ sub moveIfLegal {
 
                     ### stop if the piece has been still for at least one beat (1 sec standard)
                     my $shouldStop = (! $self->{stopMoves}->{$moving_to_bb}
-                        || $self->{stopMoves}->{$moving_to_bb} < time() - $self->{pieceSpeed});
+                        || $self->{stopMoves}->{$moving_to_bb} < time() - $self->{$colorbit}->{pieceSpeed});
 
                     # 2nd arg is for isSweep, technically if we don't stop here it's a sweep
                     # they didn't arrive in time to complete the animation and stand their ground
@@ -621,7 +658,7 @@ sub moveIfLegal {
                     if ($shouldStop) {
                         my $msg = {
                             'c' => 'authstop',
-                            'delay' => $self->{pieceSpeed},
+                            'delay' => $self->{$colorbit}->{pieceSpeed},
                             'color' => $colorbit,
                             'fr_bb' => $moving_to_bb,
                         };
@@ -686,7 +723,7 @@ sub moveIfLegal {
             };
             $self->send($msgStep);
             $moveType = KungFuChess::Bitboards::MOVE_PUT_PIECE;
-            $nextMoveSpeed = $self->{pieceSpeed};
+            $nextMoveSpeed = $self->{$colorbit}->{pieceSpeed};
         } elsif ($moveType == KungFuChess::Bitboards::MOVE_PUT_PIECE) {
             $self->killPieceBB($to_bb);
 
@@ -740,15 +777,15 @@ sub moveIfLegal {
             };
             $self->send($msgSus2);
             $timer = AnyEvent->timer(
-                after => $self->{pieceSpeed} * 2,
+                after => $self->{$colorbit}->{pieceSpeed} * 2,
                 cb => sub {
-                    $func->($self, $func, $fr_bb, $king_moving_to, $dir, $startTime, $moveType, $piece);
+                    $func->($self, $func, $fr_bb, $king_moving_to, $dir, $startTime, $moveType, $piece, $colorbit);
                 }
             );
             $timer2 = AnyEvent->timer(
-                after => $self->{pieceSpeed} * 2,
+                after => $self->{$colorbit}->{pieceSpeed} * 2,
                 cb => sub {
-                    $func->($self, $func, $fr_bb, $rook_moving_to, $dir, $startTime, $moveType, $pieceTo);
+                    $func->($self, $func, $fr_bb, $rook_moving_to, $dir, $startTime, $moveType, $pieceTo, $colorbit);
                 }
             );
             return ; ## return early because there is no more movement
@@ -800,15 +837,15 @@ sub moveIfLegal {
             };
             $self->send($msgSus2);
             $timer = AnyEvent->timer(
-                after => $self->{pieceSpeed} * 2,
+                after => $self->{$colorbit}->{pieceSpeed} * 2,
                 cb => sub {
-                    $func->($self, $func, $fr_bb, $king_moving_to, $dir, $startTime, $moveType, $piece);
+                    $func->($self, $func, $fr_bb, $king_moving_to, $dir, $startTime, $moveType, $piece, $colorbit);
                 }
             );
             $timer2 = AnyEvent->timer(
-                after => $self->{pieceSpeed} * 2,
+                after => $self->{$colorbit}->{pieceSpeed} * 2,
                 cb => sub {
-                    $func->($self, $func, $fr_bb, $rook_moving_to, $dir, $startTime, $moveType, $pieceTo);
+                    $func->($self, $func, $fr_bb, $rook_moving_to, $dir, $startTime, $moveType, $pieceTo, $colorbit);
                 }
             );
             return ; ## return early because there is no more movement
@@ -820,17 +857,16 @@ sub moveIfLegal {
             my $time = time();
             $self->{startMoves}->{$to_bb} = $startTime;
             $self->{stopMoves}->{$to_bb}  = time();
-            print "setting startMove $to_bb = $startTime\n";
             $self->{timeoutSquares}->{$to_bb} = { 'time' => $time };
             my $msg = {
                 'c' => 'authstop',
                 'expected' => 1,
                 'fr_bb'  => $to_bb,
-                'time_remaining' => $self->{pieceRecharge},
+                'time_remaining' => $self->{$colorbit}->{pieceRecharge},
             };
             $self->send($msg);
             $self->{timeoutCBs}->{$to_bb} = AnyEvent->timer(
-                after => $self->{pieceRecharge} + $nextMoveSpeed,
+                after => $self->{$colorbit}->{pieceRecharge} + $nextMoveSpeed,
                 cb => sub {
                     KungFuChess::Bitboards::clearEnPassant($to_bb);
                     # TODO replicate in Bitboards
@@ -861,7 +897,7 @@ sub moveIfLegal {
             $timer = AnyEvent->timer(
                 after => $nextMoveSpeed,
                 cb => sub {
-                    $func->($self, $func, $next_fr_bb, $to_bb, $dir, $startTime, $moveType, $piece);
+                    $func->($self, $func, $next_fr_bb, $to_bb, $dir, $startTime, $moveType, $piece, $colorbit);
                 }
             );
         }

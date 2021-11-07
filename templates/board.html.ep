@@ -152,8 +152,17 @@
 	var authId    = "<%= $authId %>";
 	var anonKey   = "<%= $anonKey %>";
 	var gameSpeed     = "<%= $gameSpeed %>";
-	var gameType      = "<%= $gameType %>";
+	var speedAdvantage = "<%= $speedAdvantage %>";
 	var timerSpeed    = "<%= $timerSpeed %>";
+	var timerSpeedWhite = "<%= $timerSpeedWhite %>";
+	var timerSpeedBlack = "<%= $timerSpeedBlack %>";
+	var timerSpeedRed   = "<%= $timerSpeedRed %>";
+	var timerSpeedGreen = "<%= $timerSpeedGreen %>";
+	var timerRechargeWhite = "<%= $timerRechargeWhite %>";
+	var timerRechargeBlack = "<%= $timerRechargeBlack %>";
+	var timerRechargeRed   = "<%= $timerRechargeRed %>";
+	var timerRechargeGreen = "<%= $timerRechargeGreen %>";
+	var gameType      = "<%= $gameType %>";
 	var timerRecharge = "<%= $timerRecharge %>";
     var initialMessages = JSON.parse('<%== ($positionGameMsgs ? $positionGameMsgs : '[]') %>');
     var gameLog = [];

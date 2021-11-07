@@ -767,6 +767,7 @@ var handleMessage = function(msg) {
             }
             if (piece.delayRect){
                 piece.delayRect.destroy();
+                piece.tween.destroy();
             }
             delete pieces[piece.id];
             piecesByBoardPos[square] = null;
@@ -1026,6 +1027,7 @@ var killPlayer = function(color){
             piece.image.destroy();
             if (piece.delayRect){
                 piece.delayRect.destroy();
+                piece.tween.destroy();
             }
             delete pieces[id];
             piecesByBoardPos[piece.square] = null;
@@ -1271,6 +1273,26 @@ var getPiece = function(x, y, color, image){
     piece.image = getPieceImage(x, y, image);
     piece.isMoving  = false;
     piece.firstMove = true;
+    
+    if (color == 'white') {
+        piece.timerSpeed = timerSpeedWhite;
+    } else if (color == 'black') {
+        piece.timerSpeed = timerSpeedBlack;
+    } else if (color == 'red') {
+        piece.timerSpeed = timerSpeedRed;
+    } else if (color == 'green') {
+        piece.timerSpeed = timerSpeedGreen;
+    }
+    
+    if (color == 'white') {
+        piece.timerRecharge = timerRechargeWhite;
+    } else if (color == 'black') {
+        piece.timerRecharge = timerRechargeBlack;
+    } else if (color == 'red') {
+        piece.timerRecharge = timerRechargeRed;
+    } else if (color == 'green') {
+        piece.timerRecharge = timerRechargeGreen;
+    }
 
     piece.image_id = piece.image._id;
     piecesByImageId[piece.image_id] = piece;
@@ -1310,7 +1332,7 @@ var getPiece = function(x, y, color, image){
             var x_dist = Math.abs(this.start_x - this.x);
             var y_dist = Math.abs(this.start_y - this.y);
             var longer_dist = (x_dist > y_dist ? x_dist : y_dist);
-            piece.anim_length =  (longer_dist * timerSpeed * speedAdj/ 10) * 1000;
+            piece.anim_length =  (longer_dist * piece.timerSpeed * speedAdj/ 10) * 1000;
             piece.anim = new Konva.Animation(function(frame) {
                 var new_x = (piece.start_x * width / boardSize) + ((piece.x - piece.start_x) * (frame.time / piece.anim_length) * width / boardSize);
                 var new_y = (piece.start_y * width / boardSize) + ((piece.y - piece.start_y) * (frame.time / piece.anim_length) * width / boardSize);
@@ -1325,7 +1347,7 @@ var getPiece = function(x, y, color, image){
                     piece.isMoving = false;
 
                     if (pieces[piece.id] != null) {
-                        piece.setDelayTimer(timerRecharge)
+                        piece.setDelayTimer(piece.timerRecharge)
                     }
 
                     if (piece.promote) {
@@ -1339,7 +1361,7 @@ var getPiece = function(x, y, color, image){
         }
     }
 
-    piece.stop = function(new_x, new_y, timeToCharge = timerRecharge) {
+    piece.stop = function(new_x, new_y, timeToCharge = piece.timerRecharge) {
         piece.x = new_x;
         piece.y = new_y;
         if (piece.hasOwnProperty('anim')) {
@@ -1359,14 +1381,18 @@ var getPiece = function(x, y, color, image){
     }
 
     piece.setDelayTimer = function(timeToDelay, forceFullSquare = false) {
-        var startRatio = (timeToDelay / timerRecharge);
+        if (piece.delayRect) {
+            piece.delayRect.destroy();
+            piece.tween.destroy();
+        }
+        var startRatio = (timeToDelay / piece.timerRecharge);
         var heightBuffer = (height / boardSize) - ((height / boardSize) * (startRatio));
         if (forceFullSquare) {
             startRatio = 1;
             heightBuffer = 0;
         }
 
-        var rect = new Konva.Rect({
+        piece.delayRect = new Konva.Rect({
             x: getX(piece.x * width / boardSize, piece.y * width / boardSize),
             y: getY(piece.x * width / boardSize, piece.y * width / boardSize) + heightBuffer,
             width: width / boardSize,
@@ -1374,17 +1400,16 @@ var getPiece = function(x, y, color, image){
             fill: '#d7c31d',
             opacity: 0.5
         });
-        delayLayer.add(rect);
+        delayLayer.add(piece.delayRect);
 
-        var tween = new Konva.Tween({
-            node: rect,
+        piece.tween = new Konva.Tween({
+            node: piece.delayRect,
             // TIMER
             duration: timeToDelay,
             height: 0,
             y: (getY(piece.x * width / boardSize, piece.y * width / boardSize) + (width / boardSize)),
         });
-        piece.delayRect = rect;
-        tween.play();
+        piece.tween.play();
         delayLayer.draw();
     }
 
