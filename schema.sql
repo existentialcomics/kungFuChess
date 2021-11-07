@@ -1,8 +1,8 @@
--- MySQL dump 10.13  Distrib 5.7.35, for Linux (x86_64)
+-- MySQL dump 10.13  Distrib 5.7.36, for Linux (x86_64)
 --
 -- Host: localhost    Database: kungfuchess
 -- ------------------------------------------------------
--- Server version	5.7.35-0ubuntu0.18.04.1
+-- Server version	5.7.36-0ubuntu0.18.04.1
 
 /*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
 /*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
@@ -25,11 +25,12 @@ DROP TABLE IF EXISTS `chat_log`;
 CREATE TABLE `chat_log` (
   `chat_log_id` int(11) NOT NULL AUTO_INCREMENT,
   `game_id` int(11) DEFAULT NULL,
-  `comment_text` text NOT NULL,
+  `comment_text` mediumtext COLLATE utf8mb4_unicode_ci NOT NULL,
   `player_id` int(11) DEFAULT NULL,
+  `player_color` varchar(45) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `post_time` datetime NOT NULL,
   PRIMARY KEY (`chat_log_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=57 DEFAULT CHARSET=latin1;
+) ENGINE=InnoDB AUTO_INCREMENT=3910 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -46,7 +47,7 @@ CREATE TABLE `forum_comment` (
   `player_id` int(11) NOT NULL,
   `post_time` datetime NOT NULL,
   PRIMARY KEY (`forum_comment_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=8 DEFAULT CHARSET=latin1;
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -64,7 +65,7 @@ CREATE TABLE `forum_post` (
   `player_id` int(11) NOT NULL,
   `post_time` datetime NOT NULL,
   PRIMARY KEY (`forum_post_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=latin1;
+) ENGINE=InnoDB AUTO_INCREMENT=8 DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -87,9 +88,9 @@ CREATE TABLE `game_log` (
   `rating_before` int(11) DEFAULT NULL,
   `rating_after` int(11) DEFAULT NULL,
   `rated` tinyint(4) NOT NULL DEFAULT '1',
-  `time_ended` datetime DEFAULT CURRENT_TIMESTAMP,
+  `time_ended` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`game_log_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=259 DEFAULT CHARSET=latin1;
+) ENGINE=InnoDB AUTO_INCREMENT=6105 DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -122,10 +123,15 @@ CREATE TABLE `games` (
   `red_anon_key` varchar(90) DEFAULT NULL,
   `green_anon_key` varchar(90) DEFAULT NULL,
   `final_position` text,
-  `game_log` text,
-  PRIMARY KEY (`game_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=1200 DEFAULT CHARSET=latin1;
+  `game_log` mediumtext,
+  `ws_server` varchar(255) DEFAULT NULL,
+  `server_auth_key` varchar(90) DEFAULT NULL,
+  `speed_advantage` varchar(40) DEFAULT NULL,
+  PRIMARY KEY (`game_id`),
+  KEY `game_auth_idx` (`server_auth_key`)
+) ENGINE=InnoDB AUTO_INCREMENT=5276 DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
+ALTER DATABASE `kungfuchess` CHARACTER SET latin1 COLLATE latin1_swedish_ci ;
 /*!50003 SET @saved_cs_client      = @@character_set_client */ ;
 /*!50003 SET @saved_cs_results     = @@character_set_results */ ;
 /*!50003 SET @saved_col_connection = @@collation_connection */ ;
@@ -153,6 +159,8 @@ DELIMITER ;
 /*!50003 SET character_set_client  = @saved_cs_client */ ;
 /*!50003 SET character_set_results = @saved_cs_results */ ;
 /*!50003 SET collation_connection  = @saved_col_connection */ ;
+ALTER DATABASE `kungfuchess` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci ;
+ALTER DATABASE `kungfuchess` CHARACTER SET latin1 COLLATE latin1_swedish_ci ;
 /*!50003 SET @saved_cs_client      = @@character_set_client */ ;
 /*!50003 SET @saved_cs_results     = @@character_set_results */ ;
 /*!50003 SET @saved_col_connection = @@collation_connection */ ;
@@ -179,6 +187,7 @@ DELIMITER ;
 /*!50003 SET character_set_client  = @saved_cs_client */ ;
 /*!50003 SET character_set_results = @saved_cs_results */ ;
 /*!50003 SET collation_connection  = @saved_col_connection */ ;
+ALTER DATABASE `kungfuchess` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci ;
 
 --
 -- Table structure for table `players`
@@ -191,6 +200,7 @@ CREATE TABLE `players` (
   `player_id` int(11) NOT NULL AUTO_INCREMENT,
   `screenname` varchar(30) NOT NULL,
   `password` varchar(255) DEFAULT NULL,
+  `email` varchar(255) DEFAULT NULL,
   `rating_standard` int(11) NOT NULL DEFAULT '1600',
   `rating_lightning` int(11) NOT NULL DEFAULT '1600',
   `rating_standard_4way` int(11) NOT NULL DEFAULT '1600',
@@ -212,14 +222,16 @@ CREATE TABLE `players` (
   `games_lost_standard_4way` int(11) NOT NULL DEFAULT '0',
   `games_lost_lightning_4way` int(11) NOT NULL DEFAULT '0',
   `date_created` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `last_login` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `last_seen` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `last_login` timestamp NOT NULL DEFAULT '1970-01-01 05:00:00',
+  `last_seen` timestamp NOT NULL DEFAULT '1970-01-01 05:00:00',
   `auth_token` varchar(255) DEFAULT NULL,
   `default_minimum_rating` int(11) DEFAULT '-200',
   `default_maximum_rating` int(11) DEFAULT '200',
+  `show_chat` enum('public','players','none') NOT NULL DEFAULT 'public',
+  `speed_advantage` varchar(40) DEFAULT NULL,
   PRIMARY KEY (`player_id`),
   UNIQUE KEY `screenname` (`screenname`)
-) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=latin1;
+) ENGINE=InnoDB AUTO_INCREMENT=1120 DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -233,7 +245,7 @@ CREATE TABLE `pool` (
   `player_id` int(11) NOT NULL,
   `rated` tinyint(4) NOT NULL DEFAULT '1',
   `entered_pool` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `last_ping` timestamp NOT NULL DEFAULT '1970-01-01 08:00:00',
+  `last_ping` timestamp NOT NULL DEFAULT '1970-01-01 05:00:00',
   `matched_game` int(11) DEFAULT NULL,
   `in_matching_pool` tinyint(4) NOT NULL DEFAULT '1',
   `open_to_public` tinyint(4) NOT NULL DEFAULT '1',
@@ -243,7 +255,23 @@ CREATE TABLE `pool` (
   `challenge_player_id` int(11) DEFAULT NULL,
   `challenge_player_2_id` int(11) DEFAULT NULL,
   `challenge_player_3_id` int(11) DEFAULT NULL,
-  UNIQUE KEY `player_id` (`player_id`)
+  `average_rating` int(11) DEFAULT '1400'
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `session`
+--
+
+DROP TABLE IF EXISTS `session`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `session` (
+  `sid` varchar(40) NOT NULL,
+  `data` text,
+  `expires` int(10) unsigned NOT NULL,
+  PRIMARY KEY (`sid`),
+  UNIQUE KEY `sid` (`sid`)
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
@@ -256,4 +284,4 @@ CREATE TABLE `pool` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2021-08-18 22:46:46
+-- Dump completed on 2021-11-07 12:41:06
