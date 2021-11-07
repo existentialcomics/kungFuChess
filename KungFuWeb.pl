@@ -1639,13 +1639,13 @@ websocket '/ws' => sub {
                     my $speedAdj = undef;
                     if ($game->{speed} eq 'lightning') {
                         if ($berserkColor eq 'white') {
-                            $speedAdj = '1:1.8:1.8:1.8';
+                            $speedAdj = '1:2.5:2.5:2.5';
                         } elsif ($berserkColor eq 'black') {
-                            $speedAdj = '1.8:1:1.8:1.8';
+                            $speedAdj = '2.5:1:2.5:2.5';
                         } elsif ($berserkColor eq 'red') {
-                            $speedAdj = '1.8:1.8:1:1.8';
+                            $speedAdj = '2.5:2.5:1:2.5';
                         } elsif ($berserkColor eq 'green') {
-                            $speedAdj = '1.8:1.8:1.8:1';
+                            $speedAdj = '2.5:2.5:2.5:1';
                         }
                     } else {
                         if ($berserkColor eq 'white') {
