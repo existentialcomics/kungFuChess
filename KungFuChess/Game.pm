@@ -99,6 +99,30 @@ sub killPlayer {
         $self->{$color}->{alive} = 0;
     }
 
+    #if ($self->{teams}) {
+        #my ($whiteTeam, $blackTeam, $redTeam, $greenTeam) = split("-", $self->{teams});
+        #my %teamsRemaining = ();
+        #if ($self->{white}->{alive} == 1) {
+            #$teamsRemaining{$whiteTeam}++
+        #}
+        #if ($self->{black}->{alive} == 1) {
+            #$teamsRemaining{$blackTeam}++
+        #}
+        #if ($self->{red}->{alive} == 1) {
+            #$teamsRemaining{$redTeam}++
+        #}
+        #if ($self->{green}->{alive} == 1) {
+            #$teamsRemaining{$greenTeam}++
+        #}
+        #if (keys %teamsRemaining == 1) {
+            #return 
+                #$self->{white}->{alive} == 1 ? "1" : "0" . "-" 
+                #$self->{black}->{alive} == 1 ? "1" : "0" . "-"
+                #$self->{red}->{alive}   == 1 ? "1" : "0" . "-"
+                #$self->{green}->{alive} == 1 ? "1" : "0" . 
+        #} 
+    #}
+
     if ($self->{white}->{alive} + 
         $self->{black}->{alive} + 
         $self->{red}->{alive} + 

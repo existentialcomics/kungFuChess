@@ -187,17 +187,17 @@ sub setAdjustedSpeed {
         $self->{4}->{pieceSpeed} = 1 * $greenAdj;
         $self->{4}->{pieceRecharge} = 10 * $greenAdj;
     } elsif ($speed eq 'lightning') {
-        $self->{1}->{pieceSpeed} = 0.2 * $whiteAdj;
-        $self->{1}->{pieceRecharge} = 2 * $whiteAdj;
+        $self->{1}->{pieceSpeed} = 0.1 * $whiteAdj;
+        $self->{1}->{pieceRecharge} = 1 * $whiteAdj;
 
-        $self->{2}->{pieceSpeed} = 0.2 * $blackAdj;
-        $self->{2}->{pieceRecharge} = 2 * $blackAdj;
+        $self->{2}->{pieceSpeed} = 0.1 * $blackAdj;
+        $self->{2}->{pieceRecharge} = 1 * $blackAdj;
 
-        $self->{3}->{pieceSpeed} = 0.2 * $redAdj;
-        $self->{3}->{pieceRecharge} = 2 * $redAdj;
+        $self->{3}->{pieceSpeed} = 0.1 * $redAdj;
+        $self->{3}->{pieceRecharge} = 1 * $redAdj;
 
-        $self->{4}->{pieceSpeed} = 0.2 * $greenAdj;
-        $self->{4}->{pieceRecharge} = 2 * $greenAdj;
+        $self->{4}->{pieceSpeed} = 0.1 * $greenAdj;
+        $self->{4}->{pieceRecharge} = 1 * $greenAdj;
     } else {
         warn "unknown game speed $speed\n";
     }

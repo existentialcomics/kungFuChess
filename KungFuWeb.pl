@@ -1086,8 +1086,8 @@ sub getPieceSpeed {
         $pieceSpeed = 10;
         $pieceRecharge = 10;
     } elsif ($speed eq 'lightning') {
-        $pieceSpeed = 2;
-        $pieceRecharge = 2;
+        $pieceSpeed = 1;
+        $pieceRecharge = 1;
     } else {
         warn "unknown speed $speed\n";
     }
