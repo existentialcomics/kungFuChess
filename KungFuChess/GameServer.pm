@@ -213,6 +213,7 @@ sub _init {
 
     print "game key: $gameKey, authkey: $authKey, speed: $speed, adj: $speedAdj, gameType: $gameType\n";
     
+    $self->{continuous} = 1;
     my $cfg = new Config::Simple('kungFuChess.cnf');
     $self->{config} = $cfg;
     $self->{gameType} = $gameType;
@@ -377,6 +378,7 @@ sub sendAllGamePieces {
     my $self = shift;
     my $connId = shift;
     my $returnOnly = shift;
+    my $colorOnly = shift;
     my $conn = $self->{conn};
 
     my @msgs = ();
@@ -583,7 +585,7 @@ sub moveIfLegal {
             my @kill_bbs = KungFuChess::Bitboards::getEnPassantKills($fr_bb, $to_bb);
             ### if 4way it is possible to kill two!
             foreach my $kill_bb (@kill_bbs) {
-                $self->killPieceBB($kill_bb);
+                $self->killPieceBB($kill_bb, $colorbit);
             }
         }
 
@@ -617,11 +619,11 @@ sub moveIfLegal {
                     if ($themStartTime < $startTime) {
                         ### the place we are moving has a piece that started before
                         ### so we get killed.
-                        $self->killPieceBB($fr_bb, 1);
+                        $self->killPieceBB($fr_bb, $colorbit, 1);
 
                         return 1;
                     } else {
-                        $self->killPieceBB($moving_to_bb, 1);
+                        $self->killPieceBB($moving_to_bb, $colorbit, 1);
 
                         KungFuChess::Bitboards::move($fr_bb, $moving_to_bb);
                         my $msgStep = {
@@ -645,7 +647,7 @@ sub moveIfLegal {
 
                     # 2nd arg is for isSweep, technically if we don't stop here it's a sweep
                     # they didn't arrive in time to complete the animation and stand their ground
-                    $self->killPieceBB($moving_to_bb, ($shouldStop ? undef : 1));
+                    $self->killPieceBB($moving_to_bb, $colorbit, ($shouldStop ? undef : 1));
                     KungFuChess::Bitboards::move($fr_bb, $moving_to_bb);
                     my $msgStep = {
                         'c' => 'authmovestep',
@@ -725,7 +727,7 @@ sub moveIfLegal {
             $moveType = KungFuChess::Bitboards::MOVE_PUT_PIECE;
             $nextMoveSpeed = $self->{$colorbit}->{pieceSpeed};
         } elsif ($moveType == KungFuChess::Bitboards::MOVE_PUT_PIECE) {
-            $self->killPieceBB($to_bb);
+            $self->killPieceBB($to_bb, $colorbit);
 
             my $msgSpawn = {
                 'c' => 'authunsuspend',
@@ -926,7 +928,7 @@ sub moveIfLegal {
 }
 
 sub killPieceBB {
-    my ($self, $bb, $isSweep) = @_;
+    my ($self, $bb, $killerColorbit, $isSweep) = @_;
 
     ### mark that it is no longer active, stopping any movement
     my $piece = KungFuChess::Bitboards::_getPieceBB($bb);

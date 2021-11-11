@@ -447,6 +447,9 @@ my @MOVES_K = (@MOVES_B, @MOVES_R);
 my @MOVES_Q = (@MOVES_B, @MOVES_R);
 
 sub setupInitialPosition {
+    my $color = shift;
+
+    if (! $color || $color eq 'white') {
     ### pawns
     $occupied |= RANKS_H->{2};
     $pawns    |= RANKS_H->{2};
@@ -491,9 +494,11 @@ sub setupInitialPosition {
     $occupied |= (FILES_H->{h} & RANKS_H->{1});
     $rooks    |= (FILES_H->{h} & RANKS_H->{1});
     $white    |= (FILES_H->{h} & RANKS_H->{1});
+    }
 
     #### black ####
     
+    if (! $color || $color eq 'black') {
     ### pawns
     $occupied |= RANKS_H->{7};
     $pawns    |= RANKS_H->{7};
@@ -538,6 +543,7 @@ sub setupInitialPosition {
     $occupied |= (FILES_H->{h} & RANKS_H->{8});
     $rooks    |= (FILES_H->{h} & RANKS_H->{8});
     $black    |= (FILES_H->{h} & RANKS_H->{8});
+    }
 
     resetAiBoards();
 }
@@ -630,7 +636,7 @@ sub blockers {
 
     while ($fromBB != $toBB) {
         $fromBB = shift_BB($fromBB, $dirBB);
-        if (! ($fromBB & $movingBB) ){
+        #if (! ($fromBB & $movingBB) ){
             if ($fromBB == 0)         { return 0; } ### off the board
             if ($fromBB & $blockingBB){ return 0; }
 
@@ -639,7 +645,7 @@ sub blockers {
                 $depth--;
                 if ($depth == 0) { $blockingBB = 0; }
             }
-        }
+        #}
     }
     return 1;
 }

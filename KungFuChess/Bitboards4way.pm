@@ -256,8 +256,10 @@ sub resetAiBoards {
 }
 
 sub setupInitialPosition {
+    my $color = shift;
     #### white ####
     # rook 1
+    if (! $color || $color eq 'white') {
     $occupied |= (FILES_H->{c} & RANKS_H->{1});
     $rooks    |= (FILES_H->{c} & RANKS_H->{1});
     $white    |= (FILES_H->{c} & RANKS_H->{1});
@@ -328,7 +330,9 @@ sub setupInitialPosition {
     $occupied |= (FILES_H->{j} & RANKS_H->{2});
     $pawns    |= (FILES_H->{j} & RANKS_H->{2});
     $white    |= (FILES_H->{j} & RANKS_H->{2});
+    }
 
+    if (! $color || $color eq 'black') {
     #### black ####
     # rook 1
     $occupied |= (FILES_H->{c} & RANKS_H->{12});
@@ -401,7 +405,9 @@ sub setupInitialPosition {
     $occupied |= (FILES_H->{j} & RANKS_H->{11});
     $pawns    |= (FILES_H->{j} & RANKS_H->{11});
     $black    |= (FILES_H->{j} & RANKS_H->{11});
+    }
 
+    if (! $color || $color eq 'red') {
     #### red ####
     # rook 1
     $occupied |= (FILES_H->{a} & RANKS_H->{10});
@@ -474,7 +480,9 @@ sub setupInitialPosition {
     $occupied |= (FILES_H->{b} & RANKS_H->{3});
     $pawns    |= (FILES_H->{b} & RANKS_H->{3});
     $red      |= (FILES_H->{b} & RANKS_H->{3});
+    }
 
+    if (! $color || $color eq 'green') {
     #### green ####
     # rook 1
     $occupied |= (FILES_H->{l} & RANKS_H->{10});
@@ -547,6 +555,7 @@ sub setupInitialPosition {
     $occupied |= (FILES_H->{k} & RANKS_H->{3});
     $pawns    |= (FILES_H->{k} & RANKS_H->{3});
     $green    |= (FILES_H->{k} & RANKS_H->{3});
+    }
 }
 
 ### copied from shift function in Stockfish

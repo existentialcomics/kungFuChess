@@ -47,7 +47,7 @@
                         <% } %>
                     </a>
                     <a class="btn btn-primary p-4 text-light" id="enter-pool-4way-lightning" role="button">
-                        4way Lightning Pool (unrated)
+                        4way Lightning Pool
                     </a>
                     <a class="btn input-block-level btn-primary text-light" id="createGameBtn" role="button">
                     Create Custom Game

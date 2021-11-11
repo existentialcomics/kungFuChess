@@ -9,12 +9,15 @@
             <span><%= ucfirst($gameType) %> • <%= $rated ? 'Rated' : 'Unrated' %> • <%= ucfirst($gameSpeed) %></span><br />
             <span id='gameStatus'><%= $gameStatus %></span>
             <span id='gameResult'><%= $result %></span>
-            <span id='gameScore'><%= $score %></span>
-            %= include 'player', 'player' => $whitePlayer, 'ratingType' => $gameSpeed
-            %= include 'player', 'player' => $blackPlayer, 'ratingType' => $gameSpeed
             <% if ($gameType eq '4way') { %>
-                %= include 'player', 'player' => $redPlayer, 'ratingType' => $gameSpeed
-                %= include 'player', 'player' => $greenPlayer, 'ratingType' => $gameSpeed
+                <span id='teams'><%= $teams %></span>
+            <% } %>
+            <span id='gameScore'><%= $score %></span>
+            %= include 'player', 'player' => $whitePlayer, 'ratingType' => $ratingType
+            %= include 'player', 'player' => $blackPlayer, 'ratingType' => $ratingType
+            <% if ($gameType eq '4way') { %>
+                %= include 'player', 'player' => $redPlayer, 'ratingType' => $ratingType
+                %= include 'player', 'player' => $greenPlayer, 'ratingType' => $ratingType
             <% } %>
         </div>
             <div id="game-chat-log" disabled="true"></div>
@@ -179,7 +182,7 @@
 </script>
 
 <script src="/pieces/pieces.js"></script>
-<script src="/game.js?cache=1.4"></script>
+<script src="/game.js?cache=1.5"></script>
 
 <script>
 $('input[type=radio]').on('change', function() {

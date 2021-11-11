@@ -109,9 +109,9 @@ var piecesByImageId = {};
 var piecesByBoardPos = {};
 var suspendedPieces = {};
 ranks.forEach(function (rank, index) {
-    ranks.forEach(function (file, index) {
+    files.forEach(function (file, index) {
         piecesByBoardPos["" + rank + file] = null;
-        suspendedPieces["" + rank + file] = null;
+        suspendedPieces["" + rank + file] = [];
     });
 });
 
@@ -676,24 +676,16 @@ var handleMessage = function(msg) {
         var from = getSquareFromBB(msg.fr_bb);
         var to   = getSquareFromBB(msg.to_bb);
         var piece = piecesByBoardPos[from];
-        suspendedPieces[to] = piece;
+        suspendedPieces[to].push(piece);
 
         piecesByBoardPos[from] = null;
     } else if (msg.c == 'unsuspend'){
         // this is for knights and castles where the piece
         // is removed from the board then put down at the destination
         var square = getSquareFromBB(msg.to_bb);
-        var piece = suspendedPieces[square];
+        var piece = suspendedPieces[square].shift();
 
-        if (piece == null) {
-            spawn(msg.chr, square);
-            piece = suspendedPieces[square];
-            piece.stop(x, y);
-            // TODO add the delay animation here
-        } else {
-            piecesByBoardPos[square] = piece;
-            suspendedPieces[square] = null;
-        }
+        piecesByBoardPos[square] = piece;
     } else if (msg.c == 'spawn'){
         spawn(msg.chr, msg.square);
     } else if (msg.c == 'pong'){
@@ -793,7 +785,6 @@ var handleMessage = function(msg) {
         setTimeout(startGame, 3000)
     } else if (msg.c == 'gamechat') {
         var dt = new Date();
-        console.log(msg);
         addGameMessage(
             msg.author,
             msg.message,
@@ -1564,7 +1555,6 @@ function addGameMessage(author, message, color, textcolor, dt, authColor) {
     var chatOptionVal = $("input[name='chatOption']:checked").val();
     var doLog = (chatOptionVal == 'public' || (chatOptionVal == 'players' && authColor != "none"));
     if (doLog) {
-        console.log(chatOptionVal);
         message = decodeURIComponent(escape(message));
         $('#game-chat-input').removeAttr('disabled'); // let the user write another message
         game_chatContent.append('<span style="color:' + color + '">' + author + '</span><span style="font-size: 12px;color:grey"> ' +
@@ -1617,9 +1607,20 @@ $(function () {
 
         var startTime = 0;
         var gameStart = false;
+        var spawnFound = false;
+        var lastCategory = 'null';
+        var stopSpawning = false;
         gameLog.forEach(function (logMsg) {
+            lastCategory = logMsg.msg.c;
             if (logMsg.msg.c == 'spawn') {
-                handleMessage(logMsg.msg);
+                spawnFound = true;
+                if (stopSpawning == false) {
+                    handleMessage(logMsg.msg);
+                }
+            } else {
+                if (spawnFound) {
+                    stopSpawning = true;
+                }
             }
         });
         gameLog.forEach(function (logMsg) {
@@ -1628,7 +1629,7 @@ $(function () {
                 gameStart = true;
             } else {
                 var msgTimeout = 0;
-                if (logMsg.msg.c != 'spawn') {
+                if (logMsg.msg.c != 'spawn' && logMsg.msg.c != 'readyToBegin') {
                     msgTimeout = (logMsg.time - startTime) * 1000;
                     setTimeout(
                         function() {

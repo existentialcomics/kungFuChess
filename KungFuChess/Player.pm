@@ -298,22 +298,26 @@ sub getGamesPlayed {
     my $gameSpeed = shift;
     my $gameType = shift;
 
-    my @row = $self->{dbh}->selectrow_array(
-        "SELECT COUNT(*) as games_played 
-            FROM game_log
-            WHERE player_id = ?
-            AND game_speed = ?
-            AND game_type = ?
-            AND rated = 1",
-        {},
-        $self->{player_id},
-        $gameSpeed,
-        $gameType ? $gameType : '2way'
-    );
+    my $way = ($gameType && $gameType eq '4way' ? "_4way" : "");
 
-    $self->{'games_played_' . $gameSpeed} = $row[0];
+    return $self->{'games_played_' . $gameSpeed . $way};
 
-    return $self->{'games_played_' . $gameSpeed};
+    #my @row = $self->{dbh}->selectrow_array(
+        #"SELECT COUNT(*) as games_played 
+            #FROM game_log
+            #WHERE player_id = ?
+            #AND game_speed = ?
+            #AND game_type = ?
+            #AND rated = 1",
+        #{},
+        #$self->{player_id},
+        #$gameSpeed,
+        #$gameType ? $gameType : '2way'
+    #);
+
+    #$self->{'games_played_' . $gameSpeed} = $row[0];
+
+    #return $self->{'games_played_' . $gameSpeed};
 }
 
 sub _loadByRow {
@@ -343,6 +347,8 @@ sub _loadAnonymousUser {
     $self->{screenname} = 'anonymous';
     $self->{rating_standard} = 0;
     $self->{rating_lighting} = 0;
+    $self->{rating_standard_4way} = 0;
+    $self->{rating_lighting_4way} = 0;
     $self->{is_anon} = 1;
     $self->{'auth_token'} = create_uuid_as_string();
 }
@@ -355,6 +361,8 @@ sub _loadAiUser {
     $self->{screenname} = 'ai';
     $self->{rating_standard} = 0;
     $self->{rating_lighting} = 0;
+    $self->{rating_standard_4way} = 0;
+    $self->{rating_lighting_4way} = 0;
     $self->{is_anon} = 1;
     $self->{'auth_token'} = $authToken ? $authToken : create_uuid_as_string();
 }

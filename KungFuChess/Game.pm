@@ -9,48 +9,38 @@ use Data::Dumper;
 ### possible this could go away and it could all be done in mysql
 
 sub new {
-	my $class = shift;
+    my $class = shift;
 
-	my $self = {};
-	bless( $self, $class );
+    my $self = {};
+    bless( $self, $class );
 
-	if ($self->_init(@_)){
-		return $self;
-	} else {
-		return undef;
-	}
+    if ($self->_init(@_)){
+        return $self;
+    } else {
+        return undef;
+    }
 }
 
 sub _init {
-	my $self = shift;
-    my ($id, $mode, $speed, $auth, $isAiGame) = @_;
-	$self->{id} = $id;
+    my $self = shift;
+    my $row = shift;
+    $self->{id} = $row->{game_id};
 
-    if ($speed eq 'standard') {
-        $self->{pieceSpeed} = 10;
-        $self->{pieceRecharge} = 10;
-    } elsif ($speed eq 'lightning') {
-        $self->{pieceSpeed} = 2;
-        $self->{pieceRecharge} = 2;
-    } else {
-        warn "unknown game speed $speed\n";
-    }
-    $self->{speed} = $speed;
-    $self->{mode} = $mode;   # 2way or 4way
+    $self->{game_type} = $row->{game_type};   # 2way or 4way
+    $self->{teams} = $row->{teams};
 
     $self->{playersByAuth} = {};
     $self->{playersConn}   = {};
 
     $self->{watchers} = [];
 
-    $self->{isAiGame} = $isAiGame;
     $self->{readyToPlay}   = 0;
-    $self->{auth}          = $auth;
+    $self->{auth}          = $row->{server_auth_key};
     $self->{serverConn}    = 0;
 
     $self->{white}->{alive} = 1;
     $self->{black}->{alive} = 1;
-    if ($mode eq '4way') {
+    if ($row->{game_type} eq '4way') {
         $self->{red}->{alive} = 1;
         $self->{green}->{alive} = 1;
     } else {
@@ -73,7 +63,7 @@ sub _init {
     $self->{chatLog} = [];
     $self->{gameStartTime} = time();
 
-	return 1;
+    return 1;
 }
 
 sub isAlive {
@@ -85,6 +75,13 @@ sub isAlive {
     return $self->{$color}->{alive};
 }
 
+sub setTeams {
+    my $self  = shift;
+    my $teams = shift;
+
+    $self->{teams} = $teams;
+}
+
 ### returns false for game is still active
 #   otherwise returns the score
 sub killPlayer {
@@ -93,42 +90,67 @@ sub killPlayer {
     if ($color eq 'both') {
         $self->{black}->{alive} = 0;
         $self->{white}->{alive} = 0;
-        $self->{red}->{alive} = 0;
+        $self->{red}->{alive}   = 0;
         $self->{green}->{alive} = 0;
     } else {
         $self->{$color}->{alive} = 0;
     }
 
-    #if ($self->{teams}) {
-        #my ($whiteTeam, $blackTeam, $redTeam, $greenTeam) = split("-", $self->{teams});
-        #my %teamsRemaining = ();
-        #if ($self->{white}->{alive} == 1) {
-            #$teamsRemaining{$whiteTeam}++
-        #}
-        #if ($self->{black}->{alive} == 1) {
-            #$teamsRemaining{$blackTeam}++
-        #}
-        #if ($self->{red}->{alive} == 1) {
-            #$teamsRemaining{$redTeam}++
-        #}
-        #if ($self->{green}->{alive} == 1) {
-            #$teamsRemaining{$greenTeam}++
-        #}
-        #if (keys %teamsRemaining == 1) {
-            #return 
-                #$self->{white}->{alive} == 1 ? "1" : "0" . "-" 
-                #$self->{black}->{alive} == 1 ? "1" : "0" . "-"
-                #$self->{red}->{alive}   == 1 ? "1" : "0" . "-"
-                #$self->{green}->{alive} == 1 ? "1" : "0" . 
-        #} 
-    #}
+    if ($self->{teams}) {
+        my ($whiteTeam, $blackTeam, $redTeam, $greenTeam) = split("-", $self->{teams});
+        my %teamsRemaining = ();
+        if ($self->{white}->{alive} == 1) {
+            $teamsRemaining{$whiteTeam}++
+        }
+        if ($self->{black}->{alive} == 1) {
+            $teamsRemaining{$blackTeam}++
+        }
+        if ($self->{red}->{alive} == 1) {
+            $teamsRemaining{$redTeam}++
+        }
+        if ($self->{green}->{alive} == 1) {
+            $teamsRemaining{$greenTeam}++
+        }
+        if (keys %teamsRemaining == 1) {
+            if ($self->{white}->{alive} == 1) {
+                return
+                    ($whiteTeam eq $whiteTeam ? '1' : '0') . '-' .
+                    ($whiteTeam eq $blackTeam ? '1' : '0') . '-' .
+                    ($whiteTeam eq $redTeam   ? '1' : '0') . '-' .
+                    ($whiteTeam eq $greenTeam ? '1' : '0');
+            } elsif ($self->{black}->{alive} == 1) {
+                return
+                    ($blackTeam eq $whiteTeam ? '1' : '0') . '-' .
+                    ($blackTeam eq $blackTeam ? '1' : '0') . '-' .
+                    ($blackTeam eq $redTeam   ? '1' : '0') . '-' .
+                    ($blackTeam eq $greenTeam ? '1' : '0');
+            } elsif ($self->{red}->{alive} == 1) {
+                return
+                    ($redTeam eq $whiteTeam ? '1' : '0') . '-' .
+                    ($redTeam eq $blackTeam ? '1' : '0') . '-' .
+                    ($redTeam eq $redTeam   ? '1' : '0') . '-' .
+                    ($redTeam eq $greenTeam ? '1' : '0');
+            } elsif ($self->{green}->{alive} == 1) {
+                return
+                    ($greenTeam eq $whiteTeam ? '1' : '0') . '-' .
+                    ($greenTeam eq $blackTeam ? '1' : '0') . '-' .
+                    ($greenTeam eq $redTeam   ? '1' : '0') . '-' .
+                    ($greenTeam eq $greenTeam ? '1' : '0');
+            }
+
+            ### none are alive? shouldn't ever happen
+            return 0;
+        } else {
+            return 0;
+        } 
+    }
 
     if ($self->{white}->{alive} + 
         $self->{black}->{alive} + 
         $self->{red}->{alive} + 
         $self->{green}->{alive} <= 1
     ) {
-        if ($self->{mode} eq '4way') {
+        if ($self->{game_type} eq '4way') {
             if ($self->{white}->{alive} == 1) {
                 return '1-0-0-0';
             } elsif ($self->{black}->{alive} == 1) {
@@ -207,7 +229,7 @@ sub playerReady {
             $self->{greenReady} = time();
         }
         if (
-            (($self->{redReady} && $self->{greenReady}) || ($self->{mode} ne '4way'))
+            (($self->{redReady} && $self->{greenReady}) || ($self->{game_type} ne '4way'))
             && ($self->{whiteReady} && $self->{blackReady})
         ) {
             $self->{readyToPlay} = time + 3;
@@ -259,7 +281,7 @@ sub playerDraw {
         } elsif($color eq 'green' || $color eq 'both'){
             $self->{green}->{draw} = time();
         }
-        if ($self->{mode} eq '4way') {
+        if ($self->{game_type} eq '4way') {
             if (   $self->{white}->{draw}
                 && $self->{black}->{draw}
                 && $self->{red}->{draw}
@@ -299,7 +321,7 @@ sub authMove {
 sub serverBroadcast {
     my $self = shift;
     my $msg = shift;
-	$self->{serverConn}->send(encode_json $msg);
+    $self->{serverConn}->send(encode_json $msg);
 }
 
 # no need to save these to the log in interest of space
@@ -319,7 +341,7 @@ sub playerBroadcast {
     my $self = shift;
     my $msg = shift;
 
-	delete $msg->{auth};
+    delete $msg->{auth};
     my $msgConnId = $msg->{connId};
     delete $msg->{connId};
 

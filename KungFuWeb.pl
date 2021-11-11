@@ -945,6 +945,7 @@ get '/game/:gameId' => sub {
 
     ### if the game isn't active we just use ours
     $c->stash('wsGameDomain'  => $gameRow ? $gameRow->{ws_server} : $cfg->param('ws_domain'));
+    $c->stash('teams'   => $gameRow->{teams} // 'free for all');
 
     ### unknown we must ask the ws server, stored in memory
     $c->stash('whiteReady'  => -1);
@@ -969,6 +970,7 @@ get '/game/:gameId' => sub {
     my ($timerSpeed, $timerRecharge) = getPieceSpeed($gameRow->{game_speed});
     $c->stash('gameSpeed'     => $gameRow->{game_speed});
     $c->stash('gameType'      => $gameRow->{game_type});
+    $c->stash('ratingType'    => ($gameRow->{game_speed} . ($gameRow->{game_type} eq '4way' ? "_4way" : '')));
     $c->stash('rated'         => $gameRow->{rated});
     $c->stash('score'         => $gameRow->{score});
     $c->stash('result'        => $gameRow->{result});
@@ -1120,8 +1122,9 @@ sub createRematchGame {
             {
                 'whiteUuid' => $gameRow->{white_anon_key},
                 'blackUuid' => $gameRow->{black_anon_key},
-                'redUuid' => $gameRow->{red_anon_key},
+                'redUuid'   => $gameRow->{red_anon_key},
                 'greenUuid' => $gameRow->{green_anon_key},
+                'teams'     => $gameRow->{teams},
             },
         )
     }
@@ -1153,10 +1156,11 @@ sub createGame {
     my $auth = create_uuid_as_string();
 
     my $speedAdvantage = $options->{speed_advantage} // undef;
+    my $teams = $options->{teams} // undef;
 
-    my $sth = app->db()->prepare("INSERT INTO games (game_id, game_speed, game_type, white_player, black_player, red_player, green_player, rated, white_anon_key, black_anon_key, red_anon_key, green_anon_key, ws_server, server_auth_key, speed_advantage)
-        VALUES (NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-    $sth->execute($speed, $type, $white, $black, $red, $green, $rated, $whiteUid, $blackUid, $redUid, $greenUid, $cfg->param('ws_domain'), $auth, $speedAdvantage);
+    my $sth = app->db()->prepare("INSERT INTO games (game_id, game_speed, game_type, white_player, black_player, red_player, green_player, rated, white_anon_key, black_anon_key, red_anon_key, green_anon_key, ws_server, server_auth_key, speed_advantage, teams)
+        VALUES (NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+    $sth->execute($speed, $type, $white, $black, $red, $green, $rated, $whiteUid, $blackUid, $redUid, $greenUid, $cfg->param('ws_domain'), $auth, $speedAdvantage, $teams);
 
     my $gameId = $sth->{mysql_insertid};
 
@@ -1523,13 +1527,7 @@ websocket '/ws' => sub {
                 };
 
                 my $isAi = (defined($row->{black_player_id}) && isAiUser($row->{black_player_id}));
-                my $game = KungFuChess::Game->new(
-                    $row->{game_id},
-                    $row->{game_type},
-                    $row->{game_speed},
-                    $msg->{auth},
-                    $isAi
-                );
+                my $game = KungFuChess::Game->new($row);
                 $currentGames{$msg->{gameId}} = $game;
                 $game->setServerConnection($self->tx);
                 $gamesByServerConn{$connId} = $game->{id};
@@ -1601,8 +1599,6 @@ websocket '/ws' => sub {
                     my ($color, $gameRow, $successAuth) = authGameColor($msg->{auth}, $msg->{uid}, $msg->{gameId});
                     my $berserkColor = $args;
 
-                    print "AUTH COLOR: $color\n";
-                    print Dumper($msg);
                     if (! $color) {
                         my $return = {
                             'c' => 'gamechat',
@@ -1676,6 +1672,33 @@ websocket '/ws' => sub {
                         'c' => 'refresh'
                     };
                     $game->playerBroadcast($commandMsg);
+                } elsif ($command eq 'teams') {
+                    my $color = $game->authMove($msg);
+                    if (! $color) {
+                        my $return = {
+                            'c' => 'gamechat',
+                            'author' => 'SYSTEM',
+                            'color' => 'red',
+                            'message' => "only players may berserk",
+                            'text_color' => '#666666',
+                        };
+                        connectionBroadcast($self, $return);
+                        return 0;
+                    }
+                    if ($args =~ m/^[0-1]-[0-1]-[0-1]-[0-1]$/) {
+                        app()->db->do("UPDATE games SET teams = ? WHERE game_id = ? limit 1", {}, $args, $game->{id});
+                        $game->setTeams($args);
+                        my $commandMsg = {
+                            'c' => 'refresh'
+                        };
+                        $game->playerBroadcast($commandMsg);
+                    } else {
+                        my $sysMsg = {
+                            'c'   => 'systemMsg', 
+                            'msg' => 'teams command format: /teams 1-0-1-1 (white-black-red-green)'
+                        };
+                        $game->playerBroadcast($sysMsg);
+                    }
                 } elsif ($command eq 'switch') {
                     my $color = $game->authMove($msg);
                     my ($colorSrc, $colorDst) = split(' ', $args);
@@ -1985,10 +2008,11 @@ sub encryptPassword {
 
 # result 1 = white wins, 0 = black wins, .5 = draw
 sub updateRatings {
-    my $gameId = shift;
+    my $gameId    = shift;
     my $gameSpeed = shift;
-    my $gameType = shift;
-    my $score  = shift;
+    my $gameType  = shift;
+    my $score     = shift;
+    my $teams     = shift;
 
     app()->log->debug("updating ratings for $gameId, " . ($score ? $score : '(no score)'));
 
@@ -2013,16 +2037,18 @@ sub updateRatings {
     }
     
     if ($gameType eq '4way') { ### was a 4way game
+        $ratingColumn .= "_4way";
         my ($whiteChange, $blackChange, $redChange, $greenChange) = calculateRating4way(
             $score,
+            $teams,
             $white->{$ratingColumn},
             $black->{$ratingColumn},
             $red->{$ratingColumn},
             $green->{$ratingColumn},
-            $white->getProvisionalFactor($gameSpeed),
-            $black->getProvisionalFactor($gameSpeed),
-            $red->getProvisionalFactor($gameSpeed),
-            $green->getProvisionalFactor($gameSpeed)
+            $white->getProvisionalFactor($gameSpeed, $gameType),
+            $black->getProvisionalFactor($gameSpeed, $gameType),
+            $red->getProvisionalFactor($gameSpeed, $gameType),
+            $green->getProvisionalFactor($gameSpeed, $gameType)
         );
 
         $white->{$ratingColumn} = $white->{$ratingColumn} + $whiteChange;
@@ -2039,8 +2065,8 @@ sub updateRatings {
             $score,
             $white->{$ratingColumn},
             $black->{$ratingColumn},
-            $white->getProvisionalFactor($gameSpeed),
-            $black->getProvisionalFactor($gameSpeed)
+            $white->getProvisionalFactor($gameSpeed, $gameType),
+            $black->getProvisionalFactor($gameSpeed, $gameType)
         );
 
         $white->{$ratingColumn} = $white->{$ratingColumn} + $whiteChange;
@@ -2063,7 +2089,7 @@ sub calculateRating2way {
     my $r1 = 10 ** ($whiteRating / 400);
     my $r2 = 10 ** ($blackRating / 400);
 
-    # expected score
+    # expected score (supposed to equal 0.5 for even)
     my $e1 = $r1 / ($r1 + $r2);
     my $e2 = $r2 / ($r1 + $r2);
 
@@ -2077,12 +2103,10 @@ sub calculateRating2way {
 }
 
 sub calculateRating4way {
-    my ($score, $whiteRating, $blackRating, $redRating, $greenRating, $whiteProv, $blackProv, $redProv, $greenProv) = @_;
+    my ($score, $teams, $whiteRating, $blackRating, $redRating, $greenRating, $whiteProv, $blackProv, $redProv, $greenProv) = @_;
 
     # k variable controls change rate
     my $k = 32;
-
-    my ($result, $bresult, $cresult, $dresult) = split('-', $score);
 
     # transformed rating (on a normal curve)
     my $r1 = 10 ** ($whiteRating / 400);
@@ -2090,16 +2114,84 @@ sub calculateRating4way {
     my $r3 = 10 ** ($redRating   / 400);
     my $r4 = 10 ** ($greenRating / 400);
 
-    # expected score -------- divide second part by two again??
+    # expected score (supposed to equal 0.25 for even)
     my $e1 = $r1 / ($r1 + $r2 + $r3 + $r4);
     my $e2 = $r2 / ($r1 + $r2 + $r3 + $r4);
     my $e3 = $r3 / ($r1 + $r2 + $r3 + $r4);
     my $e4 = $r4 / ($r1 + $r2 + $r3 + $r4);
 
-    my $whiteChange = $k * ($result  - $e1);
-    my $blackChange = $k * ($bresult - $e2);
-    my $redChange   = $k * ($cresult - $e3);
-    my $greenChange = $k * ($dresult - $e4);
+    ### addition multiplicative modifier for special conditions (i.e. 3v1)
+    my $k1 = 1;
+    my $k2 = 1;
+    my $k3 = 1;
+    my $k4 = 1;
+    if ($teams) {
+        ### special for teams, probably a clever generalized way to do it but i'll just brute force
+        ### these should equal 0.5 expected
+        if ($teams eq '1-1-0-0' || $teams eq '0-0-1-1')     { # white black vs green red
+            $e1 = ($r1 + $r2) / ($r1 + $r2 + $r3 + $r4);
+            $e2 = ($r2 + $r1) / ($r1 + $r2 + $r3 + $r4);
+            $e3 = ($r3 + $r4) / ($r1 + $r2 + $r3 + $r4);
+            $e4 = ($r4 + $r3) / ($r1 + $r2 + $r3 + $r4);
+        } elsif ($teams eq '1-0-1-0' || $teams eq '0-1-0-1') { # white red vs black green
+            $e1 = ($r1 + $r3) / ($r1 + $r2 + $r3 + $r4);
+            $e2 = ($r2 + $r4) / ($r1 + $r2 + $r3 + $r4);
+            $e3 = ($r3 + $r1) / ($r1 + $r2 + $r3 + $r4);
+            $e4 = ($r4 + $r2) / ($r1 + $r2 + $r3 + $r4);
+        } elsif ($teams eq '0-1-1-0' || $teams eq '1-0-0-1') { # white green vs red black
+            $e1 = ($r1 + $r4) / ($r1 + $r2 + $r3 + $r4);
+            $e2 = ($r2 + $r3) / ($r1 + $r2 + $r3 + $r4);
+            $e3 = ($r3 + $r2) / ($r1 + $r2 + $r3 + $r4);
+            $e4 = ($r4 + $r1) / ($r1 + $r2 + $r3 + $r4);
+        }
+
+        ### 3 vs 1 scenarios, 0.25 vs 0.75 expected
+        if ($teams eq '1-0-0-0' || $teams eq '0-1-1-1')     { # white vs all
+            ### for ratings purposes the win counts as three
+            $k2 = 0.33333333333;
+            $k3 = 0.33333333333;
+            $k4 = 0.33333333333;
+
+            $e1 = ($r1) / ($r1 + $r2 + $r3 + $r4);
+            $e2 = ($r2 + $r3 + $r4) / ($r1 + $r2 + $r3 + $r4);
+            $e3 = ($r2 + $r3 + $r4) / ($r1 + $r2 + $r3 + $r4);
+            $e4 = ($r2 + $r3 + $r4) / ($r1 + $r2 + $r3 + $r4);
+        } elsif ($teams eq '0-1-0-0' || $teams eq '1-0-1-1') { # black vs all
+            $k1 = 0.33333333333;
+            $k3 = 0.33333333333;
+            $k4 = 0.33333333333;
+
+            $e1 = ($r1 + $r3 + $r4) / ($r1 + $r2 + $r3 + $r4);
+            $e2 = ($r2) / ($r1 + $r2 + $r3 + $r4);
+            $e3 = ($r1 + $r3 + $r4) / ($r1 + $r2 + $r3 + $r4);
+            $e4 = ($r1 + $r3 + $r4) / ($r1 + $r2 + $r3 + $r4);
+        } elsif ($teams eq '0-0-1-0' || $teams eq '1-1-0-1') { # red vs all
+            $k1 = 0.33333333333;
+            $k2 = 0.33333333333;
+            $k4 = 0.33333333333;
+
+            $e1 = ($r1 + $r2 + $r4) / ($r1 + $r2 + $r3 + $r4);
+            $e2 = ($r1 + $r2 + $r4) / ($r1 + $r2 + $r3 + $r4);
+            $e3 = ($r3) / ($r1 + $r2 + $r3 + $r4);
+            $e4 = ($r1 + $r2 + $r4) / ($r1 + $r2 + $r3 + $r4);
+        } elsif ($teams eq '0-0-0-1' || $teams eq '1-1-1-0') { # green vs all
+            $k1 = 0.33333333333;
+            $k2 = 0.33333333333;
+            $k3 = 0.33333333333;
+
+            $e1 = ($r1 + $r2 + $r3) / ($r1 + $r2 + $r3 + $r4);
+            $e2 = ($r1 + $r2 + $r3) / ($r1 + $r2 + $r3 + $r4);
+            $e3 = ($r1 + $r2 + $r3) / ($r1 + $r2 + $r3 + $r4);
+            $e4 = ($r4) / ($r1 + $r2 + $r3 + $r4);
+        }
+    }
+
+    my ($result, $bresult, $cresult, $dresult) = split('-', $score);
+
+    my $whiteChange = $k * $k1 * ($result  - $e1);
+    my $blackChange = $k * $k2 * ($bresult - $e2);
+    my $redChange   = $k * $k3 * ($cresult - $e3);
+    my $greenChange = $k * $k4 * ($dresult - $e4);
 
     $whiteChange = adjustProv($whiteChange, $whiteProv, ($blackProv + $redProv + $greenProv) / 3);
     $blackChange = adjustProv($blackChange, $blackProv, ($whiteProv + $redProv + $greenProv) / 3);
@@ -2139,14 +2231,14 @@ sub endGame {
 
     app->log->debug('ending game: ' . $gameId . ' to ' . $result);
 
-    my @gameRow = app->db()->selectrow_array("SELECT status, game_speed, game_type, rated FROM games WHERE game_id = ?", {}, $gameId);
+    my @gameRow = app->db()->selectrow_array("SELECT status, game_speed, game_type, rated, teams FROM games WHERE game_id = ?", {}, $gameId);
 
     if (! @gameRow ) {
         app->debug("  game doesn't exist so it cannot be ended!! $gameId");
         return 0;
     }
 
-    my ($status, $gameSpeed, $gameType, $rated) = @gameRow;
+    my ($status, $gameSpeed, $gameType, $rated, $teams) = @gameRow;
 
     app->db()->do("DELETE FROM pool WHERE matched_game = ?", {}, $gameId);
 
@@ -2175,7 +2267,7 @@ sub endGame {
 
     my ($whiteEnd, $blackEnd, $redEnd, $greenEnd) = ($whiteStart, $blackStart, $redStart, $greenStart);
     if ($rated) {
-        ($whiteEnd, $blackEnd, $redEnd, $greenEnd) = updateRatings($gameId, $gameSpeed, $gameType, $score);   
+        ($whiteEnd, $blackEnd, $redEnd, $greenEnd) = updateRatings($gameId, $gameSpeed, $gameType, $score, $teams);   
     }
 
     if ($score && $score =~ m/^[015\.-]+$/) {
@@ -2247,24 +2339,25 @@ sub endGame {
     }
 
     my $game = $currentGames{$gameId};
-    my $whiteStartRating = (defined($whiteEnd->{"rating_$gameSpeed"}) ? $whiteEnd->{"rating_$gameSpeed"} :
-        (defined($whiteStart->{"rating_$gameSpeed"}) ? $whiteStart->{"rating_$gameSpeed"} : 0));
-    my $whiteEndRating =  (defined($whiteStart->{"rating_$gameSpeed"}) ? $whiteStart->{"rating_$gameSpeed"} : 0);
-    my $blackStartRating = (defined($blackEnd->{"rating_$gameSpeed"}) ? $blackEnd->{"rating_$gameSpeed"} :
-        (defined($blackStart->{"rating_$gameSpeed"}) ? $blackStart->{"rating_$gameSpeed"} : 0));
-    my $blackEndRating =  (defined($blackStart->{"rating_$gameSpeed"}) ? $blackStart->{"rating_$gameSpeed"} : 0);
+    my $ratingColumn = "rating_$gameSpeed" . ($gameType eq '4way' ? '_4way' : '');
+    my $whiteStartRating = (defined($whiteEnd->{$ratingColumn}) ? $whiteEnd->{$ratingColumn} :
+        (defined($whiteStart->{$ratingColumn}) ? $whiteStart->{$ratingColumn} : 0));
+    my $whiteEndRating =  (defined($whiteStart->{$ratingColumn}) ? $whiteStart->{$ratingColumn} : 0);
+    my $blackStartRating = (defined($blackEnd->{$ratingColumn}) ? $blackEnd->{$ratingColumn} :
+        (defined($blackStart->{$ratingColumn}) ? $blackStart->{$ratingColumn} : 0));
+    my $blackEndRating =  (defined($blackStart->{$ratingColumn}) ? $blackStart->{$ratingColumn} : 0);
 
     my $ratingsAdj = {
         'white' => $whiteStartRating - $whiteEndRating,
         'black' => $blackStartRating - $blackEndRating
     };
     if ($gameType eq '4way') {
-        my $redStartRating = (defined($redEnd->{"rating_$gameSpeed"}) ? $redEnd->{"rating_$gameSpeed"} :
-            (defined($redStart->{"rating_$gameSpeed"}) ? $redStart->{"rating_$gameSpeed"} : 0));
-        my $redEndRating =  (defined($redStart->{"rating_$gameSpeed"}) ? $redStart->{"rating_$gameSpeed"} : 0);
-        my $greenStartRating = (defined($greenEnd->{"rating_$gameSpeed"}) ? $greenEnd->{"rating_$gameSpeed"} :
-            (defined($greenStart->{"rating_$gameSpeed"}) ? $greenStart->{"rating_$gameSpeed"} : 0));
-        my $greenEndRating =  (defined($greenStart->{"rating_$gameSpeed"}) ? $greenStart->{"rating_$gameSpeed"} : 0);
+        my $redStartRating = (defined($redEnd->{$ratingColumn}) ? $redEnd->{$ratingColumn} :
+            (defined($redStart->{$ratingColumn}) ? $redStart->{$ratingColumn} : 0));
+        my $redEndRating =  (defined($redStart->{$ratingColumn}) ? $redStart->{$ratingColumn} : 0);
+        my $greenStartRating = (defined($greenEnd->{$ratingColumn}) ? $greenEnd->{$ratingColumn} :
+            (defined($greenStart->{$ratingColumn}) ? $greenStart->{$ratingColumn} : 0));
+        my $greenEndRating =  (defined($greenStart->{$ratingColumn}) ? $greenStart->{$ratingColumn} : 0);
         $ratingsAdj->{'red'}   = $redStartRating   - $redEndRating;
         $ratingsAdj->{'green'} = $greenStartRating - $greenEndRating;
     };
@@ -2415,12 +2508,17 @@ sub savePlayer {
 
     app->log->debug("saving player rating $player->{player_id} $player->{rating_standard}, $player->{rating_lightning} result $result");
     my $sth = app->db()->prepare('UPDATE players SET rating_standard = ?, rating_lightning = ?, rating_standard_4way = ?, rating_lightning_4way = ? WHERE player_id = ?' );
-    $sth->execute($player->{rating_standard}, $player->{rating_lightning}, $player->{rating_standard_4way}, $player->{rating_lightning_4way}, $player->{player_id});
+    $sth->execute(
+        $player->{rating_standard},
+        $player->{rating_lightning},
+        $player->{rating_standard_4way},
+        $player->{rating_lightning_4way},
+        $player->{player_id});
 
     if (defined($result) && ($gameSpeed eq 'standard' || $gameSpeed eq 'lightning') ) {
         my $resultColumn = '';
-        my $playedColumn = "games_played_$gameSpeed";
         my $fourWay = ($gameType eq '4way' ? '_4way' : '');
+        my $playedColumn = "games_played_$gameSpeed" . $fourWay;
 
         if ($result == 1) {
             $resultColumn = "games_won_$gameSpeed" . $fourWay;
@@ -2533,11 +2631,6 @@ sub enterUpdatePool {
     my $gameSpeed       = $options->{gameSpeed}  // 'standard';
     my $gameType        = $options->{gameType}   // '2way';
     my $uuid            = $options->{uuid}       // 0;
-
-    ### 4way is always unrated for now
-    if ($gameType eq '4way') {
-        $rated = 0;
-    }
 
     if ($uuid) {
         my $poolRow = app->db()->selectrow_hashref('SELECT * FROM pool WHERE private_game_key = ?',
