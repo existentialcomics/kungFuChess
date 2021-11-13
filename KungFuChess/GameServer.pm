@@ -556,8 +556,16 @@ sub moveIfLegal {
     my $timer = undef;
     my $timer2 = undef;
     my $moveStep = sub {
-        my ($self, $func, $fr_bb, $to_bb, $dir, $startTime, $moveType, $piece, $colorbit) = @_;
+        my ($self, $func, $fr_bb, $to_bb, $dir, $startTime, $moveType, $piece, $colorbit, $restartAnimation) = @_;
 
+        if ($restartAnimation) {
+            my $msg = {
+                'c' => 'authcontinue',
+                'color' => $colorbit,
+                'fr_bb' => $fr_bb,
+            };
+            $self->send($msg);
+        }
         my $next_fr_bb = 0;
         #print KungFuChess::Bitboards::pretty();
 
@@ -589,6 +597,9 @@ sub moveIfLegal {
             }
         }
 
+        ####################################################################################
+        ### regularish moves
+        ###
         if ($moveType == KungFuChess::Bitboards::MOVE_NORMAL || 
             $moveType == KungFuChess::Bitboards::MOVE_PROMOTE || 
             $moveType == KungFuChess::Bitboards::MOVE_EN_PASSANT 
@@ -672,17 +683,32 @@ sub moveIfLegal {
                     }
                 }
             } elsif ($themColor == $usColor) { ## we hit ourselves, stop!
-                ### message that animates a move on the board
-                my $msg = {
-                    'c' => 'authstop',
-                    'color' => $colorbit,
-                    'fr_bb' => $fr_bb,
-                };
-                $self->send($msg);
+                ### we hit our own piece, but it is moving so let's politely wait for it to get out of the way.
+                if (exists($self->{activeMoves}->{$moving_to_bb})) {
+                    ### message that animates a move on the board
+                    my $msg = {
+                        'c' => 'authpause',
+                        'color' => $colorbit,
+                        'fr_bb' => $fr_bb,
+                    };
+                    $self->send($msg);
 
-                ### to make us done at the spot we started
-                $to_bb = $fr_bb;
-                $moving_to_bb = $fr_bb;
+                    $restartAnimation = 1;
+                    ### we are still on the same spot
+                    $moving_to_bb = $fr_bb;
+                } else {
+                    ### message that animates a move on the board
+                    my $msg = {
+                        'c' => 'authstop',
+                        'color' => $colorbit,
+                        'fr_bb' => $fr_bb,
+                    };
+                    $self->send($msg);
+
+                    ### to make us done at the spot we started
+                    $to_bb = $fr_bb;
+                    $moving_to_bb = $fr_bb;
+                }
             } else { ### moving into a free space
                 KungFuChess::Bitboards::move($fr_bb, $moving_to_bb);
                 my $msgStep = {
@@ -694,6 +720,7 @@ sub moveIfLegal {
                 $self->send($msgStep);
             }
 
+            ### send a promote if we reached the end
             if ($moveType == KungFuChess::Bitboards::MOVE_PROMOTE) {
                 my $msgPromote = {
                     'c' => 'promote',
@@ -781,13 +808,13 @@ sub moveIfLegal {
             $timer = AnyEvent->timer(
                 after => $self->{$colorbit}->{pieceSpeed} * 2,
                 cb => sub {
-                    $func->($self, $func, $fr_bb, $king_moving_to, $dir, $startTime, $moveType, $piece, $colorbit);
+                    $func->($self, $func, $fr_bb, $king_moving_to, $dir, $startTime, $moveType, $piece, $colorbit, $restartAnimation);
                 }
             );
             $timer2 = AnyEvent->timer(
                 after => $self->{$colorbit}->{pieceSpeed} * 2,
                 cb => sub {
-                    $func->($self, $func, $fr_bb, $rook_moving_to, $dir, $startTime, $moveType, $pieceTo, $colorbit);
+                    $func->($self, $func, $fr_bb, $rook_moving_to, $dir, $startTime, $moveType, $pieceTo, $colorbit, $restartAnimation);
                 }
             );
             return ; ## return early because there is no more movement
@@ -841,13 +868,13 @@ sub moveIfLegal {
             $timer = AnyEvent->timer(
                 after => $self->{$colorbit}->{pieceSpeed} * 2,
                 cb => sub {
-                    $func->($self, $func, $fr_bb, $king_moving_to, $dir, $startTime, $moveType, $piece, $colorbit);
+                    $func->($self, $func, $fr_bb, $king_moving_to, $dir, $startTime, $moveType, $piece, $colorbit, $restartAnimation);
                 }
             );
             $timer2 = AnyEvent->timer(
                 after => $self->{$colorbit}->{pieceSpeed} * 2,
                 cb => sub {
-                    $func->($self, $func, $fr_bb, $rook_moving_to, $dir, $startTime, $moveType, $pieceTo, $colorbit);
+                    $func->($self, $func, $fr_bb, $rook_moving_to, $dir, $startTime, $moveType, $pieceTo, $colorbit, $restartAnimation);
                 }
             );
             return ; ## return early because there is no more movement
@@ -899,7 +926,7 @@ sub moveIfLegal {
             $timer = AnyEvent->timer(
                 after => $nextMoveSpeed,
                 cb => sub {
-                    $func->($self, $func, $next_fr_bb, $to_bb, $dir, $startTime, $moveType, $piece, $colorbit);
+                    $func->($self, $func, $next_fr_bb, $to_bb, $dir, $startTime, $moveType, $piece, $colorbit, $restartAnimation);
                 }
             );
         }
@@ -921,7 +948,8 @@ sub moveIfLegal {
         to_bb => $to_bb,
         start_time => 1
     };
-    $moveStep->($self, $moveStep, $fr_bb, $to_bb, $moveDir, $startTime, $moveType, '', $colorbit);
+    my $restartAnimation = 0;
+    $moveStep->($self, $moveStep, $fr_bb, $to_bb, $moveDir, $startTime, $moveType, '', $colorbit, $restartAnimation);
 
     KungFuChess::Bitboards::resetAiBoards();
     return 1;

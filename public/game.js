@@ -566,6 +566,21 @@ var handleMessage = function(msg) {
         pieceFrom = piecesByBoardPos[from];
         setPieceBoardPos(pieceFrom, to);
         piecesByBoardPos[from] = null;
+    } else if (msg.c == 'continue' || msg.c == 'pause'){ // when pieces collides and one is forced to stop
+        let re = /([a-z])([0-9]{1,2})/;
+        var from = getSquareFromBB(msg.fr_bb);
+
+        var m_from = from.match(re);
+
+        var y = rankToX[m_from[2]];
+        var x = parseInt(fileToY[m_from[1]]);
+        var pieceFrom = piecesByBoardPos[from];
+
+        if (msg.c == 'pause') {
+            pieceFrom.anim.stop();
+        } else {
+            pieceFrom.anim.start();
+        }
     } else if (msg.c == 'stop'){ // when pieces collides and one is forced to stop
         if (! msg.hasOwnProperty('expected')) {
             let re = /([a-z])([0-9]{1,2})/;
@@ -592,7 +607,6 @@ var handleMessage = function(msg) {
                 stopFunction();
             }
         }
-
     } else if (msg.c == 'moveAnimate'){ // called when a player moves a piece
         let re = /([a-z])([0-9]{1,2})/;
 
@@ -1366,9 +1380,11 @@ var getPiece = function(x, y, color, image){
         if (piece.color == myColor || myColor == 'both'){
             piece.image.draggable(true);
         }
-        piece.isMoving = false;
-        piece.setDelayTimer(timeToCharge)
-        piece.setImagePos(piece.x, piece.y);
+        if (timeToCharge > 0) {
+            piece.isMoving = false;
+            piece.setDelayTimer(timeToCharge)
+            piece.setImagePos(piece.x, piece.y);
+        }
     }
 
     piece.setDelayTimer = function(timeToDelay, forceFullSquare = false) {

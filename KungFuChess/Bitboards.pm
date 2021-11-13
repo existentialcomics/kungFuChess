@@ -636,7 +636,7 @@ sub blockers {
 
     while ($fromBB != $toBB) {
         $fromBB = shift_BB($fromBB, $dirBB);
-        #if (! ($fromBB & $movingBB) ){
+        if (! ($fromBB & $movingBB) ){
             if ($fromBB == 0)         { return 0; } ### off the board
             if ($fromBB & $blockingBB){ return 0; }
 
@@ -645,7 +645,7 @@ sub blockers {
                 $depth--;
                 if ($depth == 0) { $blockingBB = 0; }
             }
-        #}
+        }
     }
     return 1;
 }

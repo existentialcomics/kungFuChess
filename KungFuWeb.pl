@@ -483,7 +483,9 @@ sub handleChatCommand {
                 'message'   => $text
             };
             my $success = screennameBroadcast($msg, $value);
-            if ($success == -1) {
+            if (! defined($success)) {
+                $return->{'message'} = 'delivery failed';
+            } elsif ($success == -1) {
                 $return->{'message'} = 'delivery failed, unknown screenname';
             } elsif ($success == 0) {
                 $return->{'message'} = 'delivery failed, user offline';
@@ -504,7 +506,9 @@ sub handleChatCommand {
                     'uid'        => $uid
                 };
                 my $success = screennameBroadcast($msg, $screenname);
-                if ($success == -1) {
+                if (! defined($success)) {
+                    $return->{'message'} = 'delivery failed';
+                } elsif ($success == -1) {
                     $return->{'message'} = 'delivery failed, unknown screenname';
                 } elsif ($success == 0) {
                     $return->{'message'} = 'delivery failed, user offline';
@@ -1470,7 +1474,8 @@ websocket '/ws' => sub {
             ### this is the global ping, not during the game
             if ($msg->{userAuthToken}) {
                 $globalConnectionsByAuth{$msg->{userAuthToken}} = $self;
-                app->db()->do('UPDATE players SET last_seen = NOW() WHERE auth_token = ?', {}, $msg->{userAuthToken});
+                my $ip = $self->tx->remote_address;
+                app->db()->do('UPDATE players SET last_seen = NOW(), ip_address = ? WHERE auth_token = ?', {}, $ip, $msg->{userAuthToken});
             }
         } elsif ($msg->{'c'} eq 'chat'){
             my $gameId = $msg->{gameId};
@@ -1793,6 +1798,16 @@ websocket '/ws' => sub {
             # pass the move request to the server
             $msg->{'c'} = 'move';
             $game->playerBroadcast($msg);
+        } elsif ($msg->{'c'} eq 'authpause'){
+            if (! gameauth($msg) ){ return 0; }
+            # pass the move request to the server
+            $msg->{'c'} = 'pause';
+            $game->playerBroadcast($msg);
+        } elsif ($msg->{'c'} eq 'authcontinue'){
+            if (! gameauth($msg) ){ return 0; }
+            # pass the move request to the server
+            $msg->{'c'} = 'continue';
+            $game->playerBroadcast($msg);
         } elsif ($msg->{'c'} eq 'authstop'){
             if (! gameauth($msg) ){ return 0; }
             # pass the move request to the server
@@ -1943,6 +1958,7 @@ sub screennameBroadcast {
     eval {
         $connection->send(encode_json $msg);
     };
+    return 1;
 }
 
 sub globalBroadcast {
@@ -2919,7 +2935,12 @@ sub getGlobalScore {
        $black->{player_id},
        $gameSpeed
    );
-    return $result; 
+   my $return = {
+       win_count  => $result->{win_count} // 0,
+       lose_count => $result->{loss_count} // 0,
+       draw_count => $result->{draw_count} // 0,
+   };
+   return $return; 
 }
 
 app->start;
