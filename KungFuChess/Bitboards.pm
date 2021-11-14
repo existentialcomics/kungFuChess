@@ -355,6 +355,22 @@ my $ai_movingBB = 0x0000000000000000;
 
 my $currentAiMoveTree = undef;
 
+sub movingOppositeDirs {
+    my ($a, $b) = @_;
+
+    if ($a == NORTH) { return $b == SOUTH; }
+    if ($a == SOUTH) { return $b == NORTH; }
+    if ($a == EAST)  { return $b == WEST;  }
+    if ($a == WEST)  { return $b == EAST;  }
+    if ($a == NORTH_EAST)  { return $b == SOUTH_WEST;  }
+    if ($a == SOUTH_EAST)  { return $b == NORTH_WEST;  }
+    if ($a == NORTH_WEST)  { return $b == SOUTH_EAST;  }
+    if ($a == SOUTH_WEST)  { return $b == NORTH_EAST;  }
+
+    ### should get here
+    return 0;
+}
+
 # set the ai boards back to the current real position;
 sub resetAiBoards {
     $ai_pawns    = $pawns;
@@ -931,6 +947,9 @@ sub isLegalMove {
              shift_BB($fr_bb, WEST)       |                           shift_BB($fr_bb, EAST)       |
              shift_BB($fr_bb, SOUTH_WEST) | shift_BB($fr_bb, SOUTH) | shift_BB($fr_bb, SOUTH_EAST) )
         ){
+            if ($to_bb & _piecesUs($color)) {
+                return @noMove;
+            }
             ### it's always one space so we don't bother with dir
             return ($color, MOVE_NORMAL, DIR_NONE, $fr_bb, $to_bb);
         }

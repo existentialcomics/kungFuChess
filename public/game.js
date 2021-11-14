@@ -1118,7 +1118,11 @@ var getPieceImage = function(x, y, image){
         y: getY(x * width / boardSize, y * height / boardSize),
         width: width / boardSize,
         height: height / boardSize,
-        draggable: false
+        draggable: false,
+        shadowColor: 'black',
+        shadowBlur: 1,
+        shadowOffset: { x: 0, y: 0 },
+        shadowOpacity: 0.0,
     });
     return pieceImage;
 };
@@ -1317,10 +1321,15 @@ var getPiece = function(x, y, color, image){
     }
 
     piece.move = function(x, y, speedAdj = 1){
-        //isLegal = this.legalMove(this.x - x, this.y - y);
-        //if (!isLegal){
-            //return false;
-        //}
+        var dx = x - piece.x;
+        var dy = y - piece.y;
+        var vectorLen = Math.sqrt((dx * dx) + (dy * dy));
+        piece.image.shadowOpacity(0.3);
+        piece.image.shadowOffset({
+            x: (-dx * boardSize / 2) / vectorLen,
+            y: (-dy * boardSize / 2) / vectorLen
+        });
+
         isLegal = true;
         this.start_x = this.x;
         this.start_y = this.y;
@@ -1388,6 +1397,7 @@ var getPiece = function(x, y, color, image){
     }
 
     piece.setDelayTimer = function(timeToDelay, forceFullSquare = false) {
+        piece.image.shadowOpacity(0);
         if (piece.delayRect) {
             piece.delayRect.destroy();
             piece.tween.destroy();

@@ -653,8 +653,15 @@ sub moveIfLegal {
                         #|| $self->{startMoves}->{$moving_to_bb} < $startTime);
 
                     ### stop if the piece has been still for at least one beat (1 sec standard)
-                    my $shouldStop = (! $self->{stopMoves}->{$moving_to_bb}
-                        || $self->{stopMoves}->{$moving_to_bb} < time() - $self->{$colorbit}->{pieceSpeed});
+                    ### OR if the piece started before (i.e. would have swept us
+                    my $shouldStop = (
+                            (! $self->{stopMoves}->{$moving_to_bb}
+                            || $self->{stopMoves}->{$moving_to_bb} < time() - $self->{$colorbit}->{pieceSpeed})
+                        ) || (
+                            (! $self->{startMoves}->{$moving_to_bb}
+                            || $self->{startMoves}->{$moving_to_bb} < $startTime)
+                        );
+                    ;
 
                     # 2nd arg is for isSweep, technically if we don't stop here it's a sweep
                     # they didn't arrive in time to complete the animation and stand their ground
@@ -684,7 +691,9 @@ sub moveIfLegal {
                 }
             } elsif ($themColor == $usColor) { ## we hit ourselves, stop!
                 ### we hit our own piece, but it is moving so let's politely wait for it to get out of the way.
-                if (exists($self->{activeMoves}->{$moving_to_bb})) {
+                if (exists($self->{activeMoves}->{$moving_to_bb})
+                    && ! KungFuChess::Bitboards::movingOppositeDirs($moveDir, $self->{activeMoves}->{$moving_to_bb}->{moveDir})
+                    ) {
                     ### message that animates a move on the board
                     my $msg = {
                         'c' => 'authpause',
@@ -737,7 +746,8 @@ sub moveIfLegal {
             if (! $done){
                 $self->{activeMoves}->{$moving_to_bb} = {
                     'to_bb' => $to_bb,
-                    'start_time' => $startTime
+                    'start_time' => $startTime,
+                    'moveDir' => $moveDir
                 };
             }
             $next_fr_bb = $moving_to_bb;
@@ -946,7 +956,8 @@ sub moveIfLegal {
     ### usually times are set here but we set just to 1 to show it exists
     $self->{activeMoves}->{$fr_bb} = {
         to_bb => $to_bb,
-        start_time => 1
+        start_time => 1,
+        moveDir => $moveDir,
     };
     my $restartAnimation = 0;
     $moveStep->($self, $moveStep, $fr_bb, $to_bb, $moveDir, $startTime, $moveType, '', $colorbit, $restartAnimation);

@@ -67,7 +67,8 @@ app->plugin('database', {
     options  => {
         'pg_enable_utf8' => 1,
         'mysql_enable_utf8' => 1,
-        'RaiseError' => 1
+        'RaiseError' => 1,
+        'mysql_auto_reconnect' => 1
     },
     helper   => 'db',
 });
@@ -2937,7 +2938,7 @@ sub getGlobalScore {
    );
    my $return = {
        win_count  => $result->{win_count} // 0,
-       lose_count => $result->{loss_count} // 0,
+       loss_count => $result->{loss_count} // 0,
        draw_count => $result->{draw_count} // 0,
    };
    return $return; 

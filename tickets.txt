@@ -1,14 +1,11 @@
 begin removing things from Game.pm into database
 test en passant bug in 4way (kill doesn't clear) and fully fix in 2way
 reload config
-ratings show standard in lightning games on watch games tab
 anon can't ready to play in 4way ??
 two anon players can't join custom 4way game
-anon's go into rated pool!
 
 -------------AI------------------
 prune trees
 making dodging work for entire path
-discovered attacks
 threaten spot they move to
 better bonuses for protecting your own pieces

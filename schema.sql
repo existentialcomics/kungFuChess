@@ -90,7 +90,7 @@ CREATE TABLE `game_log` (
   `rated` tinyint(4) NOT NULL DEFAULT '1',
   `time_ended` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`game_log_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=6105 DEFAULT CHARSET=latin1;
+) ENGINE=InnoDB AUTO_INCREMENT=6413 DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -127,9 +127,12 @@ CREATE TABLE `games` (
   `ws_server` varchar(255) DEFAULT NULL,
   `server_auth_key` varchar(90) DEFAULT NULL,
   `speed_advantage` varchar(40) DEFAULT NULL,
+  `teams` varchar(20) DEFAULT NULL,
+  `piece_recharge` decimal(4,2) NOT NULL DEFAULT '1.00',
+  `piece_speed` decimal(4,2) NOT NULL DEFAULT '1.00',
   PRIMARY KEY (`game_id`),
   KEY `game_auth_idx` (`server_auth_key`)
-) ENGINE=InnoDB AUTO_INCREMENT=5276 DEFAULT CHARSET=latin1;
+) ENGINE=InnoDB AUTO_INCREMENT=34576 DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
 ALTER DATABASE `kungfuchess` CHARACTER SET latin1 COLLATE latin1_swedish_ci ;
 /*!50003 SET @saved_cs_client      = @@character_set_client */ ;
@@ -229,9 +232,10 @@ CREATE TABLE `players` (
   `default_maximum_rating` int(11) DEFAULT '200',
   `show_chat` enum('public','players','none') NOT NULL DEFAULT 'public',
   `speed_advantage` varchar(40) DEFAULT NULL,
+  `ip_address` varchar(50) DEFAULT NULL,
   PRIMARY KEY (`player_id`),
   UNIQUE KEY `screenname` (`screenname`)
-) ENGINE=InnoDB AUTO_INCREMENT=1120 DEFAULT CHARSET=latin1;
+) ENGINE=InnoDB AUTO_INCREMENT=1121 DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -284,4 +288,4 @@ CREATE TABLE `session` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2021-11-07 12:41:06
+-- Dump completed on 2021-11-13 14:59:44

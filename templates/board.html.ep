@@ -182,7 +182,7 @@
 </script>
 
 <script src="/pieces/pieces.js"></script>
-<script src="/game.js?cache=1.6"></script>
+<script src="/game.js?cache=1.7"></script>
 
 <script>
 $('input[type=radio]').on('change', function() {
