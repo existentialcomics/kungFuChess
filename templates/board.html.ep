@@ -6,7 +6,7 @@
     <div class="row">
         <div class="col-3">
         <div class="container bg-light card">
-            <span><%= ucfirst($gameType) %> • <%= $rated ? 'Rated' : 'Unrated' %> • <%= ucfirst($gameSpeed) %></span><br />
+            <span><%= ucfirst($gameType) %> • <%= $rated ? 'Rated' : 'Unrated' %> • <%= ucfirst($gameSpeed) %> (<%= int($pieceRecharge) %>/<%= sprintf('%0.1f',$pieceSpeed) %>)</span><br />
             <span id='gameStatus'><%= $gameStatus %></span>
             <span id='gameResult'><%= $result %></span>
             <% if ($gameType eq '4way') { %>
@@ -154,19 +154,21 @@
     var myColor   = "<%= $color %>";
 	var authId    = "<%= $authId %>";
 	var anonKey   = "<%= $anonKey %>";
-	var gameSpeed     = "<%= $gameSpeed %>";
-	var speedAdvantage = "<%= $speedAdvantage %>";
-	var timerSpeed    = "<%= $timerSpeed %>";
-	var timerSpeedWhite = "<%= $timerSpeedWhite %>";
-	var timerSpeedBlack = "<%= $timerSpeedBlack %>";
-	var timerSpeedRed   = "<%= $timerSpeedRed %>";
-	var timerSpeedGreen = "<%= $timerSpeedGreen %>";
-	var timerRechargeWhite = "<%= $timerRechargeWhite %>";
-	var timerRechargeBlack = "<%= $timerRechargeBlack %>";
-	var timerRechargeRed   = "<%= $timerRechargeRed %>";
-	var timerRechargeGreen = "<%= $timerRechargeGreen %>";
+	var gameSpeed = "<%= $gameSpeed %>";
+
+	var speedAdvantage  = "<%= $speedAdvantage %>";
+	var timerSpeed      = "<%= $pieceSpeed %>";
+	var timerRecharge   = "<%= $pieceRecharge %>";
+	var timerSpeedWhite = "<%= $pieceSpeedWhite %>";
+	var timerSpeedBlack = "<%= $pieceSpeedBlack %>";
+	var timerSpeedRed   = "<%= $pieceSpeedRed %>";
+	var timerSpeedGreen = "<%= $pieceSpeedGreen %>";
+	var timerRechargeWhite = "<%= $pieceRechargeWhite %>";
+	var timerRechargeBlack = "<%= $pieceRechargeBlack %>";
+	var timerRechargeRed   = "<%= $pieceRechargeRed %>";
+	var timerRechargeGreen = "<%= $pieceRechargeGreen %>";
 	var gameType      = "<%= $gameType %>";
-	var timerRecharge = "<%= $timerRecharge %>";
+	var timerRecharge = "<%= $pieceRecharge %>";
     var initialMessages = JSON.parse('<%== ($positionGameMsgs ? $positionGameMsgs : '[]') %>');
     var gameLog = [];
     try {
@@ -182,7 +184,7 @@
 </script>
 
 <script src="/pieces/pieces.js"></script>
-<script src="/game.js?cache=1.7"></script>
+<script src="/game.js?cache=1.8"></script>
 
 <script>
 $('input[type=radio]').on('change', function() {

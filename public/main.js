@@ -195,6 +195,39 @@ function checkPool(originalThread = false) {
 
 //$(document).ready(function () {
 $(function () {
+    $("#lightningRadio").click(function() {
+        console.log("light click");
+        document.querySelector("#pieceSpeedRange").value = 1;
+        $("#pieceSpeedLabel").text('Lightning 1/0.1');
+        $("#pieceSpeedRange").prop("disabled", true);
+    });
+    $("#standardRadio").click(function() {
+        console.log("stad click");
+        document.querySelector("#pieceSpeedRange").value = 10;
+        $("#pieceSpeedLabel").text('Standard 10/1');
+        $("#pieceSpeedRange").prop("disabled", true);
+        //$("#pieceSpeedRange").hide()
+    });
+    $("#customRadio").click(function() {
+        console.log("custom click");
+        $("#pieceSpeedRange").prop("disabled", false);
+        $("#pieceSpeedRange").show()
+    });
+    $("#pieceSpeedRange").on('input', function() {
+
+        console.log(this.value);
+        if (this.value < 4) {
+            $("#pieceSpeedLabel").text('Lightning ' + this.value + "/" + this.value/10);
+        } else {
+            $("#pieceSpeedLabel").text('Standard ' + this.value + "/" + this.value/10);
+        }
+    });
+
+
+    function change(e){
+        $('.card-deck').html($(this).val() + "<br/>");
+    }
+
     $("#enter-pool-standard").click(function() {
         if (checkPoolRunning
             && checkPoolGameSpeed == 'standard'

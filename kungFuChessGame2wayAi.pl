@@ -3,7 +3,8 @@ use strict; use warnings;
 
 my $gameKey = shift;
 my $authKey = shift;
-my $speed = shift;
+my $pieceSpeed = shift;
+my $pieceRecharge = shift;
 my $speedAdj = shift;
 my $difficulty = shift;
 my $color = shift;
@@ -16,5 +17,16 @@ use lib dirname(abs_path($0));
 use KungFuChess::Bitboards;
 use KungFuChess::GameAi;
 
-print "init game ai... ($gameKey, $authKey, $speed, $speedAdj, $difficulty)\n";
-my $kfcAi = KungFuChess::GameAi->new($gameKey, $authKey, $speed, $speedAdj, '2way', $difficulty, $color, $domain); ### 2 is BLACK
+print "init game ai... ($gameKey, $authKey, $pieceSpeed, $speedAdj, $difficulty, $color, $domain)\n";
+my $kfcAi = KungFuChess::GameAi->new(
+    $gameKey,
+    $authKey,
+    ($pieceRecharge > 3 ? 'standard' : 'lightning'),
+    $pieceSpeed,
+    $pieceRecharge,
+    $speedAdj,
+    '2way',
+    $difficulty,
+    $color,
+    $domain
+);

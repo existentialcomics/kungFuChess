@@ -164,7 +164,7 @@ sub writeStockfishMsg {
 }
 
 sub setAdjustedSpeed {
-    my ($self, $speed, $speedAdj) = @_;
+    my ($self, $pieceSpeed, $pieceRecharge, $speedAdj) = @_;
 
     my $whiteAdj = 1;
     my $blackAdj = 1;
@@ -174,44 +174,29 @@ sub setAdjustedSpeed {
         ($whiteAdj, $blackAdj, $redAdj, $greenAdj) = split(':', $speedAdj);
     }
 
-    if ($speed eq 'standard') {
-        $self->{1}->{pieceSpeed} = 1 * $whiteAdj;
-        $self->{1}->{pieceRecharge} = 10 * $whiteAdj;
+    $self->{1}->{pieceSpeed} = $pieceSpeed * $whiteAdj;
+    $self->{1}->{pieceRecharge} = $pieceRecharge * $whiteAdj;
 
-        $self->{2}->{pieceSpeed} = 1 * $blackAdj;
-        $self->{2}->{pieceRecharge} = 10 * $blackAdj;
-        
-        $self->{3}->{pieceSpeed} = 1 * $redAdj;
-        $self->{3}->{pieceRecharge} = 10 * $redAdj;
+    $self->{2}->{pieceSpeed} = $pieceSpeed * $blackAdj;
+    $self->{2}->{pieceRecharge} = $pieceRecharge * $blackAdj;
+    
+    $self->{3}->{pieceSpeed} = $pieceSpeed * $redAdj;
+    $self->{3}->{pieceRecharge} = $pieceRecharge * $redAdj;
 
-        $self->{4}->{pieceSpeed} = 1 * $greenAdj;
-        $self->{4}->{pieceRecharge} = 10 * $greenAdj;
-    } elsif ($speed eq 'lightning') {
-        $self->{1}->{pieceSpeed} = 0.1 * $whiteAdj;
-        $self->{1}->{pieceRecharge} = 1 * $whiteAdj;
-
-        $self->{2}->{pieceSpeed} = 0.1 * $blackAdj;
-        $self->{2}->{pieceRecharge} = 1 * $blackAdj;
-
-        $self->{3}->{pieceSpeed} = 0.1 * $redAdj;
-        $self->{3}->{pieceRecharge} = 1 * $redAdj;
-
-        $self->{4}->{pieceSpeed} = 0.1 * $greenAdj;
-        $self->{4}->{pieceRecharge} = 1 * $greenAdj;
-    } else {
-        warn "unknown game speed $speed\n";
-    }
+    $self->{4}->{pieceSpeed} = $pieceSpeed * $greenAdj;
+    $self->{4}->{pieceRecharge} = $pieceRecharge * $greenAdj;
 }
 
 sub _init {
     my $self = shift;
     my $gameKey = shift;
     my $authKey = shift;
-    my $speed = shift;
+    my $pieceSpeed = shift;
+    my $pieceRecharge = shift;
     my $speedAdj = shift;
     my $gameType = shift;
 
-    print "game key: $gameKey, authkey: $authKey, speed: $speed, adj: $speedAdj, gameType: $gameType\n";
+    print "game key: $gameKey, authkey: $authKey, speed: $pieceSpeed/$pieceRecharge, adj: $speedAdj, gameType: $gameType\n";
     
     $self->{continuous} = 1;
     my $cfg = new Config::Simple('kungFuChess.cnf');
@@ -238,12 +223,10 @@ sub _init {
     $self->{timeoutSquares} = {};
     $self->{timeoutCBs} = {};
 
-    $self->{speed} = $speed;
-
     my $ai = 0;
     $self->{ai} = $ai;
 
-    $self->setAdjustedSpeed($speed, $speedAdj);
+    $self->setAdjustedSpeed($pieceSpeed, $pieceRecharge, $speedAdj);
 
     if ($ai) {
         #print "initalizing stockfish...\n";
@@ -345,7 +328,7 @@ sub handleMessage {
             $self->moveIfLegal($msg->{color}, $msg->{fr_bb}, $msg->{to_bb});
         }
     } elsif ($msg->{c} eq 'berserk'){
-        $self->setAdjustedSpeed($self->{speed}, $msg->{speedAdj});
+        $self->setAdjustedSpeed($self->{pieceSpeed}, $self->{pieceRecharge}, $msg->{speedAdj});
     } elsif ($msg->{c} eq 'gameOver'){
         gameOver();
     } elsif ($msg->{c} eq 'gameBegins'){

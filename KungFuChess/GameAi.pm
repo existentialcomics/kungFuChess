@@ -177,6 +177,8 @@ sub _init {
 	my $gameKey = shift;
 	my $authKey = shift;
 	my $speed = shift;
+    my $pieceSpeed = shift;
+    my $pieceRecharge = shift;
 	my $speedAdj = shift;
 	my $mode  = shift;
     my $difficulty = shift;
@@ -184,7 +186,7 @@ sub _init {
     my $domain = shift;
 	my $ai = 1;
 
-    print "game key: $gameKey, authkey: $authKey, speed: $speed, mode: $mode, diff: $difficulty, color: $color\n";
+    print "game key: $gameKey, authkey: $authKey, speed: $speed, mode: $mode, diff: $difficulty, color: $color, domain: $domain\n";
 
     $self->{startTime} = time();
     

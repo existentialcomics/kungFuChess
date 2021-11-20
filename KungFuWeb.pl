@@ -339,31 +339,40 @@ post '/ajax/createChallenge' => sub {
     my $user = $c->current_user();
     $c->stash('user' => $user);
     #   standard/light , 2way/4way , unrated/ai/etc, open to public
-    my ($gameSpeed, $gameType, $gameMode, $open) =
+    my ($gameSpeed, $gameType, $gameMode, $open, $pieceSpeed) =
         ($c->req->param('gameSpeed'),
          $c->req->param('gameType'),
          $c->req->param('gameMode'),
-         $c->req->param('open'));
+         $c->req->param('open'),
+         $c->req->param('pieceSpeed')
+     );
 
     my $rated = ($gameMode eq 'rated' ? 1 : 0);
     #app->log->debug( "speed, type, mode, open: $gameSpeed, $gameType, $gameMode, $open" );
 
     my $gameId = undef;
     my $uid = undef;
+    my $options = {
+        piece_speed    => $pieceSpeed / 10,
+        piece_recharge => $pieceSpeed,
+    };
     if ($gameMode eq 'practice') {
                   # speed, type, open, rated, whiteId, blackId
-        $gameId = createGame($gameType, $gameSpeed, 0, ($user ? $user->{player_id} : ANON_USER), ($user ? $user->{player_id} : ANON_USER), ($user ? $user->{player_id} : ANON_USER), ($user ? $user->{player_id} : ANON_USER));
+        $gameId = createGame($gameType, $gameSpeed, 0, ($user ? $user->{player_id} : ANON_USER), ($user ? $user->{player_id} : ANON_USER), ($user ? $user->{player_id} : ANON_USER), ($user ? $user->{player_id} : ANON_USER), $options);
         if (! $user) {
             app->db()->do("UPDATE games SET black_anon_key = white_anon_key WHERE game_id = ?", {}, $gameId);
         }
     } elsif ($gameMode eq 'ai-easy') {
-        $gameId = createGame($gameType, $gameSpeed, 0, ($user ? $user->{player_id} : ANON_USER), AI_USER_EASY, undef, undef, { 'ai_difficulty' => 1 });
+        $options->{ai_difficulty} = 1;
+        $gameId = createGame($gameType, $gameSpeed, 0, ($user ? $user->{player_id} : ANON_USER), AI_USER_EASY, undef, undef, $options);
     } elsif ($gameMode eq 'ai-medium') {
-        $gameId = createGame($gameType, $gameSpeed, 0, ($user ? $user->{player_id} : ANON_USER), AI_USER_MEDIUM, undef, undef, { 'ai_difficulty' => 2 });
+        $options->{ai_difficulty} = 2;
+        $gameId = createGame($gameType, $gameSpeed, 0, ($user ? $user->{player_id} : ANON_USER), AI_USER_MEDIUM, undef, undef, $options);
     } elsif ($gameMode eq 'ai-hard') {
-        $gameId = createGame($gameType, $gameSpeed, 0, ($user ? $user->{player_id} : ANON_USER), AI_USER_HARD, undef, undef, { 'ai_difficulty' => 3 });
+        $options->{ai_difficulty} = 3;
+        $gameId = createGame($gameType, $gameSpeed, 0, ($user ? $user->{player_id} : ANON_USER), AI_USER_HARD, undef, undef, $options);
     } else {
-        $uid = createChallenge(($user ? $user->{player_id} : ANON_USER), $gameSpeed, $gameType, ($open ? 1 : 0), $rated, undef);
+        $uid = createChallenge(($user ? $user->{player_id} : ANON_USER), $gameSpeed, $gameType, ($open ? 1 : 0), $rated, undef, $options);
     }
 
     my $return = {};
@@ -972,23 +981,24 @@ get '/game/:gameId' => sub {
     $c->stash('speedAdvantage' => $gameRow->{speed_advantage} // 0);
     $c->stash('gameLog'          => $gameRow->{game_log} ? $gameRow->{game_log} : '[]');
     $c->stash('gameStatus'       => $gameRow->{status});
-    my ($timerSpeed, $timerRecharge) = getPieceSpeed($gameRow->{game_speed});
+    my ($pieceSpeed, $pieceRecharge) = ($gameRow->{piece_speed}, $gameRow->{piece_recharge});
     $c->stash('gameSpeed'     => $gameRow->{game_speed});
     $c->stash('gameType'      => $gameRow->{game_type});
     $c->stash('ratingType'    => ($gameRow->{game_speed} . ($gameRow->{game_type} eq '4way' ? "_4way" : '')));
     $c->stash('rated'         => $gameRow->{rated});
     $c->stash('score'         => $gameRow->{score});
     $c->stash('result'        => $gameRow->{result});
-    $c->stash('timerSpeed'    => $timerSpeed);
-    $c->stash('timerSpeedWhite' => $timerSpeed * $whiteAdj);
-    $c->stash('timerSpeedBlack' => $timerSpeed * $blackAdj);
-    $c->stash('timerSpeedRed'   => $timerSpeed * $redAdj);
-    $c->stash('timerSpeedGreen' => $timerSpeed * $greenAdj);
-    $c->stash('timerRecharge' => $timerRecharge);
-    $c->stash('timerRechargeWhite' => $timerRecharge * $whiteAdj);
-    $c->stash('timerRechargeBlack' => $timerRecharge * $blackAdj);
-    $c->stash('timerRechargeRed'   => $timerRecharge * $redAdj);
-    $c->stash('timerRechargeGreen' => $timerRecharge * $greenAdj);
+    $c->stash('pieceSpeed'    => $pieceSpeed);
+    $c->stash('pieceRecharge'   => $pieceRecharge);
+    $c->stash('pieceSpeedWhite' => $pieceSpeed * $whiteAdj);
+    $c->stash('pieceSpeedBlack' => $pieceSpeed * $blackAdj);
+    $c->stash('pieceSpeedRed'   => $pieceSpeed * $redAdj);
+    $c->stash('pieceSpeedGreen' => $pieceSpeed * $greenAdj);
+    $c->stash('pieceRecharge' => $pieceRecharge);
+    $c->stash('pieceRechargeWhite' => $pieceRecharge * $whiteAdj);
+    $c->stash('pieceRechargeBlack' => $pieceRecharge * $blackAdj);
+    $c->stash('pieceRechargeRed'   => $pieceRecharge * $redAdj);
+    $c->stash('pieceRechargeGreen' => $pieceRecharge * $greenAdj);
 
     my $chatLog = app->db()->selectall_arrayref(
         "SELECT chat_log.*, chat_log.player_color as color, UNIX_TIMESTAMP() - UNIX_TIMESTAMP(post_time) as unix_seconds_back, p.screenname FROM chat_log
@@ -1084,23 +1094,6 @@ get '/createGame' => sub {
     $c->render('template' => 'createGame', format => 'html', handler => 'ep');
 };
 
-sub getPieceSpeed {
-    my $speed = shift;
-    my $pieceSpeed = 10;
-    my $pieceRecharge = 10;
-
-    if ($speed eq 'standard') {
-        $pieceSpeed = 10;
-        $pieceRecharge = 10;
-    } elsif ($speed eq 'lightning') {
-        $pieceSpeed = 1;
-        $pieceRecharge = 1;
-    } else {
-        warn "unknown speed $speed\n";
-    }
-    return ($pieceSpeed, $pieceRecharge);
-}
-
 sub getAnonymousUser {
     my $anonUser = {
         'player_id'  => -1,
@@ -1130,6 +1123,8 @@ sub createRematchGame {
                 'redUuid'   => $gameRow->{red_anon_key},
                 'greenUuid' => $gameRow->{green_anon_key},
                 'teams'     => $gameRow->{teams},
+                'piece_speed' => $gameRow->{piece_speed},
+                'piece_recharge' => $gameRow->{piece_recharge},
             },
         )
     }
@@ -1143,11 +1138,39 @@ sub isAiUser {
          || $playerId == AI_USER_BERSERK);
 }
 
+sub getDefaultPieceSpeed {
+    my $speed = shift;
+
+    my $pieceSpeed = 10;
+    my $pieceRecharge = 10;
+
+    if ($speed eq 'standard') {
+        $pieceSpeed = 1;
+        $pieceRecharge = 10;
+    } elsif ($speed eq 'lightning') {
+        $pieceSpeed = 0.1;
+        $pieceRecharge = 1;
+    } else {
+        warn "unknown speed $speed\n";
+    }
+    return ($pieceSpeed, $pieceRecharge);
+}
+
+
 sub createGame {
     my ($type, $speed, $rated, $white, $black, $red, $green, $options) = @_;
     #app->log->debug("creating game with $type, $speed, $rated, $white, $black, $red, $green\n");
 
     $options = $options // {};
+
+    my ($pieceSpeed, $pieceRecharge) = getDefaultPieceSpeed($speed);
+
+    if ($options->{piece_speed}) {
+        $pieceSpeed = $options->{piece_speed};
+    }
+    if ($options->{piece_recharge}) {
+        $pieceRecharge = $options->{piece_recharge};
+    }
 
     my $whiteUid = ($white == ANON_USER || isAiUser($black) ? $options->{whiteUuid} // create_uuid_as_string() : undef);
     my $blackUid = ($black == ANON_USER || isAiUser($black) ? $options->{blackUuid} // create_uuid_as_string() : undef);
@@ -1163,15 +1186,15 @@ sub createGame {
     my $speedAdvantage = $options->{speed_advantage} // undef;
     my $teams = $options->{teams} // undef;
 
-    my $sth = app->db()->prepare("INSERT INTO games (game_id, game_speed, game_type, white_player, black_player, red_player, green_player, rated, white_anon_key, black_anon_key, red_anon_key, green_anon_key, ws_server, server_auth_key, speed_advantage, teams)
-        VALUES (NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-    $sth->execute($speed, $type, $white, $black, $red, $green, $rated, $whiteUid, $blackUid, $redUid, $greenUid, $cfg->param('ws_domain'), $auth, $speedAdvantage, $teams);
+    my $sth = app->db()->prepare("INSERT INTO games (game_id, game_speed, game_type, white_player, black_player, red_player, green_player, rated, white_anon_key, black_anon_key, red_anon_key, green_anon_key, ws_server, server_auth_key, speed_advantage, teams, piece_speed, piece_recharge)
+        VALUES (NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+    $sth->execute($speed, $type, $white, $black, $red, $green, $rated, $whiteUid, $blackUid, $redUid, $greenUid, $cfg->param('ws_domain'), $auth, $speedAdvantage, $teams, $pieceSpeed, $pieceRecharge);
 
     my $gameId = $sth->{mysql_insertid};
 
     my $isAiGame = isAiUser($black);
     if ($isAiGame) {
-        my $lines = `ps aux | grep kungFuChessGame2wayAi.pl | wc -l`;
+        my $lines = `ps aux | grep kungFuChessGame2wayAi.pl | grep -v grep | wc -l`;
         if ($lines) {
             my $activeAiGames = $lines - 1;
             if ($activeAiGames > 1) {
@@ -1183,11 +1206,12 @@ sub createGame {
     # spin up game server, wait for it to send authjoin
     app->log->debug( "starting game client $gameId, $auth" );
     # spin up game server, wait for it to send authjoin
-    my $cmd = sprintf('/usr/bin/perl ./kungFuChessGame%s.pl %s %s %s %s >%s 2>%s &',
+    my $cmd = sprintf('/usr/bin/perl ./kungFuChessGame%s.pl %s %s %s %s %s >%s 2>%s &',
         $type,
         $gameId,
         $auth,
-        $speed,
+        $pieceSpeed,
+        $pieceRecharge,
         $speedAdvantage // "1:1:1:1",
         '/var/log/kungfuchess/' . $gameId . '-game.log',
         '/var/log/kungfuchess/' . $gameId . '-error.log'
@@ -1202,11 +1226,12 @@ sub createGame {
         my $aiUser = new KungFuChess::Player(
             { 'ai' => 1, 'auth_token' => $blackUid }
         );
-        my $cmdAi = sprintf('/usr/bin/perl ./kungFuChessGame%sAi.pl %s %s %s %s %s %s %s 1>%s 2>%s &',
+        my $cmdAi = sprintf('/usr/bin/perl ./kungFuChessGame%sAi.pl %s %s %s %s %s %s %s %s 1>%s 2>%s &',
             $type,
             $gameId,
             $blackUid,
-            $speed,
+            $pieceSpeed,
+            $pieceRecharge,
             $speedAdvantage // "1:1:1:1",
             $options->{ai_difficulty} // 1,
             2, # BLACK
@@ -1691,9 +1716,23 @@ websocket '/ws' => sub {
                         connectionBroadcast($self, $return);
                         return 0;
                     }
+                    if ($args eq 'white black' || $args eq 'across' || $args eq 'wb' || $args eq 'red green' || $args eq 'rg') {
+                        $args = '1-1-0-0';
+                    }
+                    if ($args eq 'white red' || $args eq 'wr' || $args eq 'black green' || $args eq 'bg') {
+                        $args = '1-0-1-0';
+                    }
+                    if ($args eq 'white green' || $args eq 'wg' || $args eq 'black red' || $args eq 'br') {
+                        $args = '1-0-0-1';
+                    }
                     if ($args =~ m/^[0-1]-[0-1]-[0-1]-[0-1]$/) {
                         app()->db->do("UPDATE games SET teams = ? WHERE game_id = ? limit 1", {}, $args, $game->{id});
                         $game->setTeams($args);
+                        my $sysMsg = {
+                            'c'   => 'systemMsg', 
+                            'msg' => 'teams changed to: ' . $args
+                        };
+                        $game->gameBroadcast($sysMsg);
                         my $commandMsg = {
                             'c' => 'refresh'
                         };
@@ -1701,7 +1740,7 @@ websocket '/ws' => sub {
                     } else {
                         my $sysMsg = {
                             'c'   => 'systemMsg', 
-                            'msg' => 'teams command format: /teams 1-0-1-1 (white-black-red-green)'
+                            'msg' => 'teams command format: /teams 1-0-1-0 (white-black-red-green)'
                         };
                         $game->playerBroadcast($sysMsg);
                     }
@@ -2563,21 +2602,16 @@ sub getMyOpenGame {
     ### TODO if not anon user delete other games
     my $myGame = app->db()->selectrow_hashref('
         SELECT
-            p.player_id,
-            p.rated,
-            p.private_game_key,
-            p.game_speed,
-            p.game_type,
-            p.matched_game,
+            p.*,
             py.rating_standard,
             py.rating_lightning,
-            IF(p.player_id = -1, "(anon)", py.screenname),
+            IF(py.player_id = -1, "(anon)", py.screenname) as screenname,
             py2.rating_standard as rating2_standard,
             py2.rating_lightning as rating2_lightning,
-            py2.screenname as screenname2,
+            IF(p.challenge_player_id = -1, "(anon)", py2.screenname) as screenname2,
             py3.rating_standard as rating3_standard,
             py3.rating_lightning as rating3_lightning,
-            py3.screenname as screenname3
+            IF(p.player_id = -1, "(anon)", py3.screenname) as screenname3
         FROM pool p
         LEFT JOIN players py ON p.player_id = py.player_id
         LEFT JOIN players py2 ON p.challenge_player_id = py2.player_id
@@ -2610,11 +2644,7 @@ sub getMyOpenGame {
 sub getOpenGames {
     my $poolRows = app->db()->selectall_arrayref('
         SELECT
-            p.player_id,
-            p.rated,
-            p.private_game_key,
-            p.game_speed,
-            p.game_type,
+            p.*,
             py.rating_standard,
             py.rating_lightning,
             IF(py.player_id = -1, "(anon)", py.screenname) as screenname,
@@ -2673,18 +2703,26 @@ sub enterUpdatePool {
 }
 
 sub createChallenge {
-    my ($playerId, $gameSpeed, $gameType, $open, $rated, $challengePlayer) = @_;
+    my ($playerId, $gameSpeed, $gameType, $open, $rated, $challengePlayer, $options) = @_;
 
     if ($playerId != ANON_USER) {
         app->db()->do("DELETE FROM pool WHERE player_id = ?", {}, $playerId);
     }
 
+    my ($pieceSpeed, $pieceRecharge) = getDefaultPieceSpeed($gameSpeed);
+    if ($options->{piece_speed}) {
+        $pieceSpeed = $options->{piece_speed};
+    }
+    if ($options->{piece_recharge}) {
+        $pieceRecharge = $options->{piece_recharge};
+    }
+
     my $sth = app->db()->prepare('INSERT INTO pool
-        (player_id, game_speed, game_type, open_to_public, rated, private_game_key, in_matching_pool, last_ping, challenge_player_id)
-        VALUES (?, ?, ?, ?, ?, ?, 0, NOW(), ?)');
+        (player_id, game_speed, piece_speed, piece_recharge, game_type, open_to_public, rated, private_game_key, in_matching_pool, last_ping, challenge_player_id)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, NOW(), ?)');
 
     my $uuid = create_uuid_as_string();
-    $sth->execute($playerId, $gameSpeed, $gameType, $open, $rated, $uuid, $challengePlayer);
+    $sth->execute($playerId, $gameSpeed, $pieceSpeed, $pieceRecharge, $gameType, $open, $rated, $uuid, $challengePlayer);
 
     return $uuid;
 }
@@ -2732,14 +2770,21 @@ sub matchGameUid {
                 $poolRow->{player_id},
                 $poolRow->{challenge_player_id},
                 $poolRow->{challenge_player_2_id},
-                $playerId
+                $playerId,
+                { 
+                    piece_speed => $poolRow->{piece_speed},
+                    piece_recharge => $poolRow->{piece_recharge},
+                }
             );
             app->db()->do('UPDATE pool SET matched_game = ?, challenge_player_3_id = ? WHERE private_game_key = ?', {}, $gameId, $playerId, $uid);
             return $gameId;
         }
 
     } else {
-        my $options = {
+        my $options =
+        { 
+            piece_speed => $poolRow->{piece_speed},
+            piece_recharge => $poolRow->{piece_recharge},
         };
         if ($poolRow->{player_id} == ANON_USER) {
             $options->{blackUuid} = $poolRow->{private_game_key}

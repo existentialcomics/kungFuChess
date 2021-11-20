@@ -90,7 +90,7 @@ CREATE TABLE `game_log` (
   `rated` tinyint(4) NOT NULL DEFAULT '1',
   `time_ended` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`game_log_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=6413 DEFAULT CHARSET=latin1;
+) ENGINE=InnoDB AUTO_INCREMENT=6433 DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -132,7 +132,7 @@ CREATE TABLE `games` (
   `piece_speed` decimal(4,2) NOT NULL DEFAULT '1.00',
   PRIMARY KEY (`game_id`),
   KEY `game_auth_idx` (`server_auth_key`)
-) ENGINE=InnoDB AUTO_INCREMENT=34576 DEFAULT CHARSET=latin1;
+) ENGINE=InnoDB AUTO_INCREMENT=34618 DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
 ALTER DATABASE `kungfuchess` CHARACTER SET latin1 COLLATE latin1_swedish_ci ;
 /*!50003 SET @saved_cs_client      = @@character_set_client */ ;
@@ -259,7 +259,9 @@ CREATE TABLE `pool` (
   `challenge_player_id` int(11) DEFAULT NULL,
   `challenge_player_2_id` int(11) DEFAULT NULL,
   `challenge_player_3_id` int(11) DEFAULT NULL,
-  `average_rating` int(11) DEFAULT '1400'
+  `average_rating` int(11) DEFAULT '1400',
+  `piece_speed` decimal(4,2) NOT NULL DEFAULT '1.00',
+  `piece_recharge` decimal(4,2) NOT NULL DEFAULT '10.00'
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -288,4 +290,4 @@ CREATE TABLE `session` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2021-11-13 14:59:44
+-- Dump completed on 2021-11-19 22:19:39

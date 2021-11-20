@@ -11,6 +11,12 @@
                     <label class="btn btn-outline-primary" for="standardRadio">Standard</label>
                     <input type="radio" class="btn-check" name="gameSpeed" id="lightningRadio" autocomplete="off" value="lightning">
                     <label class="btn btn-outline-primary" for="lightningRadio">Lightning</label>
+                    <input type="radio" class="btn-check" name="gameSpeed" id="customRadio" autocomplete="off" value="standard">
+                    <label class="btn btn-outline-primary" for="customRadio">Custom</label>
+                </div>
+                <label id="pieceSpeedLabel" for="pieceSpeed" class="col col-form-label col-form-label-lg">PieceSpeed: 10/1</label>
+                <div class="btn-group d-flex" role="group" aria-label="Piece Speed">
+                    <input type="range" class="form-range" min="1" max="10" id="pieceSpeedRange" value="10" name="pieceSpeed" disabled>
                 </div>
                 <label for="gameType" class="col col-form-label col-form-label-lg">Number of Players</label>
                 <div class="btn-group d-flex" role="group" aria-label="Board type">

@@ -23,7 +23,7 @@
             <% if ($myGame->{'rating3_' . $myGame->{'game_speed'}}) { %><%= $myGame->{'rating3_' . $myGame->{'game_speed'}} %><% } %>
         </td>
         <td>
-            <%= $myGame->{game_speed} %>
+            <%= $myGame->{game_speed} %> (<%= $myGame->{piece_recharge} %>/<%= $myGame->{piece_speed} %>)
         </td>
         <td>
             <%= $myGame->{game_type} %>
@@ -62,7 +62,7 @@
                     <% if ($game->{'rating3_' . $game->{'game_speed'}}) { %><%= $game->{'rating3_' . $game->{'game_speed'}} %><% } %>
                 </td>
                 <td>
-                    <%= $game->{game_speed} %>
+                    <%= $game->{game_speed} %> (<%= int($game->{piece_recharge}) %>/<%= sprintf('%0.1f',$game->{piece_speed}) %>)
                 </td>
                 <td>
                     <%= $game->{game_type} %>

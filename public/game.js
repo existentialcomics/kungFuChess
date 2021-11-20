@@ -23,7 +23,6 @@ var rematches = [];
 
 var sweepAudio = null;
 
-
 $(function () {
     $("#enter-pool").click(function() {
         if (checkPoolRunning) {
@@ -72,8 +71,23 @@ width = boardContent.width();
 height = $("#boardContainer").width();
 
 $(window).resize(function(){
+    piecesByImageId = {};
+    stage.destroyChildren();
+    stage.clear();
+    stage.draw();
+    pieceLayer.destroyChildren();
+    boardLayer.destroyChildren();
+    delayLayer.destroyChildren();
     width = boardContent.width();
     height = $("#boardContainer").width();
+    stage = setupBoard();
+    stage = setupEvents(stage);
+    for(id in pieces){
+        pieces[id].refreshImage();
+    }
+    boardLayer.draw();
+    delayLayer.draw();
+    pieceLayer.draw();
 });
 
 var blackLastSeen = null;
@@ -1280,8 +1294,19 @@ var getPiece = function(x, y, color, image){
     piece.y = y;
     piece.color = color;
     piece.image = getPieceImage(x, y, image);
+    piece.rawImage = image;
     piece.isMoving  = false;
     piece.firstMove = true;
+
+    piece.refreshImage = function() {
+        piece.image = getPieceImage(piece.x, piece.y, piece.rawImage);
+        if (piece.color == myColor || myColor == 'both'){
+            piece.image.draggable(true);
+        }
+        piece.image_id = piece.image._id;
+        piecesByImageId[piece.image_id] = piece;
+        pieceLayer.add(piece.image);
+    }
     
     if (color == 'white') {
         piece.timerSpeed = timerSpeedWhite;
@@ -1325,11 +1350,27 @@ var getPiece = function(x, y, color, image){
         var dy = y - piece.y;
         var vectorLen = Math.sqrt((dx * dx) + (dy * dy));
         piece.image.shadowOpacity(0.3);
-        piece.image.shadowOffset({
-            x: (-dx * boardSize / 2) / vectorLen,
-            y: (-dy * boardSize / 2) / vectorLen
-        });
-
+        if (myColor == 'black') {
+            piece.image.shadowOffset({
+                x: (-dx * boardSize / 2) / vectorLen,
+                y: ( dy * boardSize / 2) / vectorLen
+            });
+        } else if (myColor == 'red') {
+            piece.image.shadowOffset({
+                x: (-dy * boardSize / 2) / vectorLen,
+                y: ( dx * boardSize / 2) / vectorLen
+            });
+        } else if (myColor == 'green') {
+            piece.image.shadowOffset({
+                x: (-dy * boardSize / 2) / vectorLen,
+                y: (-dx * boardSize / 2) / vectorLen
+            });
+        } else {
+            piece.image.shadowOffset({
+                x: (-dx * boardSize / 2) / vectorLen,
+                y: (-dy * boardSize / 2) / vectorLen
+            });
+        }
         isLegal = true;
         this.start_x = this.x;
         this.start_y = this.y;
@@ -1346,7 +1387,7 @@ var getPiece = function(x, y, color, image){
             var x_dist = Math.abs(this.start_x - this.x);
             var y_dist = Math.abs(this.start_y - this.y);
             var longer_dist = (x_dist > y_dist ? x_dist : y_dist);
-            piece.anim_length =  (longer_dist * piece.timerSpeed * speedAdj/ 10) * 1000;
+            piece.anim_length =  (longer_dist * piece.timerSpeed * speedAdj) * 1000;
             piece.anim = new Konva.Animation(function(frame) {
                 var new_x = (piece.start_x * width / boardSize) + ((piece.x - piece.start_x) * (frame.time / piece.anim_length) * width / boardSize);
                 var new_y = (piece.start_y * width / boardSize) + ((piece.y - piece.start_y) * (frame.time / piece.anim_length) * width / boardSize);
@@ -1510,66 +1551,65 @@ var setupBoard = function(){
     return stage;
 } 
 
+var setupEvents = function(stage) {
+    stage.on("dragstart", function(e){
+        console.log('dragstart');
+        var pos = stage.getPointerPosition();
+        e.target.offsetX(e.target.x() - pos.x + (width  / boardSize / 2));
+        e.target.offsetY(e.target.y() - pos.y + (height / boardSize / 2));
+        pieceLayer.draw();
+        e.target.opacity(0.5);
+    });
+
+    var previousShape;
+    //stage.on("dragmove", function(evt){
+    //    var pos = stage.getPointerPosition();
+    //});
+    stage.on("dragend", function(e){
+        var pos = stage.getPointerPosition();
+
+        e.target.offsetX(0);
+        e.target.offsetY(0);
+        console.log('dragend');
+
+        piece = piecesByImageId[e.target._id];
+
+        piece.setImagePos(piece.x, piece.y);
+        boardPos = getBoardPos(pos);
+
+        var msg = {
+            'c'  : 'move',
+            'id' : piece.id,
+            'x'  : boardPos.x,
+            'y'  : boardPos.y,
+            'move' : xToFile[piece.x] + yToRank[piece.y] + xToFile[boardPos.x] + yToRank[boardPos.y]
+        }
+        sendMsg(msg);
+
+        e.target.opacity(1);
+        pieceLayer.draw();
+    });
+    stage.on("dragenter", function(e){
+        //pieceLayer.draw();
+    });
+
+    stage.on("dragleave", function(e){
+        //pieceLayer.draw();
+    });
+
+    stage.on("dragover", function(e){
+        //pieceLayer.draw();
+    });
+
+    stage.on("drop", function(e){
+        //var pos = stage.getPointerPosition();
+        //pieceLayer.draw();
+    });
+    return stage;
+};
+
 var stage = setupBoard();
-
-var tempLayer = new Konva.Layer();
-stage.add(tempLayer);
-var text = new Konva.Text({
-    fill : 'black'
-});
-stage.on("dragstart", function(e){
-    //e.target.moveTo(tempLayer);
-    var pos = stage.getPointerPosition();
-	e.target.offsetX(e.target.x() - pos.x + (width  / boardSize / 2));
-	e.target.offsetY(e.target.y() - pos.y + (height / boardSize / 2));
-    pieceLayer.draw();
-    e.target.opacity(0.5);
-});
-
-var previousShape;
-//stage.on("dragmove", function(evt){
-//    var pos = stage.getPointerPosition();
-//});
-stage.on("dragend", function(e){
-    var pos = stage.getPointerPosition();
-
-	e.target.offsetX(0);
-	e.target.offsetY(0);
-
-    piece = piecesByImageId[e.target._id];
-
-    piece.setImagePos(piece.x, piece.y);
-    boardPos = getBoardPos(pos);
-
-	var msg = {
-		'c'  : 'move',
-		'id' : piece.id,
-		'x'  : boardPos.x,
-		'y'  : boardPos.y,
-        'move' : xToFile[piece.x] + yToRank[piece.y] + xToFile[boardPos.x] + yToRank[boardPos.y]
-	}
-    sendMsg(msg);
-
-    e.target.opacity(1);
-    pieceLayer.draw();
-});
-stage.on("dragenter", function(e){
-    pieceLayer.draw();
-});
-
-stage.on("dragleave", function(e){
-    e.target.fill('blue');
-    pieceLayer.draw();
-});
-
-stage.on("dragover", function(e){
-    pieceLayer.draw();
-});
-
-stage.on("drop", function(e){
-    var pos = stage.getPointerPosition();
-    pieceLayer.draw();
-});
+stage = setupEvents(stage);
 
 // ------------- CHAT
 
