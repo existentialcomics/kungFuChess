@@ -2859,7 +2859,7 @@ sub matchPool {
             ) {
                 return $matched_game;
             } else { ### the matched game is over or obsolete
-                app->db()->do("DELETE FROM pool private_game_key = ?", {}, $uuid);
+                app->db()->do("DELETE FROM pool WHERE private_game_key = ?", {}, $uuid);
                 return undef;
             }
         }
