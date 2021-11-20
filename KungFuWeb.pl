@@ -356,6 +356,8 @@ post '/ajax/createChallenge' => sub {
         piece_speed    => $pieceSpeed / 10,
         piece_recharge => $pieceSpeed,
     };
+
+    $gameSpeed = ($options->{piece_speed} < 0.4 ? 'lightning' : 'standard');
     if ($gameMode eq 'practice') {
                   # speed, type, open, rated, whiteId, blackId
         $gameId = createGame($gameType, $gameSpeed, 0, ($user ? $user->{player_id} : ANON_USER), ($user ? $user->{player_id} : ANON_USER), ($user ? $user->{player_id} : ANON_USER), ($user ? $user->{player_id} : ANON_USER), $options);
