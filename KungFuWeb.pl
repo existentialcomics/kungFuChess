@@ -339,7 +339,7 @@ post '/ajax/createChallenge' => sub {
     my $user = $c->current_user();
     $c->stash('user' => $user);
     #   standard/light , 2way/4way , unrated/ai/etc, open to public
-    my ($gameSpeed, $gameType, $gameMode, $open, $pieceSpeed) =
+    my ($gameSpeed, $gameType, $gameMode, $open, $pieceSpeedParam) =
         ($c->req->param('gameSpeed'),
          $c->req->param('gameType'),
          $c->req->param('gameMode'),
@@ -347,14 +347,23 @@ post '/ajax/createChallenge' => sub {
          $c->req->param('pieceSpeed')
      );
 
+    my $pieceSpeed = undef;
+    my $pieceRecharge = undef;
+
+    my $options = {};
+    if (! $pieceSpeedParam) {
+        ($pieceSpeed, $pieceRecharge) = getDefaultPieceSpeed($gameSpeed);
+    } else {
+        $pieceRecharge = $pieceSpeed * 10;
+    }
     my $rated = ($gameMode eq 'rated' ? 1 : 0);
     #app->log->debug( "speed, type, mode, open: $gameSpeed, $gameType, $gameMode, $open" );
 
     my $gameId = undef;
     my $uid = undef;
-    my $options = {
-        piece_speed    => $pieceSpeed / 10,
-        piece_recharge => $pieceSpeed,
+    $options = {
+        piece_speed    => $pieceSpeed,
+        piece_recharge => $pieceRecharge,
     };
 
     $gameSpeed = ($options->{piece_speed} < 0.4 ? 'lightning' : 'standard');
