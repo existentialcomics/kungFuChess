@@ -78,7 +78,7 @@ while ($go) {
         my $depth = $2;
         my $start = time();
         print KungFuChess::Bitboards::pretty_ai();
-        my $moves = KungFuChess::Bitboards::aiThink($depth, $time);
+        my $moves = KungFuChess::Bitboards::aiThink($depth, $time, 2);
         my $suggestedMoves = KungFuChess::Bitboards::aiRecommendMoves(2, 999);
 
         print "---- white ----\n";

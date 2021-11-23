@@ -18,6 +18,7 @@ my $aiRandomness = 50; # in points, 100 = PAWN
 ### for alpha/beta pruning
 my $aiAlpha = undef;
 my $aiBeta  = undef; 
+my $aiScore = undef;  ### current score
 
 my $aiColor = undef;
 
@@ -66,9 +67,11 @@ use constant ({
     MOVE_PIECE      => 2,
     MOVE_PIECE_TYPE => 3,
     MOVE_SCORE      => 4,
-    MOVE_NEXT_MOVES => 5,
-    MOVE_DEPTH      => 6, # how much deeper we have analized from THIS point in the tree, -1 means we've pruned this tree
-    MOVE_STATE      => 7,
+    MOVE_ALPHA      => 5, # higher our score
+    MOVE_BETA       => 6, # lowest their score
+    MOVE_NEXT_MOVES => 7,
+    MOVE_DEPTH      => 8, # how much deeper we have analized from THIS point in the tree, -1 means we've pruned this tree
+    MOVE_STATE      => 9,
 
     ### AI variables
     AI_FUTILITY  => 350,  # point loss from move to prune from tree
@@ -296,7 +299,6 @@ our @EXPORT_OK = qw(MOVE_NONE MOVE_NORMAL MOVE_PROMOTE MOVE_EN_PASSANT MOVE_CAST
 my %whiteMoves = ();
 my %blackMoves = ();
 my $currentMoves = undef;
-my $currentScore = 0;
 
 sub getCurrentMoves {
     return $currentMoves;
@@ -1541,8 +1543,8 @@ sub evaluate {
                     $material[$color] += 900;
                     @pmoves = @MOVES_Q;
                 }
-                my $inXray = 0;
                 foreach my $shift (@pmoves) {
+                    my $inXray = 0;
                     my $to = $fr;
                     $to = shift_BB($to, $shift);
                     while ($to != 0) {
@@ -1556,8 +1558,9 @@ sub evaluate {
                             $attackingUnFrozen[$color]->[ALL_P]      |= $to;
                         }
                         if ($to & $us){ # we ran into ourselves
-                            $to = 0;
-                            next;
+                            $inXray = 1;
+                            #$to = 0;
+                            #next;
                         }
                         ### we ran into a currently moving piece, best to forget it
                         if ($to & $ai_movingBB) {
@@ -1746,19 +1749,18 @@ sub evaluate {
                             $queenDangerPenalty[$us] += 750;
                         }
                     }
-                #### implement king ring
                 } elsif ($pType == KING) {
                     if ($attackingUnFrozen[$them][ALL_P] & $bb) {
                         $kingDangerPenalty[$color] += 1500;
                     }
                     if ($attackingFrozen[$them][ALL_P] & $bb) {
-                        $kingDangerPenalty[$color] += 200;
+                        $kingDangerPenalty[$color] += 110;
                     }
                     if ($attackingUnFrozen[$them][ALL_P] & $kingRing[$us]) {
-                        $kingDangerPenalty[$color] += 180;
+                        $kingDangerPenalty[$color] += 120;
                     }
                     if ($attackingFrozen[$them][ALL_P] & $kingRing[$us]) {
-                        $kingDangerPenalty[$color] += 30;
+                        $kingDangerPenalty[$color] += 20;
                     }
                 }
             }
@@ -1797,30 +1799,37 @@ sub clearAiMoves {
 }
 
 sub aiThink {
-    my ($depth, $timeToThink) = @_;
+    my ($depth, $timeToThink, $color) = @_;
     resetAiBoards();
+
+    print "thinking ...\n";
+
+    ### global
+    $aiColor = $color;
+    $aiAlpha = ($color == WHITE ? -99999 :  99999); 
+    $aiBeta  = ($color == WHITE ?  99999 : -99999); 
 
     $aiDebugEvalCount = 0;
     if (! $currentMoves) {
         #print "doing eval\n";
-        ($currentScore, $currentMoves) = evaluate();
-        #print "eval score: $currentScore\n";
+        ($aiScore, $currentMoves) = evaluate();
+        #print "eval score: $aiScore\n";
     }
 
     my $currentDepth = $depth;
     my $state = undef;
-    ($currentScore, $currentMoves, $state) = evaluateTree(
+    ($aiScore, $currentMoves, $state) = evaluateTree(
         0,                      ### the depth we are at
         $currentDepth,          ### max depth to search
         $currentDepth,          ### max depth to search
         time() + $timeToThink,  
         $currentMoves,
-        $currentScore,
+        $aiScore,
         ''
     );
 
     print "AiEvalCount  : $aiDebugEvalCount\n";
-    print "currentScore : $currentScore\n";
+    print "aiScore : $aiScore\n";
 
     return $currentMoves;
 }
@@ -1903,6 +1912,12 @@ sub evaluateTree {
                 next if ($depth + 1 > $maxDepthB); 
             }
 
+            if (defined($aiColor) && defined($aiBeta) && $aiColor == WHITE) {
+                next if $move->[MOVE_SCORE] > $aiBeta + 500;
+            } elsif (defined($aiColor) && defined($aiBeta) && $aiColor == BLACK) {
+                next if $move->[MOVE_SCORE] < $aiBeta - 500;
+            }
+
             my $moveS = "";
             $moveS = KungFuChess::BBHash::getSquareFromBB($move->[MOVE_FR]) . KungFuChess::BBHash::getSquareFromBB($move->[MOVE_TO]);
             if ($aiDebug) {
@@ -1923,6 +1938,7 @@ sub evaluateTree {
             next if ($move->[MOVE_FR] & $ai_frozenBB);
 
             my $undoPiece;
+            ### TODO unfreeze enemy pieces?
             my $frozenUndo = $ai_frozenBB;
             $undoPiece = do_move_ai($move->[MOVE_FR], $move->[MOVE_TO]);
             my ($newScore, $newMoves, $state) = evaluateTree($depth + 1, $maxDepthW, $maxDepthB, $stopTime, $move->[MOVE_NEXT_MOVES], $move->[MOVE_SCORE], $moveString . $moveS . " ");
@@ -1961,6 +1977,37 @@ sub evaluateTree {
 
     $moves->[WHITE] = \@w;
     $moves->[BLACK] = \@b;
+    
+    #print Dumper($moves->[BLACK]->[0]);
+    #print Dumper($moves->[WHITE]->[0]);
+
+    if (defined($aiColor) && $aiColor == WHITE) {
+        if ($moves->[WHITE]->[0]->[MOVE_SCORE] > $aiAlpha) {
+            $aiAlpha = $moves->[WHITE]->[0]->[MOVE_SCORE];
+        }
+        if ($moves->[BLACK]->[0]->[MOVE_SCORE] < $aiBeta) {
+            $aiBeta = $moves->[BLACK]->[0]->[MOVE_SCORE];
+        }
+    } elsif (defined($aiColor) && $aiColor == BLACK) {
+        #print "$moves->[BLACK]->[0]->[MOVE_SCORE] vs $aiAlpha\n";
+        if (defined($moves->[BLACK]->[0]->[MOVE_SCORE])) {
+            if ($moves->[BLACK]->[0]->[MOVE_SCORE] > $aiAlpha) {
+                #print "  skip\n";
+            }
+            if ($moves->[BLACK]->[0]->[MOVE_SCORE] < $aiAlpha) {
+                #print "  set\n";
+                $aiAlpha = $moves->[BLACK]->[0]->[MOVE_SCORE];
+            }
+        }
+        #if (defined($moves->[BLACK]->[0]->[MOVE_SCORE]) && $moves->[WHITE]->[0]->[MOVE_SCORE] > $aiBeta) {
+            #$aiBeta = $moves->[WHITE]->[0]->[MOVE_SCORE];
+        #}
+    }
+
+    #print "
+    #alpha: $aiAlpha
+    #beta : $aiBeta
+    #";
 
     my $treeScore = $score;
     if (defined($moves->[WHITE]->[0]->[MOVE_SCORE]) && 

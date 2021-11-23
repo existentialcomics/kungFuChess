@@ -219,31 +219,31 @@ sub _init {
     if ($speed eq 'standard') {
         $self->{pieceSpeed} = 1;
         $self->{pieceRecharge} = 10;
-        if ($difficulty == 1) {
+        if ($difficulty eq '1') {
             $self->{ai_thinkTime} = 1;
             $self->{ai_depth} = 1;
             $self->{ai_simul_moves} = 1;
             $self->{ai_delay} = 1_000_000; ### random delay between moves in microseconds
             $self->{ai_min_delay} = 0; 
-        } elsif ($difficulty == 2) {
+        } elsif ($difficulty eq '2') {
             $self->{ai_thinkTime} = 1;
             $self->{ai_depth} = 2;
             $self->{ai_simul_moves} = 2;
             $self->{ai_delay} = 500_000; ### random delay between moves in microseconds
             $self->{ai_min_delay} = 0; 
-        } elsif ($difficulty == 3) {
+        } elsif ($difficulty eq '3') {
             $self->{ai_thinkTime} = 1.50;
             $self->{ai_depth} = 3;
             $self->{ai_simul_moves} = 4;
             $self->{ai_delay} = 200_000; ### random delay between moves in microseconds
             $self->{ai_min_delay} = 0; 
-        } elsif ($difficulty == 3) {
+        } elsif ($difficulty eq '4') {
             $self->{ai_thinkTime} = 2.50;
             $self->{ai_depth} = 4;
             $self->{ai_simul_moves} = 3;
             $self->{ai_delay} = 300_000; ### random delay between moves in microseconds
             $self->{ai_min_delay} = 0; 
-        } elsif ($difficulty == 'human_a') {
+        } elsif ($difficulty eq 'human_a') {
             $self->{ai_thinkTime} = 3.00;
             $self->{ai_depth} = 3;
             $self->{ai_simul_moves} = 2;
@@ -256,22 +256,23 @@ sub _init {
             $self->{ai_delay} = 200_000; ### random delay between moves in microseconds
         }
     } elsif ($speed eq 'lightning') {
-        if ($difficulty == 1) {
+        $self->{pieceRecharge} = 2;
+        if ($difficulty eq '1') {
             $self->{ai_thinkTime} = 0.75;
             $self->{ai_depth} = 1;
             $self->{ai_simul_moves} = 1;
             $self->{ai_delay} = 800_000; ### random delay between moves in microseconds
-        } elsif ($difficulty == 2) {
+        } elsif ($difficulty eq '2') {
             $self->{ai_thinkTime} = 0.5;
             $self->{ai_depth} = 2;
             $self->{ai_simul_moves} = 2;
             $self->{ai_delay} = 300_000; ### random delay between moves in microseconds
-        } elsif ($difficulty == 3) {
+        } elsif ($difficulty eq '3') {
             $self->{ai_thinkTime} = 0.3;
             $self->{ai_depth} = 2;
             $self->{ai_simul_moves} = 3;
             $self->{ai_delay} = 1_000; ### random delay between moves in microseconds
-        } elsif ($difficulty == 'human_a') {
+        } elsif ($difficulty eq 'human_a') {
             $self->{ai_thinkTime} = 0.50;
             $self->{ai_depth} = 2;
             $self->{ai_simul_moves} = 1;
@@ -426,6 +427,26 @@ sub setupInitialBoard {
     KungFuChess::Bitboards::setupInitialPosition();
 }
 
+sub setFrozen {
+    my $self = shift;
+    my $to_bb = shift;
+
+    my $time = time();
+    $self->{timeoutSquares}->{$to_bb}->{'time'} = $time;
+    KungFuChess::Bitboards::setFrozen($to_bb);
+    $self->{timeoutCBs}->{$to_bb} = AnyEvent->timer(
+        after => ($self->{pieceRecharge} * 0.9),
+        cb => sub {
+            ### if the time doesn't match, another piece has moved here
+            if ($time == $self->{timeoutSquares}->{$to_bb}->{'time'}) { 
+                KungFuChess::Bitboards::unsetFrozen($to_bb);
+                delete $self->{timeoutSquares}->{$to_bb};
+                delete $self->{timeoutCBs}->{$to_bb};
+            }
+        }
+    );
+}
+
 sub handleMessage {
 	my $self = shift;
 	my ($msg, $conn) = @_;
@@ -435,10 +456,10 @@ sub handleMessage {
         KungFuChess::Bitboards::move($msg->{fr_bb} + 0, $msg->{to_bb} + 0);
         KungFuChess::Bitboards::setMoving($msg->{to_bb} + 0);
         KungFuChess::Bitboards::resetAiBoards(1);
-        delete $self->{frozen}->{$msg->{fr_bb}};
-        $self->{frozen}->{$msg->{to_bb}} = time();
+        $self->setFrozen($msg->{to_bb} + 0);
 	} elsif ($msg->{c} eq 'stop'){
         KungFuChess::Bitboards::unsetMoving($msg->{fr_bb} + 0);
+        delete $self->{frozen}->{$msg->{fr_bb}};
 	} elsif ($msg->{c} eq 'moveAnimate'){
         ### dodge that shit
         if ($msg->{color} == 1) {
@@ -455,7 +476,7 @@ sub handleMessage {
             $self->{suspendedPieces}->{$msg->{to_bb}},
             $msg->{to_bb} + 0
         );
-        $self->{frozen}->{$msg->{to_bb}} = time();
+        $self->setFrozen($msg->{to_bb} + 0);
         delete $self->{suspendedPieces}->{$msg->{to_bb}};
         KungFuChess::Bitboards::resetAiBoards(1);
     } elsif ($msg->{c} eq 'promote'){
@@ -476,10 +497,10 @@ sub handleMessage {
         delete $self->{frozen}->{$msg->{bb}};
         KungFuChess::Bitboards::_removePiece($msg->{bb} + 0);
         KungFuChess::Bitboards::resetAiBoards(1);
-	} elsif ($msg->{c} eq 'playerlost' || $msg->{c} eq 'resign' || $msg->{c} eq 'abort'){
+	} elsif ($msg->{c} eq 'playerlost' || $msg->{c} eq 'resign' || $msg->{c} eq 'gameOver'){
         exit;
 	} elsif ($msg->{c} eq 'gameBegins'){
-        print "game begins\n";
+        #print "game begins\n";
         $self->{gameStartTime} = time();
         # to prevent autodraw from coming up right away
         my $startTime = time() + $msg->{seconds};
@@ -535,6 +556,9 @@ sub handleMessage {
                         $self->{movesQueue} = [];
                 } else {
                     KungFuChess::Bitboards::resetAiBoards(1);
+                    #print KungFuChess::Bitboards::getFENstring();
+                    #print KungFuChess::Bitboards::pretty_ai();
+                    #print KungFuChess::Bitboards::debug();
                     # depth, thinkTime
                     my $start = time();
                     KungFuChess::Bitboards::aiThink(1, $self->{ai_thinkTime});
@@ -544,8 +568,6 @@ sub handleMessage {
                     if ($self->{ai_depth} >= 3 && (time() - $start) < $self->{ai_thinkTime}) {
                         KungFuChess::Bitboards::aiThink(3, $self->{ai_thinkTime});
                     }
-                    #print KungFuChess::Bitboards::getFENstring();
-                    #print KungFuChess::Bitboards::pretty_ai();
                     my $suggestedMoves = KungFuChess::Bitboards::aiRecommendMoves($self->{color}, $self->{ai_simul_moves});
 
                     my $fr_moves = {};
@@ -556,15 +578,16 @@ sub handleMessage {
                         #print KungFuChess::BBHash::getSquareFromBB($move->[1]);
                         #print "\n";
                         ### skip frozen pieces or it will premove
-                        if (defined($self->{frozen}->{$move->[0]}) &&
-                            $self->{frozen}->{$move->[0]} + $self->{pieceRecharge} > time() ) {
-                            next;
+                        if (defined($self->{tieoutSquares}->{$move->[0]})) {
+                            last;
                         }
                         ### don't move if we already moved from or to the same spot!
                         if (exists($fr_moves->{$move->[1]})) {
+                            #print "fr move!\n";
                             next;
                         }
                         if (exists($to_moves->{$move->[1]})) {
+                            #print "to move!\n";
                             next;
                         }
                         $fr_moves->{$move->[0]} = 1;
