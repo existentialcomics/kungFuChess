@@ -354,7 +354,8 @@ post '/ajax/createChallenge' => sub {
     if (! $pieceSpeedParam) {
         ($pieceSpeed, $pieceRecharge) = getDefaultPieceSpeed($gameSpeed);
     } else {
-        $pieceRecharge = $pieceSpeed * 10;
+        $pieceRecharge = $pieceSpeedParam;
+        $pieceSpeed    = $pieceSpeedParam / 10;
     }
     my $rated = ($gameMode eq 'rated' ? 1 : 0);
     #app->log->debug( "speed, type, mode, open: $gameSpeed, $gameType, $gameMode, $open" );

@@ -1,0 +1,28 @@
+#!/bin/bash
+# Install the following from apt:
+
+sudo apt install build-essential
+sudo apt install libmojolicious-perl
+sudo apt install libmojolicious-plugin-authentication-perl
+
+sudo apt install mariadb-server
+sudo apt install libclass-dbi-perl
+sudo apt install libclass-dbi-mysql-perl
+
+# https://www.digitalocean.com/community/tutorials/how-to-install-mariadb-on-ubuntu-20-04
+
+cp kungFuChess.cnf.example kungFuChess.cnf
+
+# fill out the conf with your password
+# log into mariadb and create the database:
+# MariaDB [(none)]> create database kungfuchess;
+
+# import the schema
+mariadb -p kungfuchess < schema.sql 
+
+# how to run on dev:
+# To server web pages:
+morbo KungFuWeb.pl -l "http://localhost:3000" -w templates/ -w KungFuChess/
+# To run the games websockets (on a seperate port so it doesn't block itself):
+morbo KungFuWeb.pl -l "http://localhost:3001" -w templates/ -w KungFuChess/
+
