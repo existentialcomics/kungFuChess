@@ -78,6 +78,7 @@ $(window).resize(function(){
     pieceLayer.destroyChildren();
     boardLayer.destroyChildren();
     delayLayer.destroyChildren();
+    premoveLayer.destroyChildren();
     width = boardContent.width();
     height = $("#boardContainer").width();
     stage = setupBoard();
@@ -88,6 +89,7 @@ $(window).resize(function(){
     boardLayer.draw();
     delayLayer.draw();
     pieceLayer.draw();
+    premoveLayer.draw();
 });
 
 var blackLastSeen = null;
@@ -104,6 +106,7 @@ var greenPing = null;
 var boardLayer = new Konva.Layer();
 var pieceLayer = new Konva.Layer();
 var delayLayer = new Konva.Layer();
+var premoveLayer = new Konva.Layer();
 
 // fix for brave to not use getImageData()
 pieceLayer._getIntersection = function(pos) {
@@ -376,6 +379,17 @@ var replayMode = false;
 
 console.log("connecting..." + authId);
 
+var hidePremoves = function(piece) {
+    if (piece.hasOwnProperty('premoveFrom')){
+        piece.premoveFrom.opacity(0.0);
+        delete piece.premoveFrom;
+    }
+    if (piece.hasOwnProperty('premoveTo')){
+        piece.premoveTo.opacity(0.0);
+        delete piece.premoveTo;
+    }
+};
+
 var updateTimeStamps = function(){
     var d = new Date();
     var timestamp = d.getTime();
@@ -572,6 +586,8 @@ var getPieceSquare = function(piece) {
     return file + rank;
 }
 
+var premoves = [];
+
 var handleMessage = function(msg) {
     if (msg.c == 'move'){  // called when a piece changes positions (many times in one "move")
         var from = getSquareFromBB(msg.fr_bb);
@@ -620,6 +636,42 @@ var handleMessage = function(msg) {
             } else {
                 stopFunction();
             }
+        }
+    } else if (msg.c == 'premove'){ 
+        if (msg.color == myColor) {
+            var from = getSquareFromBB(msg.fr_bb);
+            var to   = getSquareFromBB(msg.to_bb);
+
+            let re = /([a-z])([0-9]{1,2})/;
+
+            var m_from = from.match(re);
+            var m_to   = to.match(re);
+
+            var x_from = parseInt(fileToY[m_from[1]]);
+            var y_from = rankToX[m_from[2]];
+            var x_to   = parseInt(fileToY[m_to[1]]);
+            var y_to   = rankToX[m_to[2]];
+
+            var pieceFrom = piecesByBoardPos[from];
+            hidePremoves(pieceFrom);
+
+            console.log("displaying_premove");
+            console.log("" + x_from + "," + y_from);
+
+            var abs_x_from = getXCoordinate(x_from, y_from);
+            var abs_y_from = getYCoordinate(x_from, y_from);
+            var abs_x_to = getXCoordinate(x_to, y_to);
+            var abs_y_to = getYCoordinate(x_to, y_to);
+            console.log("" + abs_x_from + "," + abs_y_from);
+            console.log("" + abs_x_to + "," + abs_y_to);
+
+            var sqr_from = premoves["" + abs_x_from + "" + abs_y_from];
+            var sqr_to   = premoves["" + abs_x_to + "" + abs_y_to];
+            sqr_from.opacity(0.4);
+            sqr_to.opacity(0.4);
+
+            pieceFrom.premoveFrom = sqr_from;
+            pieceFrom.premoveTo   = sqr_to;
         }
     } else if (msg.c == 'moveAnimate'){ // called when a player moves a piece
         let re = /([a-z])([0-9]{1,2})/;
@@ -780,6 +832,7 @@ var handleMessage = function(msg) {
         }
 
         if (piece != null) {
+            hidePremoves(piece);
             piece.image.destroy();
             if (piece.anim) {
                 piece.anim.stop();
@@ -1102,6 +1155,32 @@ var getPixelPos = function(pos){
     return bPos;
 };
 
+// translates coorinates into board ajusted (i.e. flipped for black)
+var getXCoordinate = function(x,y) {
+    if (myColor == 'red'){
+        return boardSize - y - 1;
+    }
+    if (myColor == 'green'){
+        return y;
+    }
+	return x;
+
+}
+
+var getYCoordinate = function(x,y) {
+	if (myColor == 'black'){
+		return boardSize - y - 1;
+	}
+    if (myColor == 'red'){
+        return boardSize - x - 1;
+    }
+    if (myColor == 'green'){
+        return x;
+    }
+	return y;
+}
+
+// translates absolute x,y into board ajusted, (i.e. in pixels flipped for black)
 var getX = function(x, y){
     if (myColor == 'red'){
         return height - y - (height / boardSize);
@@ -1466,6 +1545,7 @@ var getPiece = function(x, y, color, image){
             duration: timeToDelay,
             height: 0,
             y: (getY(piece.x * width / boardSize, piece.y * width / boardSize) + (width / boardSize)),
+            onFinish: () => hidePremoves(piece),
         });
         piece.tween.play();
         delayLayer.draw();
@@ -1518,6 +1598,17 @@ var setupBoard = function(){
               fill: color,
             });
             boardLayer.add(rect);
+
+            var premoveRect = new Konva.Rect({
+              x: i * (width / boardSize),
+              y: j * (width / boardSize),
+              width: width / boardSize,
+              height: height / boardSize,
+              fill: '#00a2ff',
+              opacity: 0.0
+            });
+            premoves["" + i + "" + j] = premoveRect;
+            premoveLayer.add(premoveRect);
         }
     }  
 
@@ -1546,6 +1637,7 @@ var setupBoard = function(){
 
     pieceLayer.draw();
     stage.add(delayLayer);
+    stage.add(premoveLayer);
     stage.add(pieceLayer);
 
     return stage;
@@ -1553,7 +1645,6 @@ var setupBoard = function(){
 
 var setupEvents = function(stage) {
     stage.on("dragstart", function(e){
-        console.log('dragstart');
         var pos = stage.getPointerPosition();
         e.target.offsetX(e.target.x() - pos.x + (width  / boardSize / 2));
         e.target.offsetY(e.target.y() - pos.y + (height / boardSize / 2));
@@ -1570,7 +1661,6 @@ var setupEvents = function(stage) {
 
         e.target.offsetX(0);
         e.target.offsetY(0);
-        console.log('dragend');
 
         piece = piecesByImageId[e.target._id];
 

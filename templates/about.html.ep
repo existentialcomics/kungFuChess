@@ -21,8 +21,9 @@
             <li>All the normal rules of chess apply, but there is no such thing as checkmate, you must kill the King to win.</li><br />
             <li>If two enemy pieces collide while they are both moving the piece that moved first kills the other piece. Knights can't collide.</li><br />
             <li>If two friendly pieces collide while they are both moving the piece moving into the occupied space stops (different from the rules on the old site which ignored physics, i.e. let pieces move through each other).</li><br />
-            <li>Warning, if the knight lands on a occupied spot, that piece must be killed. This is the only way you can kill your own pieces.</li><br />
             <li>You can make certain illegal chess moves (such as move through pieces), because you may be able to move those pieces out of the way in time, or the enemy might move their pieces before you get there.</li><br />
+            <li>Due to the above rule, if the knight lands on a occupied spot, that piece must be killed. This is the only way you can kill your own pieces.</li><br />
+            <li>You can premove pieces that are on cooldown and they will move immediately when ready. To "cancel" a premove, make an illegal move to override it.</li><br />
         </ul>
         </div>
         <b>Belts:</b><br />

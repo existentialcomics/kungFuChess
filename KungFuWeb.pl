@@ -1865,6 +1865,12 @@ websocket '/ws' => sub {
             # pass the move request to the server
             $msg->{'c'} = 'stop';
             $game->playerBroadcast($msg);
+        } elsif ($msg->{'c'} eq 'authPremove'){
+            if (! gameauth($msg) ){ return 0; }
+
+            # tell the players to display a premove
+            $msg->{'c'} = 'premove';
+            $game->playerBroadcast($msg);
         } elsif ($msg->{'c'} eq 'authmove'){ # for animation only
             if (! gameauth($msg) ){ return 0; }
 

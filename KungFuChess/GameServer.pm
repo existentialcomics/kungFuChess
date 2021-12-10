@@ -92,77 +92,6 @@ sub new {
     }
 }
 
-# http://wbec-ridderkerk.nl/html/UCIProtocol.html
-sub getStockfishMsgs {
-    my $self = shift;
-
-    my $cout = $self->{ai_out};
-    my $timeout = 0;
-    while(my $line = <$cout>) {
-        chomp($line);
-        if ($line eq 'uciok') {
-            $self->{aiStates}->{uciok} = 1;
-            $self->writeStockfishMsg('setoption name MultiPV value 5');
-            $self->writeStockfishMsg('setoption name Debug Log File value /var/log/stockfish/debug.log');
-            $self->writeStockfishMsg('ucinewgame');
-            #$self->writeStockfishMsg('position startpos');
-            #$self->writeStockfishMsg('go infinite');
-        }
-        if ($line =~ m/^bestmove\s(.+?)\s/){
-            my $move = $1;
-            my $bestScore = -999999;
-            if ($self->{aiStates}->{possibleMoves}->{$move}) {
-                my $moveScore = $self->{aiStates}->{possibleMoves}->{$move}->{score};
-                if ($moveScore =~ m/^mate/) {
-                    next;
-                }
-            }
-            ### prevent moving on top of yourself.
-            $move =~ m/(..)(..)$/;
-            my ($src, $dst) = ($1, $2);
-            my $allMoveSrc = {
-                $src => 1
-            };
-            my $allMoveDests = {
-                $dst => 1
-            };
-            foreach (values %{$self->{aiStates}->{possibleMoves}}) {
-                if ($_->{score} =~ m/^mate/) {
-                    next;
-                }
-                if ($_->{score} > $bestScore - 100) {
-                    $_->{move} =~ m/(..)(..)$/;
-                    if ($allMoveSrc->{$1}) {
-                        next;
-                    }
-                    if ($allMoveDests->{$2}) {
-                        next;
-                    }
-                    $allMoveSrc->{$1} = 1;
-                    $allMoveDests->{$2} = 1;
-
-                    $self->moveNotation($_->{move});
-                }
-            }
-            $self->{aiStates}->{possibleMoves} = {};
-        } elsif ($line =~ m/info depth (\d+).*? multipv (\d+) score cp (.+) nodes (\d+) .*? pv ([a-h][0-9][a-h][0-9])/) {
-            my ($depth, $ranking, $score, $nodes, $move) = ($1, $2, $3, $4, $5);
-
-            $self->{aiStates}->{possibleMoves}->{$move} = {
-                'move' => $move,
-                'score' => $score,
-                'ranking' => $ranking
-            };
-        }
-    }
-}
-
-sub writeStockfishMsg {
-    my $self = shift;
-    my $msg = shift;
-    my $cin = $self->{ai_in};
-}
-
 sub setAdjustedSpeed {
     my ($self, $pieceSpeed, $pieceRecharge, $speedAdj) = @_;
 
@@ -223,21 +152,7 @@ sub _init {
     $self->{timeoutSquares} = {};
     $self->{timeoutCBs} = {};
 
-    my $ai = 0;
-    $self->{ai} = $ai;
-
     $self->setAdjustedSpeed($pieceSpeed, $pieceRecharge, $speedAdj);
-
-    if ($ai) {
-        #print "initalizing stockfish...\n";
-        #my($cout, $cin);
-        #my $pid = open2($cout, $cin, $cfg->param('path_to_stockfish') . ' 2>&1 | tee /var/log/stockfish/stockfish.log');
-        #$cout->blocking(0);
-        #$self->{ai_out} = $cout;
-        #$self->{ai_in}  = $cin;
-        #$self->{stockfishPid} = $pid;
-        #$self->getStockfishMsgs();
-    }
 
     $self->{board} = {};
     $self->{boardMap} = [
@@ -294,7 +209,6 @@ sub _init {
             # $connection is the same connection object
             my($connection) = @_;
             AnyEvent->condvar->send;
-            if ($self->{stockfishPid}) { system("kill $self->{stockfishPid}"); }
             exit;
         });
 
@@ -417,7 +331,6 @@ sub endGame {
         'msgs' => encode_json(\@msgs) ### double encoded because want to store the json not use it
     };
     $self->send($msg);
-    if ($self->{stockfishPid}) { system("kill $self->{stockfishPid}"); }
 
     ### just to prevent server disconnect from beating the game over msg
     sleep 1;
@@ -506,11 +419,20 @@ sub moveIfLegal {
     if (exists($self->{activeMoves}->{$move_fr_bb})) {
         return 0;
     }
+
+    ### here we queue up a premove
     if (exists($self->{timeoutSquares}->{$move_fr_bb})) {
         # can't use the key because it is converted to string secretly
         $self->{timeoutSquares}->{$move_fr_bb}->{'fr_bb'} = $move_fr_bb;
         $self->{timeoutSquares}->{$move_fr_bb}->{'to_bb'} = $move_to_bb;
         $self->{timeoutSquares}->{$move_fr_bb}->{'color'} = $color;
+        my $msg = {
+            'c' => 'authPremove',
+            'color' => $color,
+            'fr_bb' => $move_fr_bb,
+            'to_bb' => $move_to_bb,
+        };
+        $self->send($msg);
         return 0;
     }
 
