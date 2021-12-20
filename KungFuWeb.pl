@@ -59,6 +59,15 @@ my %gameConnections = ();
 ## must be send from game connection since it is in memory
 my %rematches = ();
 
+my $badWordsRegex = '^$';
+
+if (-f 'badwords.txt') {
+    open my $handle, '<', 'badwords.txt';
+    chomp(my @badWords = <$handle>);
+    close $handle;
+    $badWordsRegex = join("|", @badWords);
+}
+
 app->log->debug('connecting to db...');
 app->plugin('database', { 
     dsn      => 'dbi:mysql:dbname=' . $cfg->param('database') .';host=' . $cfg->param('dbhost'),
@@ -318,18 +327,18 @@ get '/tactics/expert/selfkill' => sub {
     $c->render('template' => 'tactic', format => 'html', handler => 'ep');
 };
 
-get '/tactics/expert/knightSweepCounter' => sub {
-    my $c = shift;
-
-    my $user = $c->current_user();
-    $c->stash('user' => $user);
-
-    $c->stash('video' => '/knightSweepCounter.webm');
-    $c->stash('name' => 'Knight Sweep Counter');
-    $c->stash('description' => 'The knight, because it must land after being moved, kills whatever it lands on. This means that it is the only piece that can kill a moving piece, even when it was moved after the enemy\'s piece. In the tactics video, white is in a desperate sitution, so he puts his king in danger to tempt the queen to move. Then he must time the knight just right to land on the d3 right after the queen gets there. Too early, and the knight will be swept, too late, and the queen will escape. Always be on gaurd for knights, and their tricksy ways.');
-
-    $c->render('template' => 'tactic', format => 'html', handler => 'ep');
-};
+#get '/tactics/expert/knightSweepCounter' => sub {
+#    my $c = shift;
+#
+#    my $user = $c->current_user();
+#    $c->stash('user' => $user);
+#
+#    $c->stash('video' => '/knightSweepCounter.webm');
+#    $c->stash('name' => 'Knight Sweep Counter');
+#    $c->stash('description' => 'The knight, because it must land after being moved, kills whatever it lands on. This means that it is the only piece that can kill a moving piece, even when it was moved after the enemy\'s piece. In the tactics video, white is in a desperate sitution, so he puts his king in danger to tempt the queen to move. Then he must time the knight just right to land on the d3 right after the queen gets there. Too early, and the knight will be swept, too late, and the queen will escape. Always be on gaurd for knights, and their tricksy ways.');
+#
+#    $c->render('template' => 'tactic', format => 'html', handler => 'ep');
+#};
 
 #####################################
 ###
@@ -441,6 +450,8 @@ sub chatGlobal {
     my $origMsg  = shift;
     my $color = shift;
 
+    $message =~ s/$badWordsRegex/****/g;
+
     $message = escape_html($message);
 
     my $return = undef;
@@ -465,6 +476,32 @@ sub chatGlobal {
         $msg->{authColor} = 'none';
     }
 
+    my $lastComment = app()->db->selectrow_hashref('SELECT comment_text, TIMESTAMPDIFF(SECOND, post_time, NOW()) as seconds_ago FROM chat_log WHERE player_id = ? ORDER BY chat_log_id DESC limit 1', {}, $user->{player_id});
+
+    if ($lastComment) {
+        if ($lastComment->{comment_text} eq $message) {
+            $return = {
+                'c' => 'globalchat',
+                'author' => 'SYSTEM',
+                'color' => 'red',
+                'text_color' => '#666666',
+            };
+            $return->{message} = "Stop repeating yourself.";
+            return $return;
+        }
+        if ($lastComment->{seconds_ago} < 5) {
+            $return = {
+                'c' => 'globalchat',
+                'author' => 'SYSTEM',
+                'color' => 'red',
+                'text_color' => '#666666',
+            };
+            $return->{message} = "Stop repeating yourself.";
+            $return->{message} = "Stop talking so fast.";
+            return $return;
+        }
+    }
+    
     app->db()->do('INSERT INTO chat_log (comment_text, player_id, player_color, game_id, post_time) VALUES (?,?,?,?,NOW())', {},
         $msg->{'message'},
         $user->{player_id},
@@ -1520,9 +1557,17 @@ websocket '/ws' => sub {
             my ($color, $gameRow, $successAuth) = authGameColor($msg->{auth}, $msg->{uid}, $gameId);
             my $auth = $msg->{userAuthToken} ? $msg->{userAuthToken} : $msg->{auth};
             my $player = new KungFuChess::Player({auth_token => $auth}, app->db());
-            my $return = chatGlobal($player, $msg->{message}, $msg->{gameId}, $msg, $color);
-            if ($return) {
-                connectionBroadcast($self, $return);
+            if ($msg->{message}) {
+                my $return = chatGlobal(
+                    $player,
+                    $msg->{message},
+                    $msg->{gameId},
+                    $msg,
+                    $color
+                );
+                if ($return) {
+                    connectionBroadcast($self, $return);
+                }
             }
         } elsif ($msg->{'c'} eq 'rematch'){
             my $gameId = $msg->{gameId};
@@ -1590,7 +1635,6 @@ websocket '/ws' => sub {
             }
             return 0;
         }
-        #app->log->debug('message game checked ' . $msg->{c});
 
         if ($msg->{'c'} eq 'join'){
             my ($color, $gameRow, $successAuth) = authGameColor($msg->{auth}, $msg->{uid}, $msg->{gameId});
@@ -1835,6 +1879,12 @@ websocket '/ws' => sub {
             # pass the move request to the server
             # TODO pass the player's color to the server
             $game->serverBroadcast($msg);
+        } elsif ($msg->{'c'} eq 'authkillsuspend'){
+            if (! gameauth($msg) ){ return 0; }
+            # pass the move request to the server
+            $msg->{'c'} = 'killsuspend';
+            $msg->{'is_sweep'} = 1;
+            $game->playerBroadcast($msg);
         } elsif ($msg->{'c'} eq 'authunsuspend'){
             if (! gameauth($msg) ){ return 0; }
             # pass the move request to the server
@@ -1874,6 +1924,9 @@ websocket '/ws' => sub {
         } elsif ($msg->{'c'} eq 'authmove'){ # for animation only
             if (! gameauth($msg) ){ return 0; }
 
+            ### clear all draws. Up to client to change the button back to 'request draw'
+            $game->clearDraws();
+
             # tell the players to animate the pieces
             $msg->{'c'} = 'moveAnimate';
             $game->playerBroadcast($msg);
@@ -1885,9 +1938,7 @@ websocket '/ws' => sub {
             if (! gameauth($msg) ){ return 0; }
             endGame($msg->{gameId}, 'draw');
         } elsif ($msg->{'c'} eq 'revokeDraw'){
-            if (! gameauth($msg) ){ return 0; }
             my $color = $game->authMove($msg);
-            return 0 if (!$color);
 
             $game->playerRevokeDraw($msg);
 

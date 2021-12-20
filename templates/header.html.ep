@@ -56,9 +56,11 @@
 </div>
 <script>
     <% if ($user){ %>
+        var chatSounds = <%= $user->{chat_sounds} %>;
         var userAuthToken = "<%= $user->{auth_token} %>";
         var screenname    = "<%= $user->{screenname} %>";
     <% } else { %>
+        var chatSounds = 0;
         var userAuthToken = null;
         var screenname    = "anonymous";
     <% } %>

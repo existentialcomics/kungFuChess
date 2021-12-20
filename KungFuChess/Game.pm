@@ -245,7 +245,16 @@ sub playerReady {
     return 0;
 }
 
-### returns positive number if all players pressed draw
+sub clearDraws {
+    my $self = shift;
+
+    $self->{white}->{draw} = 0;
+    $self->{black}->{draw} = 0;
+    $self->{red}->{draw}   = 0;
+    $self->{green}->{draw} = 0;
+}
+
+### revokes a draw
 sub playerRevokeDraw {
     my $self = shift;
     my $msg = shift;
@@ -326,7 +335,12 @@ sub serverBroadcast {
 
 # no need to save these to the log in interest of space
 my %excludeFromLog = (
+    'switch' => 1,
     'chat' => 1,
+    'gamechat' => 1,
+    'globalchat' => 1,
+    'refresh' => 1,
+    'serverping' => 1,
     'readyToRematch' => 1,
     'readyToBegin' => 1,
     'ping' => 1,

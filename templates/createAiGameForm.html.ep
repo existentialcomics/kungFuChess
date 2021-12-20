@@ -27,7 +27,7 @@
             <div class="d-grid gap-2 pt-3">
                 <button type="submit" class="btn btn-primary text-light" id='createAiGameSubmit'>Create Game</button>
             </div>
-        </div>
-    <% end %>
+        <% end %>
+    </div>
 <%= jquery_ajax_csrf_protection %>
 </div>

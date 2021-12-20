@@ -152,6 +152,9 @@ sub _init {
     $self->{timeoutSquares} = {};
     $self->{timeoutCBs} = {};
 
+    $self->{basePieceSpeed} = $pieceSpeed;
+    $self->{basePieceRecharge} = $pieceRecharge;
+
     $self->setAdjustedSpeed($pieceSpeed, $pieceRecharge, $speedAdj);
 
     $self->{board} = {};
@@ -242,7 +245,7 @@ sub handleMessage {
             $self->moveIfLegal($msg->{color}, $msg->{fr_bb}, $msg->{to_bb});
         }
     } elsif ($msg->{c} eq 'berserk'){
-        $self->setAdjustedSpeed($self->{pieceSpeed}, $self->{pieceRecharge}, $msg->{speedAdj});
+        $self->setAdjustedSpeed($self->{basePieceSpeed}, $self->{basePieceRecharge}, $msg->{speedAdj});
     } elsif ($msg->{c} eq 'gameOver'){
         gameOver();
     } elsif ($msg->{c} eq 'gameBegins'){
@@ -669,8 +672,25 @@ sub moveIfLegal {
             $moveType = KungFuChess::Bitboards::MOVE_PUT_PIECE;
             $nextMoveSpeed = $self->{$colorbit}->{pieceSpeed};
         } elsif ($moveType == KungFuChess::Bitboards::MOVE_PUT_PIECE) {
-            $self->killPieceBB($to_bb, $colorbit);
+            ### enemy collision active
+            my $themColor = KungFuChess::Bitboards::occupiedColor($to_bb);
+            if ($themColor != 0
+                && $themColor != $colorbit
+                && exists($self->{activeMoves}->{$to_bb})
+                && ($self->{activeMoves}->{$to_bb}->{start_time} < $startTime)
+            ) {
+                ### tell the client to remove the suspended piece
+                my $msgSpawn = {
+                    'c' => 'authkillsuspend',
+                    'chr' => $piece,
+                    'to_bb'  => $to_bb
+                };
+                $self->send($msgSpawn);
 
+                return 1;
+            }
+
+            $self->killPieceBB($to_bb, $colorbit);
             my $msgSpawn = {
                 'c' => 'authunsuspend',
                 'chr' => $piece,

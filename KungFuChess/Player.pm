@@ -350,6 +350,7 @@ sub _loadAnonymousUser {
     $self->{rating_standard_4way} = 0;
     $self->{rating_lighting_4way} = 0;
     $self->{is_anon} = 1;
+    $self->{chat_sounds} = 0;
     $self->{'auth_token'} = create_uuid_as_string();
 }
 

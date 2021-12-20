@@ -655,15 +655,10 @@ var handleMessage = function(msg) {
             var pieceFrom = piecesByBoardPos[from];
             hidePremoves(pieceFrom);
 
-            console.log("displaying_premove");
-            console.log("" + x_from + "," + y_from);
-
             var abs_x_from = getXCoordinate(x_from, y_from);
             var abs_y_from = getYCoordinate(x_from, y_from);
             var abs_x_to = getXCoordinate(x_to, y_to);
             var abs_y_to = getYCoordinate(x_to, y_to);
-            console.log("" + abs_x_from + "," + abs_y_from);
-            console.log("" + abs_x_to + "," + abs_y_to);
 
             var sqr_from = premoves["" + abs_x_from + "" + abs_y_from];
             var sqr_to   = premoves["" + abs_x_to + "" + abs_y_to];
@@ -674,6 +669,12 @@ var handleMessage = function(msg) {
             pieceFrom.premoveTo   = sqr_to;
         }
     } else if (msg.c == 'moveAnimate'){ // called when a player moves a piece
+        // clear draw request
+        if (drawRequested) {
+            drawRequested = false;
+            $('#requestDraw').html('Request Draw');
+        }
+
         let re = /([a-z])([0-9]{1,2})/;
 
         var from = getSquareFromBB(msg.fr_bb);
@@ -815,9 +816,13 @@ var handleMessage = function(msg) {
             'system'
         );
         killPlayer(msg.color);
-    } else if (msg.c == 'kill'){
+    } else if (msg.c == 'kill' || msg.c == 'killsuspend'){
         var square = getSquareFromBB(msg.bb);
         var piece  = piecesByBoardPos[square];
+        if (msg.c == 'killsuspend') {
+            square = getSquareFromBB(msg.to_bb);
+            piece = suspendedPieces[square].shift();
+        }
         if (msg.hasOwnProperty('is_sweep')) {
             if (sweepAudio) {
                 sweepAudio.play();

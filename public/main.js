@@ -632,6 +632,8 @@ function escapeHtml(html){
 }
 
 function showInvite(uid, screenname, gameSpeed, gameType, rated) {
+    var audio = new Audio('/sound/public_sound_standard_SocialNotify.ogg');
+    audio.play();
     chatContent = $('#global-chat-log');
     chatContent.append('<a href="/matchGame/' + uid + '">' + screenname + ' invited you to a game (' + gameType + ' ' + gameSpeed + ' ' + (rated ? 'rated' : 'unrated') + ') click to accept</a><br />');
     $("#global-chat-log").scrollTop($("#global-chat-log")[0].scrollHeight);
@@ -641,6 +643,10 @@ function showInvite(uid, screenname, gameSpeed, gameType, rated) {
  * Add message to the chat window
  */
 function addChatMessage(author, message, usercolor, textcolor, dt) {
+    if (chatSounds > 0) {
+        var audio = new Audio('/sound/public_sound_standard_SocialNotify.ogg');
+        audio.play();
+    }
     var dtString = ' ';
     if (! isNaN(dt.getTime())) {
         dtString =

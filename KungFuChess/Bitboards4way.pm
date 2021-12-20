@@ -1289,25 +1289,25 @@ sub move {
     if ($whiteCastleK && ($to_bb | $fr_bb) & $whiteCastleK) {
         $whiteCastleK = 0;
     }
-    if ($whiteCastleR && ($to_bb | $fr_bb) & $whiteCastleK) {
+    if ($whiteCastleR && ($to_bb | $fr_bb) & $whiteCastleR) {
         $whiteCastleR = 0;
     }
     if ($blackCastleK && ($to_bb | $fr_bb) & $blackCastleK) {
         $blackCastleK = 0;
     }
-    if ($blackCastleR && ($to_bb | $fr_bb) & $blackCastleK) {
+    if ($blackCastleR && ($to_bb | $fr_bb) & $blackCastleR) {
         $blackCastleR = 0;
     }
     if ($redCastleK && ($to_bb | $fr_bb) & $redCastleK) {
         $redCastleK = 0;
     }
-    if ($redCastleR && ($to_bb | $fr_bb) & $redCastleK) {
+    if ($redCastleR && ($to_bb | $fr_bb) & $redCastleR) {
         $redCastleR = 0;
     }
     if ($greenCastleK && ($to_bb | $fr_bb) & $greenCastleK) {
         $greenCastleK = 0;
     }
-    if ($greenCastleR && ($to_bb | $fr_bb) & $greenCastleK) {
+    if ($greenCastleR && ($to_bb | $fr_bb) & $greenCastleR) {
         $greenCastleR = 0;
     }
 
