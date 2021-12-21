@@ -642,8 +642,8 @@ function showInvite(uid, screenname, gameSpeed, gameType, rated) {
 /**
  * Add message to the chat window
  */
-function addChatMessage(author, message, usercolor, textcolor, dt) {
-    if (chatSounds > 0) {
+function addChatMessage(author, message, usercolor, textcolor, dt, playSound = true) {
+    if (chatSounds > 0 && playSounds == true) {
         var audio = new Audio('/sound/public_sound_standard_SocialNotify.ogg');
         audio.play();
     }
@@ -677,7 +677,8 @@ $(function () {
             msg.comment_text, 
             (msg.color ? msg.color : 'green'),
             (msg.text_color ? msg.text_color : 'black'),
-            dt
+            dt,
+            false // don't play the sound
         );
     });
 });
