@@ -643,7 +643,7 @@ function showInvite(uid, screenname, gameSpeed, gameType, rated) {
  * Add message to the chat window
  */
 function addChatMessage(author, message, usercolor, textcolor, dt, playSound = true) {
-    if (chatSounds > 0 && playSounds == true) {
+    if (chatSounds > 0 && playSound == true) {
         var audio = new Audio('/sound/public_sound_standard_SocialNotify.ogg');
         audio.play();
     }
