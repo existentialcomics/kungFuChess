@@ -10,6 +10,7 @@ use Mojolicious::Plugin::CSRFProtect;
 use UUID::Tiny ':std';
 use Data::Dumper;
 use JSON::XS;
+use DBI;
 use Config::Simple;
 use HTML::Escape qw/escape_html/;
 # via the Digest module (recommended)
@@ -36,6 +37,8 @@ use constant {
 };
 
 my $cfg = new Config::Simple('kungFuChess.cnf');
+
+app->config(hypnotoad => {listen => ['http://*:3000']});
 
 ### current running games
 my %games   = ();
@@ -68,7 +71,6 @@ if (-f 'badwords.txt') {
     $badWordsRegex = join("|", @badWords);
 }
 
-app->log->debug('connecting to db...');
 app->plugin('database', { 
     dsn      => 'dbi:mysql:dbname=' . $cfg->param('database') .';host=' . $cfg->param('dbhost'),
     username => $cfg->param('dbuser'),
@@ -245,7 +247,7 @@ get '/tactics/advanced/combo' => sub {
 
     $c->stash('video' => '/combo.webm');
     $c->stash('name' => 'Combo');
-    $c->stash('description' => 'This is the most core tactic of Kung Fu Chess. Pieces aren\'t guarded if you can simply take the piece and the piece guarding it at once. Take out entire pawn structures at once or protecting piece to move while you take another piece. The possiblities are endless when combination tactics are properly mastered, and combo moves are what really drives advanced play.');
+    $c->stash('description' => 'This is the most core tactic of Kung Fu Chess. Pieces aren\'t guarded if you can simply take the piece and the piece guarding it at once. Take out entire pawn structures at once or force protecting piece to move while you take another piece. The possiblities are endless when combination tactics are properly mastered, and combo moves are what really drives advanced play.');
 
     $c->render('template' => 'tactic', format => 'html', handler => 'ep');
 };

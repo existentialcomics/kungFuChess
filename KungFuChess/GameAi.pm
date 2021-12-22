@@ -578,7 +578,7 @@ sub handleMessage {
                         #print KungFuChess::BBHash::getSquareFromBB($move->[1]);
                         #print "\n";
                         ### skip frozen pieces or it will premove
-                        if (defined($self->{tieoutSquares}->{$move->[0]})) {
+                        if (defined($self->{timeoutSquares}->{$move->[0]})) {
                             last;
                         }
                         ### don't move if we already moved from or to the same spot!

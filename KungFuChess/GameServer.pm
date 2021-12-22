@@ -185,9 +185,9 @@ sub _init {
         our $connection = eval { $hs->recv };
         $self->{conn} = $connection;
         if($@) {
-         # handle error...
-         warn $@;
-         return;
+            # handle error...
+            warn $@;
+            exit;
         }
            
         my $msg = {
