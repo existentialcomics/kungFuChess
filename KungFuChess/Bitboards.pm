@@ -466,7 +466,7 @@ sub resetAiBoards {
     $ai_movingBB = $movingBB;
 
     ### we were passed a to and fr, so this was a move
-    if ($_[1]) {
+    if ($_[0]) {
         #my $key = "$_[0]-$_[1]";
         #if ($currentMoves->[WHITE]->{$key}) {
             #$currentMoves = $currentMoves->[WHITE]->{$key}[MOVE_NEXT_MOVES];
