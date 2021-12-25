@@ -24,6 +24,7 @@ if (! $speed) {
     exit;
 
 }
+print "starting with $user, $pass, $domain, $level, $speed, $register\n";
 
 #my $domain = "http://127.0.0.1:3000";
 #my $domain = "https://kungfuchess.org";
@@ -88,10 +89,9 @@ while() {
     my $uid = '';
     my $gameId;
     while () {
-        sleep 2;
+        sleep 3;
+        $mech->get('/activePlayers?ratingType=standard');
         $mech->get('/ajax/pool/' . $speed . '/2way?uuid=' . $uid);
-        print $mech->content();
-        print "\n";
         if ($mech->content() =~ m/"uid":"(.+?)"/) {
             $uid = $1;
         }
@@ -140,5 +140,10 @@ while() {
 
     print $cmdAi . "\n";
 
-    system($cmdAi);
+    my $pid;
+    #if ($pid = fork) {
+
+    #} else {
+        system($cmdAi);
+    #}
 }

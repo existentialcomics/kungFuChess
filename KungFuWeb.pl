@@ -1,7 +1,8 @@
 #!/usr/bin/perl
 #
 use strict; use warnings;
-use Mojolicious::Lite;
+use Mojolicious::Lite -signatures;
+use Mojo::AsyncAwait;
 use Mojolicious::Plugin::Database;
 use Mojolicious::Plugin::Authentication;
 use Mojolicious::Validator;
@@ -478,29 +479,31 @@ sub chatGlobal {
         $msg->{authColor} = 'none';
     }
 
-    my $lastComment = app()->db->selectrow_hashref('SELECT comment_text, TIMESTAMPDIFF(SECOND, post_time, NOW()) as seconds_ago FROM chat_log WHERE player_id = ? ORDER BY chat_log_id DESC limit 1', {}, $user->{player_id});
+    if (! $gameId ){ 
+        my $lastComment = app()->db->selectrow_hashref('SELECT comment_text, TIMESTAMPDIFF(SECOND, post_time, NOW()) as seconds_ago FROM chat_log WHERE player_id = ? ORDER BY chat_log_id DESC limit 1', {}, $user->{player_id});
 
-    if ($lastComment) {
-        if ($lastComment->{comment_text} eq $message) {
-            $return = {
-                'c' => 'globalchat',
-                'author' => 'SYSTEM',
-                'color' => 'red',
-                'text_color' => '#666666',
-            };
-            $return->{message} = "Stop repeating yourself.";
-            return $return;
-        }
-        if ($lastComment->{seconds_ago} < 5) {
-            $return = {
-                'c' => 'globalchat',
-                'author' => 'SYSTEM',
-                'color' => 'red',
-                'text_color' => '#666666',
-            };
-            $return->{message} = "Stop repeating yourself.";
-            $return->{message} = "Stop talking so fast.";
-            return $return;
+        if ($lastComment) {
+            if ($lastComment->{comment_text} eq $message) {
+                $return = {
+                    'c' => 'globalchat',
+                    'author' => 'SYSTEM',
+                    'color' => 'red',
+                    'text_color' => '#666666',
+                };
+                $return->{message} = "Stop repeating yourself.";
+                return $return;
+            }
+            if ($lastComment->{seconds_ago} < 5) {
+                $return = {
+                    'c' => 'globalchat',
+                    'author' => 'SYSTEM',
+                    'color' => 'red',
+                    'text_color' => '#666666',
+                };
+                $return->{message} = "Stop repeating yourself.";
+                $return->{message} = "Stop talking so fast.";
+                return $return;
+            }
         }
     }
     
@@ -780,13 +783,13 @@ post '/forums/:topic/:postId' => sub {
     $c->redirect_to('/forums/' . $topic . '/' . $postId);
 };
 
-get '/profile/:screenname' => sub {
+get '/profile/:screenname' => async sub {
     my $c = shift;
     my $user = $c->current_user();
     $c->stash('user' => $user);
 
     my $data = { 'screenname' => $c->stash('screenname') };
-    my $player = new KungFuChess::Player($data, app->db());
+    my $player = await new KungFuChess::Player($data, app->db());
 
     $c->stash('player' => $player);
 
@@ -801,7 +804,7 @@ get '/profile/:screenname' => sub {
     return $c->render('template' => 'profile', format => 'html', handler => 'ep');
 };
 
-get '/profile/:screenname/games/:speed/:type' => sub {
+get '/profile/:screenname/games/:speed/:type' => async sub {
     my $c = shift;
     my $user = $c->current_user();
     $c->stash('user' => $user);
@@ -823,10 +826,12 @@ get '/profile/:screenname/games/:speed/:type' => sub {
     }
     my $offset = ($page - 1) * $limit;
 
-    my ($count, $games) = getGameHistory($player, $gameSpeed, $gameType, $limit, $offset);
-    $c->stash('gameLog' => $games);
+    my $return = await getGameHistory($player, $gameSpeed, $gameType, $limit, $offset);
+
+
     $c->stash('page' => $page);
-    $c->stash('pages' => ceil($count / $limit));
+    $c->stash('gameLog' => $return->{gameLog});
+    $c->stash('pages' => ceil($return->{count} / $limit));
 
     return $c->render('template' => 'gameLog', format => 'html', handler => 'ep');
 };
@@ -2033,6 +2038,12 @@ sub getGameHistory {
         $offset
     );
 
+    my $return = {
+        'count' => $count,
+        'gameLog' => $gameLog
+    };
+    return $return;
+
     return ($count, $gameLog);
 }
 
@@ -2943,6 +2954,7 @@ sub matchPool {
             AND game_speed = ?
             AND game_type = ?
             AND rated = ?
+            AND matched_game IS NULL
             AND last_ping > NOW() - INTERVAL 5 SECOND
             LIMIT ' . $needed;
     my $playerMatchedRow = app->db()->selectall_arrayref(

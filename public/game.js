@@ -589,6 +589,7 @@ var getPieceSquare = function(piece) {
 var premoves = [];
 
 var handleMessage = function(msg) {
+    //console.log(msg);
     if (msg.c == 'move'){  // called when a piece changes positions (many times in one "move")
         var from = getSquareFromBB(msg.fr_bb);
         var to   = getSquareFromBB(msg.to_bb);
@@ -848,7 +849,9 @@ var handleMessage = function(msg) {
                 piece.tween.destroy();
             }
             delete pieces[piece.id];
-            piecesByBoardPos[square] = null;
+            if (msg.c != 'killsuspend') {
+                piecesByBoardPos[square] = null;
+            }
             piece = null;
 
             pieceLayer.draw();

@@ -3,6 +3,7 @@ cpan Mojolicious
 cpan Mojolicious::Plugin::Database
 cpan Mojolicious::Plugin::Authentication
 cpan Mojolicious::Plugin::CSRFProtect
+cpan Mojo::AsyncAwait
 cpan Digest::MD5
 cpan Compress::Raw::Zlib
 cpan IO::Compress::Gzip
