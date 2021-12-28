@@ -9,7 +9,7 @@
         var wsDomainMain = '<%= $wsDomainMain %>';
         var wsProtocol   = '<%= $wsProtocol %>';
     </script>
-    <script src="/main.js?cache=1.6"></script>
+    <script src="/main.js?cache=1.7"></script>
     <% if ($user){ %>
     <link rel="stylesheet" type="text/css" href="/css/<%= $user->getBelt() %>.css">
     <% } else { %>
@@ -17,6 +17,7 @@
     <% } %>
 </head>
 <body>
+
 <div id="navigation" class="navbar navbar-default">
 <ul>
     <li>
@@ -54,6 +55,7 @@
     </div>
     <% } %>
 </div>
+
 <script>
     <% if ($user){ %>
         var chatSounds = <%= $user->{chat_sounds} %>;
@@ -66,4 +68,5 @@
     <% } %>
 </script>
 <div class="float-right" id="chessMen"></div>
+
 </div>

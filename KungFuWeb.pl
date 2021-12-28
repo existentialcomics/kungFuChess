@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 #
 use strict; use warnings;
-use Mojolicious::Lite -signatures;
+use Mojolicious::Lite;
 use Mojo::AsyncAwait;
 use Mojolicious::Plugin::Database;
 use Mojolicious::Plugin::Authentication;
@@ -1015,7 +1015,10 @@ get '/game/:gameId' => sub {
 
     ### if the game isn't active we just use ours
     $c->stash('wsGameDomain'  => $gameRow ? $gameRow->{ws_server} : $cfg->param('ws_domain'));
-    $c->stash('teams'   => $gameRow->{teams} // 'free for all');
+    my $teams = 'free for all';
+    if ($gameRow->{teams}) {
+        $teams = getTeamsName($gameRow->{teams});
+    }
 
     ### unknown we must ask the ws server, stored in memory
     $c->stash('whiteReady'  => -1);
@@ -1030,12 +1033,12 @@ get '/game/:gameId' => sub {
     my $greenAdj = 1;
     if ($gameRow->{speed_advantage}) {
         ($whiteAdj, $blackAdj, $redAdj, $greenAdj) = split(':', $gameRow->{speed_advantage});
-        print "\n$whiteAdj, $blackAdj, $redAdj, $greenAdj\n";
     }
 
     $c->stash('positionGameMsgs' => $gameRow->{final_position});
     $c->stash('speedAdvantage' => $gameRow->{speed_advantage} // 0);
     $c->stash('gameLog'          => $gameRow->{game_log} ? $gameRow->{game_log} : '[]');
+    $c->stash('teams'          => $teams);
     $c->stash('gameStatus'       => $gameRow->{status});
     my ($pieceSpeed, $pieceRecharge) = ($gameRow->{piece_speed}, $gameRow->{piece_recharge});
     $c->stash('gameSpeed'     => $gameRow->{game_speed});
@@ -1056,6 +1059,10 @@ get '/game/:gameId' => sub {
     $c->stash('pieceRechargeRed'   => $pieceRecharge * $redAdj);
     $c->stash('pieceRechargeGreen' => $pieceRecharge * $greenAdj);
 
+    my $gameMessage = '';
+    if ($gameRow->{status} eq 'waiting to begin') {
+        $gameMessage = 'Press "ready to start" to begin. ';
+    }
     my $chatLog = app->db()->selectall_arrayref(
         "SELECT chat_log.*, chat_log.player_color as color, UNIX_TIMESTAMP() - UNIX_TIMESTAMP(post_time) as unix_seconds_back, p.screenname FROM chat_log
             LEFT JOIN players p ON chat_log.player_id = p.player_id
@@ -1065,6 +1072,34 @@ get '/game/:gameId' => sub {
         { 'Slice' => {} },
         $gameId
     );
+
+    if ($gameRow->{game_type} eq '4way') {
+        unshift(@{$chatLog},{
+            'post_time' => time,
+            'game_id' => undef,
+            'player_id' => 1,
+            'comment_text' => $gameMessage . '4way is four player real time chess. You cannot take pawns on from the opening setup. Queens promote on the last rank. The following commands are available:
+<br />/teams white black (create a team battle)
+<br />/berserk white (unrated only, white player moves faster)
+<br />/switch white red (switch seats)',
+            'screenname' => 'SYSTEM',
+            'color' => 'red',
+            'text_color' => '#666666',
+            'chat_log_id' => 1
+        });
+    } else {
+        unshift(@{$chatLog},{
+            'post_time' => time,
+            'game_id' => undef,
+            'player_id' => 1,
+            'comment_text' => $gameMessage . 'Be polite in chat.',
+            'screenname' => 'SYSTEM',
+            'color' => 'red',
+            'text_color' => '#666666',
+            'chat_log_id' => 1
+        });
+    }
+
     my $chatLogString = ($chatLog ? encode_json \@{$chatLog} : '[]');
     ### hacky but not sure how to do it proper. Because it is a javascript string
     #   we must double escape "
@@ -1773,7 +1808,7 @@ websocket '/ws' => sub {
                             'c' => 'gamechat',
                             'author' => 'SYSTEM',
                             'color' => 'red',
-                            'message' => "only players may berserk",
+                            'message' => "only players may set teams",
                             'text_color' => '#666666',
                         };
                         connectionBroadcast($self, $return);
@@ -1792,18 +1827,15 @@ websocket '/ws' => sub {
                         app()->db->do("UPDATE games SET teams = ? WHERE game_id = ? limit 1", {}, $args, $game->{id});
                         $game->setTeams($args);
                         my $sysMsg = {
-                            'c'   => 'systemMsg', 
-                            'msg' => 'teams changed to: ' . $args
+                            'c'   => 'teamsChange', 
+                            'msg' => 'teams changed to: ' . getTeamsName($args),
+                            'teams' => getTeamsName($args)
                         };
-                        $game->gameBroadcast($sysMsg);
-                        my $commandMsg = {
-                            'c' => 'refresh'
-                        };
-                        $game->playerBroadcast($commandMsg);
+                        gameBroadcast($sysMsg, $msg->{gameId});
                     } else {
                         my $sysMsg = {
                             'c'   => 'systemMsg', 
-                            'msg' => 'teams command format: /teams 1-0-1-0 (white-black-red-green)'
+                            'msg' => 'teams command format: "/teams 1-0-1-0" (white-black-red-green) or "/teams across" "/teams white red"'
                         };
                         $game->playerBroadcast($sysMsg);
                     }
@@ -3070,6 +3102,29 @@ sub getGlobalScore {
        draw_count => $result->{draw_count} // 0,
    };
    return $return; 
+}
+
+# get a human readable name from something like 1-1-0-0
+sub getTeamsName {
+    my $teams = shift;
+
+    ### special for teams, probably a clever generalized way to do it but i'll just brute force
+    if ($teams eq '1-1-0-0' || $teams eq '0-0-1-1')     { # white black vs green red
+        return 'white black vs red green';
+    } elsif ($teams eq '1-0-1-0' || $teams eq '0-1-0-1') { # white red vs black green
+        return 'white red vs black green';
+    } elsif ($teams eq '0-1-1-0' || $teams eq '1-0-0-1') { # white green vs red black
+        return 'white green vs red black';
+    } elsif ($teams eq '1-0-0-0' || $teams eq '0-1-1-1') { # white vs all
+        return 'white vs all';
+    } elsif ($teams eq '0-1-0-0' || $teams eq '1-0-1-1') { # black vs all
+        return 'black vs all';
+    } elsif ($teams eq '0-0-1-0' || $teams eq '1-1-0-1') { # red vs all
+        return 'red vs all';
+    } elsif ($teams eq '0-0-0-1' || $teams eq '1-1-1-0') { # green vs all
+        return 'green vs all';
+    }
+    return $teams
 }
 
 app->start;

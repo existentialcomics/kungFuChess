@@ -89,8 +89,8 @@ while() {
     my $uid = '';
     my $gameId;
     while () {
-        sleep 3;
-        $mech->get('/activePlayers?ratingType=standard');
+        sleep 2;
+        #$mech->get('/activePlayers?ratingType=standard');
         $mech->get('/ajax/pool/' . $speed . '/2way?uuid=' . $uid);
         if ($mech->content() =~ m/"uid":"(.+?)"/) {
             $uid = $1;

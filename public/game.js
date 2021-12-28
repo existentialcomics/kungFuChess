@@ -588,7 +588,20 @@ var getPieceSquare = function(piece) {
 
 var premoves = [];
 
+var debug = false;
 var handleMessage = function(msg) {
+    if (msg.c != 'ping' && debug == true) {
+        if (msg.hasOwnProperty('fr_bb')) {
+            msg.fr_square = getSquareFromBB(msg.fr_bb);
+        }
+        if (msg.hasOwnProperty('to_bb')) {
+            msg.to_square = getSquareFromBB(msg.to_bb);
+        }
+        if (! msg.hasOwnProperty('bb')) {
+            msg.bb_square = getSquareFromBB(msg.bb);
+        }
+        console.log(msg);
+    }
     //console.log(msg);
     if (msg.c == 'move'){  // called when a piece changes positions (many times in one "move")
         var from = getSquareFromBB(msg.fr_bb);
@@ -936,6 +949,17 @@ var handleMessage = function(msg) {
         );
     } else if (msg.c == 'refresh') {
         location.reload();
+    } else if (msg.c == 'teamsChange') {
+        $('#teams').html(msg.teams);
+        var dt = new Date();
+        addGameMessage(
+            "SYSTEM",
+            msg.msg,
+            "red",
+            'black',
+            dt,
+            'system'
+        );
     } else if (msg.c == 'systemMsg') {
         var dt = new Date();
         addGameMessage(
@@ -1110,8 +1134,9 @@ var killPlayer = function(color){
                 piece.tween.destroy();
             }
             delete pieces[id];
-            piecesByBoardPos[piece.square] = null;
-
+            // was causing bugs if a piece moved there someone before it got deleted.
+            // not sure how that's possible but it happened. Probably not even needed.
+            //piecesByBoardPos[piece.square] = null;
         }
     }
     pieceLayer.draw();
@@ -1138,8 +1163,10 @@ var getBoardPos = function(pos){
     bPos.y = Math.floor(getY(pos.x, pos.y) / width * boardSize);
 
     // don't really understand why this is needed but whatever
+    // something about the board being flipped
 	if (myColor == 'black'){
 		bPos.y++;
+		bPos.x++;
 	}
 	if (myColor == 'red'){
 		bPos.y++;
@@ -1171,6 +1198,9 @@ var getXCoordinate = function(x,y) {
     if (myColor == 'green'){
         return y;
     }
+    if (myColor == 'black'){
+        return boardSize - x - 1;
+    }
 	return x;
 
 }
@@ -1188,13 +1218,16 @@ var getYCoordinate = function(x,y) {
 	return y;
 }
 
-// translates absolute x,y into board ajusted, (i.e. in pixels flipped for black)
+// translates absolute x,y into board ajusted, (i.e. flipped for black)
 var getX = function(x, y){
     if (myColor == 'red'){
         return height - y - (height / boardSize);
     }
     if (myColor == 'green'){
         return y;
+    }
+    if (myColor == 'black'){
+        return height - x - (height / boardSize);
     }
 	return x;
 };
@@ -1506,7 +1539,7 @@ var getPiece = function(x, y, color, image){
     piece.stop = function(new_x, new_y, timeToCharge = piece.timerRecharge) {
         piece.x = new_x;
         piece.y = new_y;
-        if (piece.hasOwnProperty('anim')) {
+        if (piece.hasOwnProperty('anim') && piece.anim != null) {
             piece.anim.stop();
         }
         if (piece.promote) {
@@ -1624,7 +1657,7 @@ var setupBoard = function(){
         var rank = new Konva.Text({
             x: i * (width / boardSize) + (width / (boardSize * 2)),
             y: height + 6,
-            text: String.fromCharCode(97 + i),
+            text: (myColor == 'black' ? String.fromCharCode(97 + boardSize - 1 - i) : String.fromCharCode(97 + i)) ,
             fontSize: 14,
             fontFamily: 'Calibri',
             fill: 'black'
@@ -1715,16 +1748,23 @@ stage = setupEvents(stage);
 /**
  * Add message to the chat window
  */
-function addGameMessage(author, message, color, textcolor, dt, authColor) {
+function addGameMessage(author, message, usercolor, textcolor, dt, authColor) {
+    var dtString = ' ';
+    console.log(textcolor);
+    if (! isNaN(dt.getTime())) {
+        dtString =
+            (dt.getHours() < 10 ? '0' + dt.getHours() : dt.getHours()) + ':' +
+            (dt.getMinutes() < 10 ? '0' + dt.getMinutes() : dt.getMinutes()) + ':' + 
+            (dt.getSeconds() < 10 ? '0' + dt.getSeconds() : dt.getSeconds());
+    }
+
     var chatOptionVal = $("input[name='chatOption']:checked").val();
     var doLog = (chatOptionVal == 'public' || (chatOptionVal == 'players' && authColor != "none"));
     if (doLog) {
         message = decodeURIComponent(escape(message));
         $('#game-chat-input').removeAttr('disabled'); // let the user write another message
-        game_chatContent.append('<span style="color:' + color + '">' + author + '</span><span style="font-size: 12px;color:grey"> ' +
-                + (dt.getHours() < 10 ? '0' + dt.getHours() : dt.getHours()) + ':'
-                + (dt.getMinutes() < 10 ? '0' + dt.getMinutes() : dt.getMinutes())
-                + '</span> ' + message + '<br />');
+        game_chatContent.append('<span class="' + usercolor + 'beltColor" style="font-size: 14px;">' + author + '</span><span style="font-size: 10px;color:grey"> ' + dtString 
+            + '</span>&nbsp;&nbsp;<span style="font-size: 14px; color:' + textcolor + '">' + message + '</span>' + '<br />');
         $("#game-chat-log").scrollTop($("#game-chat-log")[0].scrollHeight);
     }
 }
@@ -1793,7 +1833,7 @@ $(function () {
                 gameStart = true;
             } else {
                 var msgTimeout = 0;
-                if (logMsg.msg.c != 'spawn' && logMsg.msg.c != 'readyToBegin') {
+                if (logMsg.msg.c != 'spawn' && logMsg.msg.c != 'playerReady') {
                     msgTimeout = (logMsg.time - startTime) * 1000;
                     setTimeout(
                         function() {
