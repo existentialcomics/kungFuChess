@@ -196,7 +196,7 @@
 </script>
 
 <script src="/pieces/pieces.js"></script>
-<script src="/game.js?cache=2021-12-28"></script>
+<script src="/game.js?cache=2021-12-30"></script>
 
 <script>
 $('input[type=radio]').on('change', function() {

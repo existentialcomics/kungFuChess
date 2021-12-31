@@ -9,7 +9,7 @@
         var wsDomainMain = '<%= $wsDomainMain %>';
         var wsProtocol   = '<%= $wsProtocol %>';
     </script>
-    <script src="/main.js?cache=1.7"></script>
+    <script src="/main.js?cache=2021-12-30"></script>
     <% if ($user){ %>
     <link rel="stylesheet" type="text/css" href="/css/<%= $user->getBelt() %>.css">
     <% } else { %>
@@ -28,8 +28,7 @@
         %= include 'logout'
     <% } else { %>
         <a href="/login">Login</a>
-    <% } %>
-    </li>
+    <% } %>30</li>
     <% if ($user && $user->{screenname} ne 'anonymous'){ %>
     <li>
     <a href="/profile/<%= $user->{screenname} %>">Welcome, <%= $user->{screenname} %></a>
