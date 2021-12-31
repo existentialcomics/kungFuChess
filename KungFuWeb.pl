@@ -209,7 +209,7 @@ get '/tactics/beginner/anticipate' => sub {
 
     $c->stash('video' => '/anticipate.webm');
     $c->stash('name' => 'Anticipate');
-    $c->stash('description' => 'When you see a piece moving, it is very important to try to work out which spot your opponent is attempting to land on, so you can potentially set up an attack on that spot before they reach it, allowing you to capture the piece before it is able to move again. In the video, you can see the bishap making long move to g4. However, white anticipates this, particually once they move into the f5 square, which is already guarded. This allows white to move a pawn forward to attack the expected square. Against a skilled opponent, you should not only consider squares guarded that are attacked by pawns, but also squares that are potentially attacked by pawns that are ready to move.');
+    $c->stash('description' => 'When you see a piece moving, it is very important to try to work out which spot your opponent is attempting to land on, so you can potentially set up an attack on that spot before they reach it, allowing you to capture the piece before it is able to move again. In the video, you can see the bishop making long move to g4. However, white anticipates this, particually once they move into the f5 square, which is already guarded. This allows white to move a pawn forward to attack the expected square. Against a skilled opponent, you should not only consider squares guarded that are attacked by pawns, but also squares that are potentially attacked by pawns that are ready to move.');
 
     $c->render('template' => 'tactic', format => 'html', handler => 'ep');
 };
@@ -1345,6 +1345,17 @@ post '/ajax/updateOptions' => sub {
         if ($c->param('chatOption') =~ m/^public|players|none$/) {
             app()->db->do("UPDATE players SET show_chat = ? WHERE player_id = ?", {}, $c->param('chatOption'), $user->{player_id});
         }
+    }
+    if ($c->param('soundOn') && $user && $user->{player_id} > 0) {
+        app()->db->do("UPDATE players SET game_sounds = 1 WHERE player_id = ?", {}, $user->{player_id});
+    } else {
+        app()->db->do("UPDATE players SET game_sounds = 0 WHERE player_id = ?", {}, $user->{player_id});
+
+    }
+    if ($c->param('musicOn') && $user && $user->{player_id} > 0) {
+        app()->db->do("UPDATE players SET music_sounds = 1 WHERE player_id = ?", {}, $user->{player_id});
+    } else {
+        app()->db->do("UPDATE players SET music_sounds = 0 WHERE player_id = ?", {}, $user->{player_id});
     }
 
     my $return = {

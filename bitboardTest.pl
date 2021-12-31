@@ -11,7 +11,14 @@ use Data::Dumper;
 use KungFuChess::Bitboards;
 use KungFuChess::BBHash;
 
-KungFuChess::Bitboards::setupInitialPosition();
+
+my $fen = shift;
+if ($fen) {
+    print "fen: $fen\n";
+    KungFuChess::Bitboards::loadFENstring($fen);
+} else {
+    KungFuChess::Bitboards::setupInitialPosition();
+}
 #print KungFuChess::Bitboards::debug();
 
 #print KungFuChess::Bitboards::pretty();
@@ -33,10 +40,15 @@ while ($go) {
         print KungFuChess::Bitboards::move($fr_bb, $to_bb);
         print "\n\n";
         print KungFuChess::Bitboards::pretty_ai();
+    } elsif ($input =~ m/^setFrozen ([0-9]+)$/) {
+        my $frozen = $1 + 0;
+        KungFuChess::Bitboards::addFrozen($frozen);
+        KungFuChess::Bitboards::resetAiBoards();
+        print KungFuChess::Bitboards::prettyFrozen();
     } elsif ($input =~ m/^freeze ([a-z][0-9])$/) {
         my $input = $1 . $1;
         my ($fr_bb, $to_bb, $fr_rank, $fr_file, $to_rank, $to_file) = KungFuChess::Bitboards::parseMove($input);
-        KungFuChess::Bitboards::setFrozen($fr_bb);
+        KungFuChess::Bitboards::addFrozen($fr_bb);
         KungFuChess::Bitboards::resetAiBoards();
         print KungFuChess::Bitboards::prettyFrozen();
     } elsif ($input =~ m/^unfreeze ([a-z][0-9])$/) {
@@ -73,10 +85,11 @@ while ($go) {
         }
         print "\n\n";
         print KungFuChess::Bitboards::pretty_ai();
-    } elsif ($input =~ m/^think (\d+) ([\d\.]+)$/) {
+    } elsif ($input =~ m/^think ([\d\.]+) (\d+)$/) {
         my $time = $1;
         my $depth = $2;
         my $start = time();
+        print "think time: $time, $depth\n";
         print KungFuChess::Bitboards::pretty_ai();
         my $moves = KungFuChess::Bitboards::aiThink($depth, $time, 2);
         my $suggestedMoves = KungFuChess::Bitboards::aiRecommendMoves(2, 999);

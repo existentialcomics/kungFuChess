@@ -137,8 +137,12 @@ sub displayMoves {
             print $indent;
             print $moveS;
             my $mScore = $move->[4];
-            print ($mScore > $score ? " * " : "   ") ;
-            print  $mScore;
+            if ($mScore) {
+                print ($mScore > $score ? " * " : "   ") ;
+                print  $mScore;
+            } else {
+                print " NA ";
+            }
             print "\n";
             if (($moveS eq $ponder) || $ponder eq 'all') {
                 displayMoves(

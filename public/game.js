@@ -602,7 +602,6 @@ var handleMessage = function(msg) {
         }
         console.log(msg);
     }
-    //console.log(msg);
     if (msg.c == 'move'){  // called when a piece changes positions (many times in one "move")
         var from = getSquareFromBB(msg.fr_bb);
         var to   = getSquareFromBB(msg.to_bb);
@@ -837,13 +836,15 @@ var handleMessage = function(msg) {
             square = getSquareFromBB(msg.to_bb);
             piece = suspendedPieces[square].shift();
         }
-        if (msg.hasOwnProperty('is_sweep')) {
-            if (sweepAudio) {
-                sweepAudio.play();
-            }
-        } else {
-            if (piece.killSound) {
-                piece.killSound.play();
+        if (playSounds == true) {
+            if (msg.hasOwnProperty('is_sweep')) {
+                if (sweepAudio) {
+                    sweepAudio.play();
+                }
+            } else {
+                if (piece.killSound) {
+                    piece.killSound.play();
+                }
             }
         }
         if (piece.type == 'king') {
@@ -871,19 +872,21 @@ var handleMessage = function(msg) {
         }
     } else if (msg.c == 'gameBegins'){
         $('#gameStatus').html('active');
-        var audio = new Audio('/sound/Tick-DeepFrozenApps-397275646.mp3');
-        audio.play();
-		for(id in pieces){
+        for(id in pieces){
             pieces[id].setDelayTimer(3, true);
-		}
-        setTimeout( function() {
+        }
+        if (playSounds == true) {
             var audio = new Audio('/sound/Tick-DeepFrozenApps-397275646.mp3');
             audio.play();
-        }, 1000);
-        setTimeout( function() {
-            var audio = new Audio('/sound/Tick-DeepFrozenApps-397275646.mp3');
-            audio.play();
-        }, 2000);
+            setTimeout( function() {
+                var audio = new Audio('/sound/Tick-DeepFrozenApps-397275646.mp3');
+                audio.play();
+            }, 1000);
+            setTimeout( function() {
+                var audio = new Audio('/sound/Tick-DeepFrozenApps-397275646.mp3');
+                audio.play();
+            }, 2000);
+        }
         setTimeout(startGame, 3000)
     } else if (msg.c == 'gamechat') {
         var dt = new Date();
@@ -1110,10 +1113,16 @@ conn.onmessage = function(evt) {
     handleMessage(msg);
 };
 
+var music = new Audio('/sound/judo_chess_kfc_remake_final.mp3');
 var startGame = function(){
     if (! replayMode) {
         var audio = new Audio('/sound/Boxing_Mma_Or_Wrestling_Bell-SoundBible.com-252285194.mp3');
         audio.play();
+        if (playMusic == true) {
+            music.loop=true;
+            music.volume = 0.2;
+            music.play();
+        }
         $('#whiteReady').hide();
         $('#blackReady').hide();
         $('#redReady').hide();
@@ -1143,6 +1152,7 @@ var killPlayer = function(color){
 }
 
 var endGame = function(){
+    music.pause();
     if (! replayMode) {
         $('#gameStatus').html('finished');
         $('#gameStatusWaitingToStart').hide();
@@ -1750,7 +1760,6 @@ stage = setupEvents(stage);
  */
 function addGameMessage(author, message, usercolor, textcolor, dt, authColor) {
     var dtString = ' ';
-    console.log(textcolor);
     if (! isNaN(dt.getTime())) {
         dtString =
             (dt.getHours() < 10 ? '0' + dt.getHours() : dt.getHours()) + ':' +

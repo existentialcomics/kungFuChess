@@ -672,6 +672,8 @@ sub moveIfLegal {
             $moveType = KungFuChess::Bitboards::MOVE_PUT_PIECE;
             $nextMoveSpeed = $self->{$colorbit}->{pieceSpeed};
         } elsif ($moveType == KungFuChess::Bitboards::MOVE_PUT_PIECE) {
+
+            ###------------------ comment this out to free horsey
             ### enemy collision active
             my $themColor = KungFuChess::Bitboards::occupiedColor($to_bb);
             if ($themColor != 0
@@ -689,6 +691,7 @@ sub moveIfLegal {
 
                 return 1;
             }
+            ###-----------------
 
             $self->killPieceBB($to_bb, $colorbit);
             my $msgSpawn = {

@@ -1,6 +1,8 @@
 %= include 'header'
 <script src="/konva.min.js"></script>
 <script src="/jquery-3.2.min.js"></script>
+<link href="https://cdn.jsdelivr.net/gh/gitbrent/bootstrap4-toggle@3.6.1/css/bootstrap4-toggle.min.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/gh/gitbrent/bootstrap4-toggle@3.6.1/js/bootstrap4-toggle.min.js"></script>
 <%= jquery_ajax_csrf_protection %>
 <div class="container bg-light card">
     <div class="row">
@@ -33,6 +35,13 @@
                     <label class="btn btn-outline-primary" for="chatOpponentRadio">Players</label>
                     <input type="radio" class="btn-check" name="chatOption" id="chatNoneRadio" autocomplete="off" value="none" <% if ($user && $user->{show_chat} && $user->{show_chat} eq 'none') { %>checked<% } %>>
                     <label class="btn btn-outline-primary" for="chatNoneRadio">None</label>
+
+                </div>
+                <div class="form-check form-check-inline">
+                    <label for="musicOn" class="form-check-label">Music</label>
+                    <input id="musicOn" name="musicOn" class="form-check-input" type="checkbox" data-toggle="toggle" data-style="mr-1" <% if ($user && $user->{music_sounds}) { %>checked<% } %>>
+                    <label for="soundOn" class="form-check-label">Sound</label>
+                    <input id="soundOn" name="soundOn" class="form-check-input" type="checkbox" data-toggle="toggle" data-style="mr-1" <% if ($user && $user->{game_sounds}) { %>checked<% } %>>
                 </div>
             </div>
             <% end %>
@@ -156,6 +165,9 @@
 	var anonKey   = "<%= $anonKey %>";
 	var gameSpeed = "<%= $gameSpeed %>";
 
+	var playMusic  = <%= ($user && $user->{music_sounds} ? "true" : "false" ) %>;
+	var playSounds = <%= ($user && $user->{game_sounds} ? "true" : "false") %>;
+
 	var speedAdvantage  = "<%= $speedAdvantage %>";
 	var timerSpeed      = "<%= $pieceSpeed %>";
 	var timerRecharge   = "<%= $pieceRecharge %>";
@@ -188,6 +200,29 @@
 
 <script>
 $('input[type=radio]').on('change', function() {
+    $.ajax({
+        url:'/ajax/updateOptions',
+        method: 'POST',
+        data: $(this).closest("form").serialize(),
+        success: function (data) {
+            //alert($textbox.attr("id"));
+        }
+    });
+});
+$('input[type=checkbox]').on('change', function() {
+    var form = $(this).closest("form").serializeArray();
+    playMusic = false;
+    playSounds = false;
+    music.pause();
+    form.forEach(function(element) {
+        if (element.name == 'musicOn') {
+            playMusic = true;
+            music.play();
+        }
+        if (element.name == 'soundOn') {
+            playSounds = true;
+        }
+    }); 
     $.ajax({
         url:'/ajax/updateOptions',
         method: 'POST',

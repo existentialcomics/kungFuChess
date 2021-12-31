@@ -262,27 +262,32 @@ sub _init {
             $self->{ai_depth} = 1;
             $self->{ai_simul_moves} = 1;
             $self->{ai_delay} = 800_000; ### random delay between moves in microseconds
+            $self->{ai_min_delay} = 200_000; 
         } elsif ($difficulty eq '2') {
             $self->{ai_thinkTime} = 0.5;
             $self->{ai_depth} = 2;
             $self->{ai_simul_moves} = 2;
             $self->{ai_delay} = 300_000; ### random delay between moves in microseconds
+            $self->{ai_min_delay} = 100_000; 
         } elsif ($difficulty eq '3') {
             $self->{ai_thinkTime} = 0.3;
             $self->{ai_depth} = 2;
             $self->{ai_simul_moves} = 3;
             $self->{ai_delay} = 1_000; ### random delay between moves in microseconds
+            $self->{ai_min_delay} = 0; 
         } elsif ($difficulty eq 'human_a') {
             $self->{ai_thinkTime} = 0.50;
             $self->{ai_depth} = 2;
             $self->{ai_simul_moves} = 1;
             $self->{ai_delay} = 200_000; ### random delay between moves in microseconds
             $self->{ai_min_delay} = 200_000; 
+            $self->{ai_min_delay} = 100_000; 
         } else {
             $self->{ai_thinkTime} = 0.3;
             $self->{ai_depth} = 2;
             $self->{ai_simul_moves} = 3;
             $self->{ai_delay} = 1_000; ### random delay between moves in microseconds
+            $self->{ai_min_delay} = 0; 
         }
     } else {
         warn "unknown game speed $speed\n";
@@ -555,15 +560,25 @@ sub handleMessage {
                         }
                         $self->{movesQueue} = [];
                 } else {
-                    KungFuChess::Bitboards::resetAiBoards(1);
+                    KungFuChess::Bitboards::resetAiBoards($self->{color});
                     #print KungFuChess::Bitboards::getFENstring();
                     #print KungFuChess::Bitboards::pretty_ai();
                     #print KungFuChess::Bitboards::debug();
                     # depth, thinkTime
                     my $start = time();
-                    KungFuChess::Bitboards::aiThink(1, $self->{ai_thinkTime});
+                    my $score = 0;
+                    my $moves = KungFuChess::Bitboards::aiThink(1, $self->{ai_thinkTime});
+                    #print "---- white ----\n";
+                    #KungFuChess::BBHash::displayMoves($moves, 1, $score, undef, undef, undef);
+                    #print "---- black ----\n";
+                    #KungFuChess::BBHash::displayMoves($moves, 2, $score, undef, undef, undef);
+
                     if ($self->{ai_depth} >= 2 && (time() - $start) < $self->{ai_thinkTime}) {
-                        KungFuChess::Bitboards::aiThink(2, $self->{ai_thinkTime});
+                        $moves = KungFuChess::Bitboards::aiThink(2, $self->{ai_thinkTime});
+                        #print "---- white ----\n";
+                        #KungFuChess::BBHash::displayMoves($moves, 1, $score, undef, undef, undef);
+                        #print "---- black ----\n";
+                        #KungFuChess::BBHash::displayMoves($moves, 2, $score, undef, undef, undef);
                     }
                     if ($self->{ai_depth} >= 3 && (time() - $start) < $self->{ai_thinkTime}) {
                         KungFuChess::Bitboards::aiThink(3, $self->{ai_thinkTime});
