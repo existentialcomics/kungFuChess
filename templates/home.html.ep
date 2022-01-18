@@ -28,6 +28,7 @@
                     <div class="navbar-nav">
                       <a class="nav-item nav-link <% if($activeTab eq 'pool') { %>active<% } %>" id="showPool" href="#">Matching Pools</a>
                       <a class="nav-item nav-link <% if($activeTab eq 'openGames') { %>active<% } %>" id="showOpenGames" href="#">Open Games</a>
+                      <a class="nav-item nav-link <% if($activeTab eq 'challenges') { %>active<% } %>" id="showChallenges" href="#">Challenges</a>
                       <a class="nav-item nav-link <% if($activeTab eq 'activeGames') { %>active<% } %>" id="showActiveGames" href="#">Watch</a>
                     </div>
                   </div>
@@ -61,6 +62,10 @@
                 <% } %>
             </div>
             <div id='openGamesContent' class='card shadow-m' style="<% if($activeTab ne 'openGames') { %>display:none;<% } %>">
+            </div>
+            <div id='challengesContent' class='card shadow-m' style="<% if($activeTab ne 'challenges') { %>display:none;<% } %>">
+                <div class="mx-auto" style="width: auto;">No open challenges</div>
+
             </div>
             <div id='activeGamesContent' class='card shadow-m' style="<% if($activeTab ne 'activeGames') { %>display:none;<% } %>">
             </div>

@@ -52,7 +52,7 @@ function getOpenGames(originalThread = false) {
                     console.log('has uid in match games we matched but didnt create');
                     currentGameUid = jsonRes.uid;
                 } else {
-                    $('#openGamesContent').html(jsonRes.body);
+                    $('#openGamesContent').html(jsonRes.openGames);
                 }
                 if (setInterval == true) {
                     intervalOpenGames = setTimeout(
@@ -322,6 +322,7 @@ $(function () {
     $("#showPool").click(function() {
         $("#showOpenGames").removeClass('active');
         $("#showActiveGames").removeClass('active');
+        $("#showChallenges").removeClass('active');
         $("#showPool").addClass('active');
         $("#openGamesContent").hide();
         $("#activeGamesContent").hide();
@@ -340,6 +341,7 @@ $(function () {
 
         $("#showOpenGames").addClass('active');
         $("#showActiveGames").removeClass('active');
+        $("#showChallenges").removeClass('active');
         $("#showPool").removeClass('active');
         $("#activeGamesContent").hide();
         $("#pool-matching").hide();
@@ -353,6 +355,31 @@ $(function () {
         $("#createGameFormDiv").hide();
         $("#createAiGameFormDiv").hide();
         $("#openGamesContent").show();
+        $("#challengesContent").hide();
+    });
+
+    $("#showChallenges").click(function() {
+        $("#enter-pool-standard").html('Standard Pool');
+        $("#enter-pool-lightning").html('Lightning Pool');
+        $("#enter-pool-4way-standard").html('Standard 4way Pool');
+        $("#enter-pool-4way-lightning").html('Lightning 4way Pool');
+
+        $("#showOpenGames").removeClass('active');
+        $("#showChallenges").addClass('active');
+        $("#showActiveGames").removeClass('active');
+        $("#showPool").removeClass('active');
+        $("#activeGamesContent").hide();
+        $("#pool-matching").hide();
+        cancelActiveGames = true;
+        cancelCheckPool = true;
+        cancelOpenGames = true;
+        $("#enter-pool-lighting").html('Lightning Pool');
+        $("#enter-pool-standard").html('Standard Pool');
+
+        $("#createGameFormDiv").hide();
+        $("#createAiGameFormDiv").hide();
+        $("#openGamesContent").hide();
+        $("#challengesContent").show();
     });
   
     $("#showActiveGames").click(function() {
@@ -362,6 +389,7 @@ $(function () {
         $("#enter-pool-4way-lightning").html('Lightning 4way Pool');
 
         $("#showActiveGames").addClass('active');
+        $("#showChallenges").removeClass('active');
         $("#showOpenGames").removeClass('active');
         $("#showPool").removeClass('active');
         $("#pool-matching").hide();
@@ -376,6 +404,7 @@ $(function () {
         $("#createAiGameFormDiv").hide();
         $("#openGamesContent").hide();
         $("#activeGamesContent").show();
+        $("#challengesContent").hide();
     });
   
     $("#homeContent").delegate('#createGameBtn', 'click', function() {
@@ -383,6 +412,11 @@ $(function () {
         $("#openGamesContent").hide();
         $("#createGameFormDiv").show();
         $("#createAiGameFormDiv").hide();
+
+        $("#openToPublicChk").prop('checked', true);
+        $("#isChallengeChk").prop('checked', false);
+        $("#challengeUserTxt").prop('disabled', true);
+        $("#challengeUserTxt").val('');
     });
   
     $("#homeContent").delegate('#createAiGameBtn', 'click', function() {
@@ -390,6 +424,18 @@ $(function () {
         $("#openGamesContent").hide();
         $("#createGameFormDiv").hide();
         $("#createAiGameFormDiv").show();
+    });
+
+    $("#homeContent").delegate('.challengePlayer', 'click', function() {
+        $("#pool-matching").hide();
+        $("#openGamesContent").hide();
+        $("#createGameFormDiv").show();
+        $("#createAiGameFormDiv").hide();
+
+        $("#openToPublicChk").prop('checked', false);
+        $("#isChallengeChk").prop('checked', true);
+        $("#challengeUserTxt").prop('disabled', false);
+        $("#challengeUserTxt").val($(this).data('screenname'));
     });
   
     $("#homeContent").delegate('.watch-game-row', 'click', function() {
@@ -425,6 +471,16 @@ $(function () {
                 $("#openGamesContent").show();
             }
         });
+    });
+
+    $("#homeContent").delegate('#isChallengeChk', 'click', function() {
+        if($(this).prop("checked") == true){
+            $("#openToPublicChk").prop('checked', false);
+            $("#challengeUserTxt").prop('disabled', false);
+        } else {
+            $("#openToPublicChk").prop('checked', true);
+            $("#challengeUserTxt").prop('disabled', true);
+        }
     });
   
     $("#homeContent").delegate('.cancel-game-row', 'click', function() {
@@ -469,6 +525,10 @@ $(function () {
                         window.location.replace('/game/' + jsonRes.gameId);
                     }
                 }
+                if (jsonRes.hasOwnProperty('error')) {
+                    $("#error-alert").html('<div class="alert alert-danger alert-dismissible" id="error-alert" role="alert">' + jsonRes.error + "</div>");
+    
+                }
                 $("#showOpenGames").addClass('active');
                 $("#showPool").removeClass('active');
                 $("#pool-matching").hide();
@@ -504,8 +564,6 @@ $(function () {
                     }
                 }
                 if (jsonRes.hasOwnProperty('error')) {
-                    console.log("ERROR:");
-                    console.log(jsonRes.error);
                     $("#error-alert").html('<div class="alert alert-danger alert-dismissible" id="error-alert" role="alert">' + jsonRes.error + "</div>");
     
                 }
@@ -556,11 +614,12 @@ var bindEvents = function(ws_conn) {
                 };
                 sendGlobalMsg(heartbeat_msg);
             } 
-        }, 4000); 
+        }, 3000); 
     }
 
     main_conn.onmessage = function(evt) {
         var msg = JSON.parse(evt.data);
+        console.log(msg);
         if (msg.c == 'globalchat'){
             //console.log(msg);
             var dt = new Date();
@@ -571,6 +630,8 @@ var bindEvents = function(ws_conn) {
                 'black',
                 dt
             );
+        } else if (msg.c == 'challenge'){
+            $('#challengesContent').html(msg.challenges);
         } else if (msg.c == 'privatechat'){
             var dt = new Date();
             addChatMessage(

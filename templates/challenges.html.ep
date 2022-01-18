@@ -1,0 +1,35 @@
+<% if ($#{$openChallenges} == -1 ){ %>
+    <div class="mx-auto" style="width: auto;">No open challenges</div>
+<% } else { %>
+    <table id='open-games-table' class='table table-hover'>
+        <thead>
+            <th>Player</th>
+            <th>Rating</th>
+            <th>Speed</th>
+            <th>Type</th>
+            <th>Rated</th>
+        </thead>
+
+        <tbody>
+    <% foreach my $game (@{$openChallenges}){ %>
+        <tr class='join-game-row' style='cursor: pointer;' data-href='/ajax/matchGame/<%= $game->{private_game_key} %>'>
+            <td>
+                <img src="/challenge25_25.png"><%= $game->{screenname} %>
+            </td>
+            <td>
+                <%= $game->{ 'rating_' . $game->{'game_speed'}} %>
+            </td>
+            <td>
+                <%= $game->{game_speed} %> (<%= int($game->{piece_recharge}) %>/<%= sprintf('%0.1f',$game->{piece_speed}) %>)
+            </td>
+            <td>
+                <%= $game->{game_type} %>
+            </td>
+            <td>
+                <%= ($game->{rated} ? 'rated' : 'unrated') %>
+            </td>
+        </tr>
+    <% } %>
+        </tbody>
+    </table>
+<% } %>

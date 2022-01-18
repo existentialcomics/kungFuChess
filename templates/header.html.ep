@@ -28,7 +28,8 @@
         %= include 'logout'
     <% } else { %>
         <a href="/login">Login</a>
-    <% } %>30</li>
+    <% } %>
+    </li>
     <% if ($user && $user->{screenname} ne 'anonymous'){ %>
     <li>
     <a href="/profile/<%= $user->{screenname} %>">Welcome, <%= $user->{screenname} %></a>

@@ -1116,8 +1116,10 @@ conn.onmessage = function(evt) {
 var music = new Audio('/sound/judo_chess_kfc_remake_final.mp3');
 var startGame = function(){
     if (! replayMode) {
-        var audio = new Audio('/sound/Boxing_Mma_Or_Wrestling_Bell-SoundBible.com-252285194.mp3');
-        audio.play();
+        if (playSounds == true) {
+            var audio = new Audio('/sound/Boxing_Mma_Or_Wrestling_Bell-SoundBible.com-252285194.mp3');
+            audio.play();
+        }
         if (playMusic == true) {
             music.loop=true;
             music.volume = 0.2;
@@ -1636,11 +1638,11 @@ var setupBoard = function(){
             var light = '#b2aca3';
             var dark  = '#6a655e';
             var color;
-            if (myColor == 'black' || myColor == 'green') {
-                color = (( (j + (i % 2) ) % 2) != 0 ? light : dark);
-            } else {
+            //if (myColor == 'black' || myColor == 'green') {
+                //color = (( (j + (i % 2) ) % 2) != 0 ? light : dark);
+            //} else {
                 color = (( (j + (i % 2) ) % 2) != 0 ? dark : light);
-            }
+            //}
             var rect = new Konva.Rect({
               x: i * (width / boardSize),
               y: j * (width / boardSize),

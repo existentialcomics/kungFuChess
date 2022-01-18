@@ -361,6 +361,24 @@ post '/ajax/createChallenge' => sub {
 
     my $pieceSpeed = undef;
     my $pieceRecharge = undef;
+    my $challengeId = undef;
+    if ($c->req->param('challengeName')) {
+        my $screenname = $c->req->param('challengeName');
+        my $playerRow = app->db()->selectrow_hashref(
+            "select * from players WHERE screenname = ?", 
+            { 'Slice' => {} },
+            $screenname
+        );
+
+        if ($playerRow) {
+            $challengeId = $playerRow->{player_id};
+        } else {
+            my $return = {};
+            $return->{error} = "No player with that screename found.";
+            $c->render('json' => $return );
+            return;
+        }
+    }
 
     my $options = {};
     if (! $pieceSpeedParam) {
@@ -396,7 +414,7 @@ post '/ajax/createChallenge' => sub {
         $options->{ai_difficulty} = 3;
         $gameId = createGame($gameType, $gameSpeed, 0, ($user ? $user->{player_id} : ANON_USER), AI_USER_HARD, undef, undef, $options);
     } else {
-        $uid = createChallenge(($user ? $user->{player_id} : ANON_USER), $gameSpeed, $gameType, ($open ? 1 : 0), $rated, undef, $options);
+        $uid = createChallenge(($user ? $user->{player_id} : ANON_USER), $gameSpeed, $gameType, ($open ? 1 : 0), $rated, $challengeId, $options);
     }
 
     my $return = {};
@@ -937,7 +955,7 @@ get '/ajax/openGames' => sub {
         }
     }
 
-    $return{'body'} = $c->render_to_string('template' => 'openGames', format => 'html', handler => 'ep');
+    $return{'openGames'} = $c->render_to_string('template' => 'openGames', format => 'html', handler => 'ep');
 
     $c->render('json' => \%return);
 };
@@ -971,6 +989,7 @@ get '/activePlayers' => sub {
     my $players = getActivePlayers($ratingType);
     $c->stash('players' => $players);
     $c->stash('ratingType' => $ratingType);
+    $c->stash('showChallenge' => 1);
     $c->render('template' => 'players', format => 'html', handler => 'ep');
 };
 
@@ -983,6 +1002,7 @@ get '/rankings' => sub {
     my $playersLightning = getTopPlayers('lightning', 20);
     $c->stash('playersStandard' => $playersStandard);
     $c->stash('playersLightning' => $playersLightning);
+    $c->stash('showChallenge' => 0);
 
     $c->render('template' => 'rankings', format => 'html', handler => 'ep');
 };
@@ -1603,7 +1623,28 @@ websocket '/ws' => sub {
             if ($msg->{userAuthToken}) {
                 $globalConnectionsByAuth{$msg->{userAuthToken}} = $self;
                 my $ip = $self->tx->remote_address;
-                app->db()->do('UPDATE players SET last_seen = NOW(), ip_address = ? WHERE auth_token = ?', {}, $ip, $msg->{userAuthToken});
+                my $playerRow = app->db()->selectrow_hashref('
+                    SELECT *
+                    FROM players
+                    WHERE auth_token = ?',
+                    { 'Slice' => {} },
+                    $msg->{userAuthToken}
+                );
+                if ($playerRow) {
+                    app->db()->do('UPDATE players SET last_seen = NOW(), ip_address = ? WHERE player_id = ?', {}, $ip, $playerRow->{id});
+                    my $myChallenges = getMyOpenChallenges($playerRow->{player_id});
+
+                    if ($myChallenges) {
+                        $self->stash('openChallenges', $myChallenges);
+                        # "render_to_string" my ass it is a Mojo::ByteStream object
+                        my $html = $self->render_to_string('template' => 'challenges', format => 'html', handler => 'ep');
+                        my $challengeReturn = {
+                            'c' => 'challenge',
+                            'challenges' => $html->to_string
+                        };
+                        connectionBroadcast($self, $challengeReturn);
+                    }
+                }
             }
         } elsif ($msg->{'c'} eq 'chat'){
             my $gameId = $msg->{gameId};
@@ -2718,6 +2759,26 @@ sub savePlayer {
     }
 }
 
+sub getMyOpenChallenges {
+    my $playerId = shift;
+
+    my $myGames = app->db()->selectall_arrayref('
+        SELECT
+            p.*,
+            py.rating_standard,
+            py.rating_lightning,
+            IF(py.player_id = -1, "(anon)", py.screenname) as screenname
+        FROM pool p
+        LEFT JOIN players py ON p.player_id = py.player_id
+            WHERE p.challenge_player_id = ?
+        ',
+        { 'Slice' => {} },
+        $playerId,
+    );
+
+    return $myGames;
+}
+
 sub getMyOpenGame {
     my $user = shift;
     my $uid = shift;
@@ -2733,15 +2794,15 @@ sub getMyOpenGame {
             IF(py.player_id = -1, "(anon)", py.screenname) as screenname,
             py2.rating_standard as rating2_standard,
             py2.rating_lightning as rating2_lightning,
-            IF(p.challenge_player_id = -1, "(anon)", py2.screenname) as screenname2,
+            IF(p.matched_player_id = -1, "(anon)", py2.screenname) as screenname2,
             py3.rating_standard as rating3_standard,
             py3.rating_lightning as rating3_lightning,
             IF(p.player_id = -1, "(anon)", py3.screenname) as screenname3
         FROM pool p
         LEFT JOIN players py ON p.player_id = py.player_id
-        LEFT JOIN players py2 ON p.challenge_player_id = py2.player_id
-        LEFT JOIN players py3 ON p.challenge_player_2_id = py3.player_id
-            WHERE (p.player_id = ? OR challenge_player_id = ? OR challenge_player_2_id = ? OR challenge_player_3_id = ?)
+        LEFT JOIN players py2 ON p.matched_player_2_id = py2.player_id
+        LEFT JOIN players py3 ON p.matched_player_3_id = py3.player_id
+            WHERE (p.player_id = ? OR matched_player_id = ? OR matched_player_2_id = ? OR matched_player_3_id = ?)
             AND (p.private_game_key = ? OR p.private_game_key = ?)
         ',
         { 'Slice' => {} },
@@ -2775,14 +2836,14 @@ sub getOpenGames {
             IF(py.player_id = -1, "(anon)", py.screenname) as screenname,
             py2.rating_standard as rating2_standard,
             py2.rating_lightning as rating2_lightning,
-            IF(p.challenge_player_id = -1, "(anon)", py2.screenname) as screenname2,
+            IF(p.matched_player_id = -1, "(anon)", py2.screenname) as screenname2,
             py3.rating_standard as rating3_standard,
             py3.rating_lightning as rating3_lightning,
             IF(p.player_id = -1, "(anon)", py3.screenname) as screenname3
         FROM pool p
         LEFT JOIN players py ON p.player_id = py.player_id
-        LEFT JOIN players py2 ON p.challenge_player_id = py2.player_id
-        LEFT JOIN players py3 ON p.challenge_player_2_id = py3.player_id
+        LEFT JOIN players py2 ON p.matched_player_2_id = py2.player_id
+        LEFT JOIN players py3 ON p.matched_player_3_id = py3.player_id
             WHERE last_ping > NOW() - INTERVAL 4 SECOND
             AND open_to_public = 1
             AND (in_matching_pool = 0 OR game_type = "2way")

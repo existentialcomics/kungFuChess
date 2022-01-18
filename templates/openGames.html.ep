@@ -34,8 +34,9 @@
     </tr>
     </table>
 <% } %>
+
 <% if ($#{$openGames} == -1 ){ %>
-    <div class="mx-auto" style="width: auto;">No open games</div>
+    <div class="mx-auto" style="width: auto;">No open public games</div>
 <% } else { %>
     <table id='open-games-table' class='table table-hover'>
         <thead>

@@ -9,16 +9,22 @@ sudo apt install mariadb-server
 sudo apt install libclass-dbi-perl
 sudo apt install libclass-dbi-mysql-perl
 
+### install the needed cpan modules
+sudo ./cpan-required.sh
+
 # https://www.digitalocean.com/community/tutorials/how-to-install-mariadb-on-ubuntu-20-04
 
 cp kungFuChess.cnf.example kungFuChess.cnf
-
 # fill out the conf with your password
-# log into mariadb and create the database:
-# MariaDB [(none)]> create database kungfuchess;
 
+
+mariadb "CREATE database kungfuchess";
 # import the schema
-mariadb -p kungfuchess < schema.sql 
+mariadb kungfuchess < schema.sql 
+# create a mysql user
+mariadb -e "CREATE user 'kungfuchess'@'localhost' IDENTIFIED BY 'kfc'";
+# probably only need SELECT, UPDATE, DELETE
+mariadb -e "GRANT ALL PRIVILEGES ON `kungfuchess`.* TO `kungfuchess`@`localhost`";
 
 # how to run on dev:
 # To server web pages:

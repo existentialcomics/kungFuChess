@@ -19,6 +19,10 @@
         </td>
         <td>
            <small>
+           <a href="#" class='link-dark'>
+           <% if ($showChallenge) { %>
+           <img src="/challenge25_25.png" class="challengePlayer" data-screenname="<%= $player->{screenname} %>"> </a>
+           <% } %>
            <a href=/profile/<%= $player->{screenname} %> class='link-dark'><%= $player->{screenname} %></a>
            </small>
         </td>
