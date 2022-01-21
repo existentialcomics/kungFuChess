@@ -92,7 +92,6 @@ function getActiveGames(originalThread = false) {
     if (cancelActiveGames) {
         activeGamesRunning = false;
         cancelActiveGames = false;
-        console.log('return');
         return ;
     }
     var setInterval = originalThread;
@@ -101,7 +100,6 @@ function getActiveGames(originalThread = false) {
         setInterval = true;
     }
     if (document.getElementById('activeGamesContent')) {
-        console.log('sending ajx');
         var urlActiveGames = '/ajax/activeGames';
         if (currentGameUid) {
             urlActiveGames += '?uid=' + currentGameUid;
@@ -112,7 +110,6 @@ function getActiveGames(originalThread = false) {
             dataType : 'json',
             success : function(data){
                 var jsonRes = data;
-                console.log(jsonRes.body);
                 $('#activeGamesContent').html(jsonRes.body);
                 if (setInterval == true) {
                     intervalActiveGames = setTimeout(
@@ -159,7 +156,6 @@ function checkPool(originalThread = false) {
     if (cancelCheckPool) {
         checkPoolRunning = false;
         cancelCheckPool = false;
-        console.log('cancelCheckPool set');
         return ;
     }
     var setInterval = originalThread;
@@ -415,7 +411,6 @@ $(function () {
         $("#enter-pool-lighting").html('Lightning Pool');
         $("#enter-pool-standard").html('Standard Pool');
 
-        console.log('showactivegames');
         cancelActiveGames = false;
         getActiveGames();
         $("#createGameFormDiv").hide();
@@ -638,7 +633,6 @@ var bindEvents = function(ws_conn) {
     main_conn.onmessage = function(evt) {
         var msg = JSON.parse(evt.data);
         if (msg.c == 'globalchat'){
-            //console.log(msg);
             var dt = new Date();
             addChatMessage(
                 msg.author,

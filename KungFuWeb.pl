@@ -401,7 +401,7 @@ post '/ajax/createChallenge' => sub {
     if ($gameMode eq 'practice') {
                   # speed, type, open, rated, whiteId, blackId
         $gameId = createGame($gameType, $gameSpeed, 0, ($user ? $user->{player_id} : ANON_USER), ($user ? $user->{player_id} : ANON_USER), ($user ? $user->{player_id} : ANON_USER), ($user ? $user->{player_id} : ANON_USER), $options);
-        if (! $user) {
+        if (! $user || ! %$user) {
             app->db()->do("UPDATE games SET black_anon_key = white_anon_key WHERE game_id = ?", {}, $gameId);
         }
     } elsif ($gameMode eq 'ai-easy') {
@@ -428,7 +428,7 @@ post '/ajax/createChallenge' => sub {
     }
     if ($gameId && $gameId > 0){
         $return->{gameId} = $gameId;
-        if (! $user) {
+        if (! $user ||  %{$user}) {
             my $row = app->db()->selectrow_arrayref("SELECT white_anon_key FROM games WHERE game_id = ?", {}, $gameId);
             $return->{anonKey} = $row->[0];
         }
@@ -641,7 +641,7 @@ get '/ajax/pool/:speed/:type' => sub {
 
     if ($gameId) {
         $json->{'gameId'} = $gameId;
-        if (! $user) {
+        if (! $user || ! %{$user}) {
             $json->{anonKey} = $uuid;
         }
     }
@@ -811,7 +811,7 @@ get '/profile/:screenname' => async sub {
 
     $c->stash('player' => $player);
 
-    if ($user && $user->{player_id} > 0 && $user->{player_id} != $player->{player_id}) {
+    if ($user && %{$user} && $user->{player_id} > 0 && $user->{player_id} != $player->{player_id}) {
         $c->stash('globalScoreStandard', getGlobalScore($user, $player, 'standard'));
         $c->stash('globalScoreLightning', getGlobalScore($user, $player, 'lightning'));
     } else {
@@ -887,7 +887,7 @@ get '/ajax/matchGame/:uid' => sub {
         } else {
             my $json = {};
             $json->{'gameId'} = $gameId;
-            if (!$user) {
+            if (!$user || ! %$user) {
                 my @row = app->db()->selectrow_array('SELECT white_anon_key FROM games WHERE game_id = ?', {}, $gameId);
                 if (@row) {
                     $json->{'anonKey'} = $row[0];
@@ -951,7 +951,7 @@ get '/ajax/openGames' => sub {
     my %return = ();
     if ($myGame->{matched_game} ) {
         $return{'matchedGame'} = $myGame->{matched_game};
-        if (!$user) {
+        if (!$user || ! %$user) {
             my @row = app->db()->selectrow_array('SELECT black_anon_key FROM games WHERE game_id = ?', {}, $myGame->{matched_game});
             if (@row) {
                 $return{'anonKey'} = $row[0];
@@ -1019,7 +1019,7 @@ get '/rankings' => sub {
 get '/game/:gameId' => sub {
     my $c = shift;
     my $user = $c->current_user();
-    if (!$user) {
+    if (! $user || ! %$user) {
         $user = new KungFuChess::Player( { 'anon' => 1 });
     }
     $c->stash('user' => $user);
