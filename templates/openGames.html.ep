@@ -15,7 +15,6 @@
         <% if (! (($user) && $game->{player_id} == $user->{player_id})
               && ! (($uid) && $game->{private_game_key} eq $uid) ) { %>
             <tr class='join-game-row' style='cursor: pointer;' data-href='/ajax/matchGame/<%= $game->{private_game_key} %>'>
-<td colspan="5">This text should be as long as the entire table's width...</td>
                 <td>
                     <%= $game->{screenname} %>
                     <% if ($game->{screenname2}) { %><%= $game->{screenname2} %><% } %>
