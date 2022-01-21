@@ -151,7 +151,7 @@ get '/' => sub {
     $c->stash('user' => $user);
     my $games = getActiveGames();
     $c->stash('games' => $games);
-    my $activeTab = $c->req->param('activeTab') ? $c->req->param('activeTab') : 'pool';
+    my $activeTab = $c->req->param('activeTab') ? $c->req->param('activeTab') : 'openGames';
     my $currentGameUid = $c->req->param('uid') ? $c->req->param('uid') : '';
     $c->stash('activeTab' => $activeTab);
     $c->stash('currentGameUid' => $currentGameUid);
@@ -933,6 +933,10 @@ get '/ajax/openGames' => sub {
     my $uid = $c->req->param('uid');
     my $myGame = getMyOpenGame($user, $uid);
 
+    my $myChallenges = getMyOpenChallenges($user->{player_id});
+
+    $c->stash('openChallenges', $myChallenges);
+
     my $openGames = getOpenGames();
     $c->stash('myGame' => $myGame);
     my @games = @{$openGames};
@@ -956,6 +960,10 @@ get '/ajax/openGames' => sub {
     }
 
     $return{'openGames'} = $c->render_to_string('template' => 'openGames', format => 'html', handler => 'ep');
+    $return{'challenges'} = $c->render_to_string('template' => 'challenges', format => 'html', handler => 'ep');
+    if (%$myGame) {
+        $return{'myGame'} = $c->render_to_string('template' => 'myGame', format => 'html', handler => 'ep');
+    }
 
     $c->render('json' => \%return);
 };
@@ -2771,6 +2779,8 @@ sub getMyOpenChallenges {
         FROM pool p
         LEFT JOIN players py ON p.player_id = py.player_id
             WHERE p.challenge_player_id = ?
+            AND matched_game IS NULL
+            AND last_ping > NOW() - INTERVAL 4 SECOND
         ',
         { 'Slice' => {} },
         $playerId,

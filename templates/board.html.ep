@@ -22,7 +22,7 @@
                 %= include 'player', 'player' => $greenPlayer, 'ratingType' => $ratingType
             <% } %>
         </div>
-            <div id="game-chat-log" disabled="true"></div>
+            <div id="game-chat-log" disabled="true" class='text-chat'></div>
             <div class='form-line'>
             <input type="text" id="game-chat-input" class="form-control input-lg"></input><br/>
             </div>

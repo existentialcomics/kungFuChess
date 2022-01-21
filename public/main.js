@@ -52,7 +52,26 @@ function getOpenGames(originalThread = false) {
                     console.log('has uid in match games we matched but didnt create');
                     currentGameUid = jsonRes.uid;
                 } else {
-                    $('#openGamesContent').html(jsonRes.openGames);
+                    if (jsonRes.hasOwnProperty('openGames')) {
+                        $('#publicGamesContent').html(jsonRes.openGames);
+                    }
+                    if (jsonRes.hasOwnProperty('challenges')) {
+                        $('#challengeContent').html(jsonRes.challenges);
+                    }
+                    if (jsonRes.hasOwnProperty('myGame')) {
+                        checkPoolRunning = false;
+                        cancelCheckPool = false;
+                        $("#enter-pool-standard").html('Standard Pool');
+                        $("#enter-pool-lightning").html('Lightning Pool');
+                        $("#enter-pool-4way-standard").html('Standard 4way Pool');
+                        $("#enter-pool-4way-lightning").html('Lightning 4way Pool');
+
+                        $('#myGameContent').html(jsonRes.myGame);
+                        $('#createGameButtons').hide();
+                    } else {
+                        $('#myGameContent').html('');
+                        $('#createGameButtons').show();
+                    }
                 }
                 if (setInterval == true) {
                     intervalOpenGames = setTimeout(
@@ -73,6 +92,7 @@ function getActiveGames(originalThread = false) {
     if (cancelActiveGames) {
         activeGamesRunning = false;
         cancelActiveGames = false;
+        console.log('return');
         return ;
     }
     var setInterval = originalThread;
@@ -81,6 +101,7 @@ function getActiveGames(originalThread = false) {
         setInterval = true;
     }
     if (document.getElementById('activeGamesContent')) {
+        console.log('sending ajx');
         var urlActiveGames = '/ajax/activeGames';
         if (currentGameUid) {
             urlActiveGames += '?uid=' + currentGameUid;
@@ -91,6 +112,7 @@ function getActiveGames(originalThread = false) {
             dataType : 'json',
             success : function(data){
                 var jsonRes = data;
+                console.log(jsonRes.body);
                 $('#activeGamesContent').html(jsonRes.body);
                 if (setInterval == true) {
                     intervalActiveGames = setTimeout(
@@ -180,42 +202,37 @@ function checkPool(originalThread = false) {
             }
         }
     }).always(function() {
-        if (setInterval) {
-            intervalPlayer = setTimeout(
-                function() {
-                    checkPool(true);
-                },
-                2000
-            );
-        } else {
+        //if (setInterval) {
+            //intervalPlayer = setTimeout(
+                //function() {
+                    //checkPool(true);
+                //},
+                //2000
+            //);
+        //} else {
 
-        }
+        //}
     });
 }
 
 //$(document).ready(function () {
 $(function () {
     $("#lightningRadio").click(function() {
-        console.log("light click");
         document.querySelector("#pieceSpeedRange").value = 1;
         $("#pieceSpeedLabel").text('Lightning 1/0.1');
         $("#pieceSpeedRange").prop("disabled", true);
     });
     $("#standardRadio").click(function() {
-        console.log("stad click");
         document.querySelector("#pieceSpeedRange").value = 10;
         $("#pieceSpeedLabel").text('Standard 10/1');
         $("#pieceSpeedRange").prop("disabled", true);
         //$("#pieceSpeedRange").hide()
     });
     $("#customRadio").click(function() {
-        console.log("custom click");
         $("#pieceSpeedRange").prop("disabled", false);
         $("#pieceSpeedRange").show()
     });
     $("#pieceSpeedRange").on('input', function() {
-
-        console.log(this.value);
         if (this.value < 4) {
             $("#pieceSpeedLabel").text('Lightning ' + this.value + "/" + this.value/10);
         } else {
@@ -398,6 +415,7 @@ $(function () {
         $("#enter-pool-lighting").html('Lightning Pool');
         $("#enter-pool-standard").html('Standard Pool');
 
+        console.log('showactivegames');
         cancelActiveGames = false;
         getActiveGames();
         $("#createGameFormDiv").hide();
@@ -619,7 +637,6 @@ var bindEvents = function(ws_conn) {
 
     main_conn.onmessage = function(evt) {
         var msg = JSON.parse(evt.data);
-        console.log(msg);
         if (msg.c == 'globalchat'){
             //console.log(msg);
             var dt = new Date();
@@ -717,8 +734,8 @@ function addChatMessage(author, message, usercolor, textcolor, dt, playSound = t
     }
     message = decodeURIComponent(escape(message));
     chatContent = $('#global-chat-log');
-    chatContent.append('<span class="' + usercolor + 'beltColor" style="font-size: 14px;">' + author + '</span><span style="font-size: 10px;color:grey"> ' + dtString 
-            + '</span>&nbsp;&nbsp;<span style="font-size: 14px; color:' + textcolor + '">' + message + '</span>' + '<br />');
+    chatContent.append('<span class="' + usercolor + 'beltColor" style="font-size: 0.7em;">' + author + '</span><span style="font-size: 0.4em;color:grey"> ' + dtString 
+            + '</span>&nbsp; <span style="font-size: 0.7em; color:' + textcolor + '">' + message + '</span>' + '<br />');
     $("#global-chat-log").scrollTop($("#global-chat-log")[0].scrollHeight);
 }
 

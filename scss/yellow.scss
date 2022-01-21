@@ -30,15 +30,15 @@ $theme-colors: (
 );
 
 #navigation,.navbar .navbar-default {
-    height: 95px;
-    background-image: url("/yellowBelt.png");
-    background-repeat: repeat-x;
+    /*height: 95px;*/
+    /*background-image: url("/yellowBelt.png");*/
+    /*background-repeat: repeat-x;*/
 }
 
-#navigation ul {
-    border-radius: 15px;
-    background: rgba(0,0,0,0.5);
-}
+/*#navigation ul {*/
+    /*border-radius: 15px;*/
+    /*background: rgba(0,0,0,0.5);*/
+/*}*/
 
 
 @import "global";

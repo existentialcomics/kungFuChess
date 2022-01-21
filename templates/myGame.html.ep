@@ -1,0 +1,27 @@
+<% if ($myGame) { %>
+    <div class="mx-auto" style="width: auto;">Your game (click to cancel)</div>
+    <div class="mx-auto" style="width: auto;">type "/invite (screenname)" in chat to invite</div>
+    <table id='my-games-table' class='table table-hover'>
+    <tr class='cancel-game-row' id="my-game-row" style='cursor: pointer;' data-href='/ajax/cancelGame/<%= $myGame->{private_game_key} %>'>
+        <td>
+            <%= $myGame->{screenname} %>
+            <% if ($myGame->{screenname2}) { %><%= $myGame->{screenname2} %><% } %>
+            <% if ($myGame->{screenname3}) { %><%= $myGame->{screenname3} %><% } %>
+        </td>
+        <td>
+            <%= $myGame->{ 'rating_' . $myGame->{'game_speed'}} %>
+            <% if ($myGame->{'rating2_' . $myGame->{'game_speed'}}) { %><%= $myGame->{'rating2_' . $myGame->{'game_speed'}} %><% } %>
+            <% if ($myGame->{'rating3_' . $myGame->{'game_speed'}}) { %><%= $myGame->{'rating3_' . $myGame->{'game_speed'}} %><% } %>
+        </td>
+        <td>
+            <%= $myGame->{game_speed} %> (<%= $myGame->{piece_recharge} %>/<%= $myGame->{piece_speed} %>)
+        </td>
+        <td>
+            <%= $myGame->{game_type} %>
+        </td>
+        <td>
+            <%= ($myGame->{rated} ? 'rated' : 'unrated') %>
+        </td>
+    </tr>
+    </table>
+<% } %>

@@ -1,44 +1,7 @@
-<% if (!$myGame) { %>
-<div class="d-grid gap-2">
-    <a class="btn input-block-level btn-primary text-light" id="createGameBtn" role="button">
-        Create Game
-    </a>
-    <a class="btn input-block-level btn-primary text-light" id="createAiGameBtn" role="button">
-        Play Against the AI
-    </a>
-</div>
-<% } else { %>
-    <div class="mx-auto" style="width: auto;">Your game (click to cancel)</div>
-    <div class="mx-auto" style="width: auto;">type "/invite (screenname)" in chat to invite</div>
-    <table id='my-games-table' class='table table-hover'>
-    <tr class='cancel-game-row' id="my-game-row" style='cursor: pointer;' data-href='/ajax/cancelGame/<%= $myGame->{private_game_key} %>'>
-        <td>
-            <%= $myGame->{screenname} %>
-            <% if ($myGame->{screenname2}) { %><%= $myGame->{screenname2} %><% } %>
-            <% if ($myGame->{screenname3}) { %><%= $myGame->{screenname3} %><% } %>
-        </td>
-        <td>
-            <%= $myGame->{ 'rating_' . $myGame->{'game_speed'}} %>
-            <% if ($myGame->{'rating2_' . $myGame->{'game_speed'}}) { %><%= $myGame->{'rating2_' . $myGame->{'game_speed'}} %><% } %>
-            <% if ($myGame->{'rating3_' . $myGame->{'game_speed'}}) { %><%= $myGame->{'rating3_' . $myGame->{'game_speed'}} %><% } %>
-        </td>
-        <td>
-            <%= $myGame->{game_speed} %> (<%= $myGame->{piece_recharge} %>/<%= $myGame->{piece_speed} %>)
-        </td>
-        <td>
-            <%= $myGame->{game_type} %>
-        </td>
-        <td>
-            <%= ($myGame->{rated} ? 'rated' : 'unrated') %>
-        </td>
-    </tr>
-    </table>
-<% } %>
-
 <% if ($#{$openGames} == -1 ){ %>
     <div class="mx-auto" style="width: auto;">No open public games</div>
 <% } else { %>
-    <table id='open-games-table' class='table table-hover'>
+    <table id='open-games-table' class='table table-hover table-responsive' style ="word-break:break-all;">
         <thead>
             <th>Player</th>
             <th>Rating</th>
@@ -52,6 +15,7 @@
         <% if (! (($user) && $game->{player_id} == $user->{player_id})
               && ! (($uid) && $game->{private_game_key} eq $uid) ) { %>
             <tr class='join-game-row' style='cursor: pointer;' data-href='/ajax/matchGame/<%= $game->{private_game_key} %>'>
+<td colspan="5">This text should be as long as the entire table's width...</td>
                 <td>
                     <%= $game->{screenname} %>
                     <% if ($game->{screenname2}) { %><%= $game->{screenname2} %><% } %>

@@ -2,6 +2,9 @@
 <html>
 <head>
     <title><%= $title %></title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Mochiy+Pop+P+One&display=swap" rel="stylesheet">
     <script src="/jquery-3.2.min.js"></script>
     <script src="/js/bootstrap.min.js"></script>
     <script>
@@ -9,17 +12,19 @@
         var wsDomainMain = '<%= $wsDomainMain %>';
         var wsProtocol   = '<%= $wsProtocol %>';
     </script>
-    <script src="/main.js?cache=2021-12-30"></script>
+    <script src="/main.js?cache=2022-01-20"></script>
     <% if ($user){ %>
-    <link rel="stylesheet" type="text/css" href="/css/<%= $user->getBelt() %>.css">
+    <link rel="stylesheet" type="text/css" href="/css/<%= $user->getBelt() %>.css?cache=2022-01-20">
     <% } else { %>
-    <link rel="stylesheet" type="text/css" href="/css/basic.css">
+    <link rel="stylesheet" type="text/css" href="/css/basic.css?cache=2022-01-20">
     <% } %>
 </head>
 <body>
 
-<div id="navigation" class="navbar navbar-default">
-<ul>
+    <div class="container">
+<div id="navigation" class="navbar navbar-default" style="display: flex;">
+<ul class="nav justify-content-center">
+
     <li>
     <a href="/"><img src='/kfcBanner.png' height=50 alt="Home"><img></a>
     </li>
@@ -48,6 +53,8 @@
         <a href="/about">About</a>
     </li>
 </ul>
+<div id="chessMen"></div>
+</div>
 <div id="error-alert">
     <% if (defined(stash('error')) && stash('error')) { %>
     <div class="alert alert-danger" id="error-alert" role="alert">
@@ -67,6 +74,5 @@
         var screenname    = "anonymous";
     <% } %>
 </script>
-<div class="float-right" id="chessMen"></div>
 
 </div>

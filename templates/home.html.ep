@@ -2,8 +2,7 @@
 
 <div class="container bg-light card" id='homeContent'>
     <div class="row">
-
-        <div class="col-sm">
+        <div class="col" id="col-players">
             <nav class="navbar navbar-expand-lg navbar-expand navbar-light bg-light">
                   <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navBarPlayers" aria-controls="navBarPlayers" aria-expanded="false" aria-label="Toggle navigation">
                   <span class="navbar-toggler-icon"></span>
@@ -19,21 +18,23 @@
             </div>
         </div>
 
-        <div class="col-sm">
+        <div class="col-6" id="col-lobby">
+            <% if (!($user && $user->{player_id} != -1)) { %>
+                <a href="/register">Register to play rated games.</a>
+            <% } %>
             <nav class="navbar navbar-expand-lg navbar-expand navbar-light bg-light">
                   <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navBarGames" aria-controls="navBarGames" aria-expanded="false" aria-label="Toggle navigation">
                   <span class="navbar-toggler-icon"></span>
                   </button>
                   <div class="collapse navbar-collapse" id="navBarGames">
                     <div class="navbar-nav">
-                      <a class="nav-item nav-link <% if($activeTab eq 'pool') { %>active<% } %>" id="showPool" href="#">Matching Pools</a>
-                      <a class="nav-item nav-link <% if($activeTab eq 'openGames') { %>active<% } %>" id="showOpenGames" href="#">Open Games</a>
-                      <a class="nav-item nav-link <% if($activeTab eq 'challenges') { %>active<% } %>" id="showChallenges" href="#">Challenges</a>
+                      <a class="nav-item nav-link <% if($activeTab eq 'openGames') { %>active<% } %>" id="showOpenGames" href="#">Lobby</a>
                       <a class="nav-item nav-link <% if($activeTab eq 'activeGames') { %>active<% } %>" id="showActiveGames" href="#">Watch</a>
                     </div>
                   </div>
              </nav>
             <div id='pool-matching' style='<% if($activeTab ne 'pool') { %>display:none;<% } %>'>
+<!---
                 <div class="d-grid gap-2">
                     <a class="btn btn-primary p-4 text-light" id="enter-pool-standard" role="button">
                         Standard Pool
@@ -60,24 +61,60 @@
                 <% if (!($user && $user->{player_id} != -1)) { %>
                     <small><a href="/login">Log in</a> to play rated games.</small>
                 <% } %>
+--->
             </div>
             <div id='openGamesContent' class='card shadow-m' style="<% if($activeTab ne 'openGames') { %>display:none;<% } %>">
-            </div>
-            <div id='challengesContent' class='card shadow-m' style="<% if($activeTab ne 'challenges') { %>display:none;<% } %>">
-                <div class="mx-auto" style="width: auto;">No open challenges</div>
+                <div id='createGameButtons'>
+                    <div class="d-grid gap-2">
+                        <div class="btn-group d-flex gap-1" role="group" aria-label="Rated">
+                            <a class="btn btn-primary p-2 text-light" id="enter-pool-standard" role="button">
+                                Standard
+                                <% if (!($user && $user->{player_id} != -1)) { %>
+                                    (unrated)
+                                <% } %>
+                            </a>
+                            <a class="btn btn-primary p-2 text-light" id="enter-pool-lightning" role="button">
+                                Lightning
+                                <% if (!($user && $user->{player_id} != -1)) { %>
+                                    (unrated)
+                                <% } %>
+                            </a>
+                            <a class="btn btn-primary p-2 text-light" id="enter-pool-4way-lightning" role="button">
+                                4way Lightning
+                                <% if (!($user && $user->{player_id} != -1)) { %>
+                                    (unrated)
+                                <% } %>
+                            </a>
+                        </div> <!-- close btn-group -->
+                        <a class="btn input-block-level btn-primary text-light" id="createGameBtn" role="button">
+                            Custom Game
+                        </a>
+                        <a class="btn input-block-level btn-primary text-light" id="createAiGameBtn" role="button">
+                            Play Against the AI
+                        </a>
+                    </div> <!-- close grid -->
+                </div> <!-- close createGameButtons -->
 
+            <div id='myGameContent' class='card shadow-m'>
             </div>
-            <div id='activeGamesContent' class='card shadow-m' style="<% if($activeTab ne 'activeGames') { %>display:none;<% } %>">
+            <div id='challengeContent' class='card shadow-m'>
+                <div class="mx-auto" style="width: auto;">No open challenges</div>
             </div>
+            <div id='publicGamesContent' class='card shadow-m'>
+                <div class="mx-auto" style="width: auto;">No open games</div>
+            </div>
+            </div> <!-- close openGamesContent -->
             <div id='createGameFormDiv' class='card shadow-m' style="display:none;">
                 %= include 'createGameForm'
             </div>
             <div id='createAiGameFormDiv' class='card shadow-m' style="display:none;">
                 %= include 'createAiGameForm'
             </div>
-        </div>
+            <div id='activeGamesContent' class='card shadow-m' style="<% if($activeTab ne 'activeGames') { %>display:none;<% } %>">
+            </div>
+        </div> <!--- close lobby div --->
 
-        <div class="col-sm">
+        <div class="col" style="max-width: 100%;" id="col-chat">
             <nav class="navbar navbar-expand-lg navbar-expand navbar-light bg-light">
                   <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarChat" aria-controls="navbarChat" aria-expanded="false" aria-label="Toggle navigation">
                   <span class="navbar-toggler-icon"></span>
@@ -89,12 +126,11 @@
                   </div>
              </nav>
             <div id='global-chat'>
-                <div id="global-chat-log" disabled="true"></div>
-                <input type="text" id="global-chat-input" class="form-inline"></input>
+                <div id="global-chat-log" disabled="true" style="overflow-wrap: break-word;" class="text-break"></div>
+                <input type="text" id="global-chat-input" class="form-inline text-wrap"></input>
                 <div id = "connectionStatus" style='float:right;'></div>
                 <br />
                 <a class='link-dark' href="https://twitter.com/KungFuChessOrg">twitter</a>
-                &nbsp;&nbsp; <a class='link-dark' href="https://www.reddit.com/r/Kungfuchess/">reddit</a>
                 &nbsp;&nbsp;<a class='link-dark' href="https://discord.gg/kGAcDwsWmX">discord</a>
                 &nbsp;&nbsp;<a class='link-dark' href="https://github.com/existentialcomics/kungFuChess">source code</a>
             </div>
