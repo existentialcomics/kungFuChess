@@ -485,19 +485,22 @@ sub handleMessage {
         delete $self->{suspendedPieces}->{$msg->{to_bb}};
         KungFuChess::Bitboards::resetAiBoards(1);
     } elsif ($msg->{c} eq 'promote'){
-        my $p = KungFuChess::Bitboards::_getPieceBB($msg->{fr_bb} + 0);
-
+        my $p = KungFuChess::Bitboards::_getPieceBB($msg->{bb} + 0);
         if ($p == 101) {
-            $p = 105;
+            $p = 106;
         } elsif( $p == 201) {
-            $p = 205;
+            $p = 206;
         } else {
-            print "promote none pawn? $p\n";
+            print KungFuChess::Bitboards::pretty_ai();
+            print "promote none pawn? *$p*\n";
         }
+
+        KungFuChess::Bitboards::_removePiece($msg->{bb} + 0);
         KungFuChess::Bitboards::_putPiece(
-            $p,
-            $msg->{to_bb} + 0
+            $p + 0,
+            $msg->{bb} + 0
         );
+        KungFuChess::Bitboards::resetAiBoards(1);
     } elsif ($msg->{c} eq 'kill'){
         delete $self->{frozen}->{$msg->{bb}};
         KungFuChess::Bitboards::_removePiece($msg->{bb} + 0);
