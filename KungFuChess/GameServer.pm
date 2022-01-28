@@ -244,6 +244,12 @@ sub handleMessage {
         } elsif($msg->{fr_bb}) {
             $self->moveIfLegal($msg->{color}, $msg->{fr_bb}, $msg->{to_bb});
         }
+    } elsif ($msg->{c} eq 'FENload'){
+        KungFuChess::Bitboards::loadFENstring($msg->{FEN});
+        my $refreshMsg = {
+            'c' => 'forceRefresh'
+        };
+        $self->send($refreshMsg);
     } elsif ($msg->{c} eq 'berserk'){
         $self->setAdjustedSpeed($self->{basePieceSpeed}, $self->{basePieceRecharge}, $msg->{speedAdj});
     } elsif ($msg->{c} eq 'gameOver'){

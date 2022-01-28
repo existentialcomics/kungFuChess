@@ -137,6 +137,13 @@ app->plugin('authentication' => {
 });
 clearInactiveGames();
 
+app()->hook(before_routes => sub () {
+    my $c = shift;
+    $c->session(expiration => 604800); ### one week
+    my $user = $c->current_user();
+    $c->stash('user' => $user);
+});
+
 get '/admin/clear-inactive-games' => sub {
     my $c = shift;
     clearInactiveGames();
@@ -146,9 +153,6 @@ get '/admin/clear-inactive-games' => sub {
 
 get '/' => sub {
     my $c = shift;
-
-    my $user = $c->current_user();
-    $c->stash('user' => $user);
     my $games = getActiveGames();
     $c->stash('games' => $games);
     my $activeTab = $c->req->param('activeTab') ? $c->req->param('activeTab') : 'openGames';
@@ -182,17 +186,11 @@ get '/' => sub {
 get '/tactics' => sub {
     my $c = shift;
 
-    my $user = $c->current_user();
-    $c->stash('user' => $user);
-
     $c->render('template' => 'learn', format => 'html', handler => 'ep');
 };
 
 get '/tactics/beginner/dodge' => sub {
     my $c = shift;
-
-    my $user = $c->current_user();
-    $c->stash('user' => $user);
 
     $c->stash('video' => '/dodge.webm');
     $c->stash('name' => 'Dodge');
@@ -204,9 +202,6 @@ get '/tactics/beginner/dodge' => sub {
 get '/tactics/beginner/anticipate' => sub {
     my $c = shift;
 
-    my $user = $c->current_user();
-    $c->stash('user' => $user);
-
     $c->stash('video' => '/anticipate.webm');
     $c->stash('name' => 'Anticipate');
     $c->stash('description' => 'When you see a piece moving, it is very important to try to work out which spot your opponent is attempting to land on, so you can potentially set up an attack on that spot before they reach it, allowing you to capture the piece before it is able to move again. In the video, you can see the bishop making long move to g4. However, white anticipates this, particually once they move into the f5 square, which is already guarded. This allows white to move a pawn forward to attack the expected square. Against a skilled opponent, you should not only consider squares guarded that are attacked by pawns, but also squares that are potentially attacked by pawns that are ready to move.');
@@ -216,9 +211,6 @@ get '/tactics/beginner/anticipate' => sub {
 
 get '/tactics/beginner/cutoff' => sub {
     my $c = shift;
-
-    my $user = $c->current_user();
-    $c->stash('user' => $user);
 
     $c->stash('video' => '/cutoff.webm');
     $c->stash('name' => 'Cutoff');
@@ -230,9 +222,6 @@ get '/tactics/beginner/cutoff' => sub {
 get '/tactics/beginner/diversion' => sub {
     my $c = shift;
 
-    my $user = $c->current_user();
-    $c->stash('user' => $user);
-
     $c->stash('video' => '/diversion.webm');
     $c->stash('name' => 'Diversion');
     $c->stash('description' => 'Always remember that this is a real time game, and your opponent has to not only in theory protect his pieces, but he actually has to react in time to make the moves. Just because you can dodge a piece, doesn\'t mean you will. In this case white creates a diversion on the other side of the board, drawing black\'s attention (and his physical mouse cursor) to the king side, all the while assassinating the exposed king with his knight.');
@@ -242,9 +231,6 @@ get '/tactics/beginner/diversion' => sub {
 
 get '/tactics/advanced/combo' => sub {
     my $c = shift;
-
-    my $user = $c->current_user();
-    $c->stash('user' => $user);
 
     $c->stash('video' => '/combo.webm');
     $c->stash('name' => 'Combo');
@@ -256,9 +242,6 @@ get '/tactics/advanced/combo' => sub {
 get '/tactics/advanced/peekaboo' => sub {
     my $c = shift;
 
-    my $user = $c->current_user();
-    $c->stash('user' => $user);
-
     $c->stash('video' => '/peekaboo.webm');
     $c->stash('name' => 'Peekaboo');
     $c->stash('description' => 'This deceptive tactic makes use of the fact that are you allowed to move to spaces that would be illegal in regular chess play. For example, just because a piece is sitting inbetween you and a square, doesn\'t mean you can\'t attempt to move there. After all, since the game takes place in real time, who is to say if the piece will still be obstructing you by the time you reach it? This allows you to disguise your moves for powerful discovered attacks. You can even move through enemy pieces, anticipating that they will move them before you reach the spot, for truly unexpected play.');
@@ -268,9 +251,6 @@ get '/tactics/advanced/peekaboo' => sub {
 
 get '/tactics/advanced/block' => sub {
     my $c = shift;
-
-    my $user = $c->current_user();
-    $c->stash('user' => $user);
 
     $c->stash('video' => '/block.webm');
     $c->stash('name' => 'Block');
@@ -282,9 +262,6 @@ get '/tactics/advanced/block' => sub {
 get '/tactics/advanced/sweep' => sub {
     my $c = shift;
 
-    my $user = $c->current_user();
-    $c->stash('user' => $user);
-
     $c->stash('video' => '/sweep.webm');
     $c->stash('name' => 'Sweep');
     $c->stash('description' => 'The most dangerous and feared tactic in Kung Fu Chess: the sweep. Only experts can execute this move with any consistency, as it requires anticipating where your opponent is going to move before they even move their piece. If you move before them, sweeping through their path, you will kill them mid move (as long as their piece is still moving). When two pieces collide, the piece that moved first kills the other piece, so you must set up the sweep very carefully, and make sure not to move too late or you will be the one getting killed.');
@@ -293,9 +270,6 @@ get '/tactics/advanced/sweep' => sub {
 
 get '/tactics/expert/punchThrough' => sub {
     my $c = shift;
-
-    my $user = $c->current_user();
-    $c->stash('user' => $user);
 
     $c->stash('video' => '/punchThrough.webm');
     $c->stash('name' => 'Punch Through');
@@ -307,9 +281,6 @@ get '/tactics/expert/punchThrough' => sub {
 get '/tactics/expert/feint' => sub {
     my $c = shift;
 
-    my $user = $c->current_user();
-    $c->stash('user' => $user);
-
     $c->stash('video' => '/feint.webm');
     $c->stash('name' => 'Feint');
     $c->stash('description' => 'This bold and daring strategy uses your opponent\'s skill against him, by moving towards a very good spot and then not landing there! In the video, white has a chance to exchange a knight for a rook by attacking the black knight and rook at the same time. He will lose his bishop, assuming black dodges it and takes, but will get the rook. However, since he knows his opponent will see this and have ample time to dodge, so he moves instead to the unguarded space in front of it, saving his bishop. Risky, because if black does not dodge, he would lose the queen!');
@@ -320,9 +291,6 @@ get '/tactics/expert/feint' => sub {
 get '/tactics/expert/selfkill' => sub {
     my $c = shift;
 
-    my $user = $c->current_user();
-    $c->stash('user' => $user);
-
     $c->stash('video' => '/selfKill.webm');
     $c->stash('name' => 'Self Kill');
     $c->stash('description' => 'As was discussed in other tactics, such as the block and peekabo, since we don\'t know what the state of the board will be when we begin a move, you are allowed to make normally illegal moves. For knights in particular, this means you can move anywhere, even on top of your own pieces. If you don\'t move your piece away in time, you will kill it. However, in rare circumstances, this can be used to your advantage. As you can see in the video, the white king is trapped, and the black bishop is quickly coming in for the kill. White however can kill their own pawn, clearing a desperate escape route for the king.');
@@ -332,9 +300,6 @@ get '/tactics/expert/selfkill' => sub {
 
 #get '/tactics/expert/knightSweepCounter' => sub {
 #    my $c = shift;
-#
-#    my $user = $c->current_user();
-#    $c->stash('user' => $user);
 #
 #    $c->stash('video' => '/knightSweepCounter.webm');
 #    $c->stash('name' => 'Knight Sweep Counter');
@@ -348,8 +313,8 @@ get '/tactics/expert/selfkill' => sub {
 ###
 post '/ajax/createChallenge' => sub {
     my $c = shift;
-    my $user = $c->current_user();
-    $c->stash('user' => $user);
+
+    my $user = $c->stash('user');
     #   standard/light , 2way/4way , unrated/ai/etc, open to public
     my ($gameSpeed, $gameType, $gameMode, $open, $pieceSpeedParam) =
         ($c->req->param('gameSpeed'),
@@ -654,157 +619,146 @@ get '/ajax/pool/:speed/:type' => sub {
 ###
 get '/about' => sub {
     my $c = shift;
-    my $user = $c->current_user();
-    $c->stash('user' => $user);
 
     $c->render('template' => 'about', format => 'html', handler => 'ep');
 };
 
 get '/faq' => sub {
     my $c = shift;
-    my $user = $c->current_user();
-    $c->stash('user' => $user);
 
     $c->render('template' => 'faq', format => 'html', handler => 'ep');
 };
 
-get '/forums' => sub {
-    my $c = shift;
-    my $user = $c->current_user();
-    $c->stash('user' => $user);
+#get '/forums' => sub {
+    #my $c = shift;
 
-    $c->render('template' => 'forums', format => 'html', handler => 'ep');
-};
+    #$c->render('template' => 'forums', format => 'html', handler => 'ep');
+#};
 
-get '/forums/:topic' => sub {
-    my $c = shift;
-    my $user = $c->current_user();
-    $c->stash('user' => $user);
-    my $page = $c->req->param('page');
-    my $limit = 5;
-    if ($page) {
-        $page =~ s/[^\d]//;
-        if ($page eq '') { $page = 1; }
-    } else {
-        $page = 1;
-    }
-    my $offset = ($page - 1) * $limit;
+#get '/forums/:topic' => sub {
+    #my $c = shift;
+    #my $page = $c->req->param('page');
+    #my $limit = 5;
+    #if ($page) {
+        #$page =~ s/[^\d]//;
+        #if ($page eq '') { $page = 1; }
+    #} else {
+        #$page = 1;
+    #}
+    #my $offset = ($page - 1) * $limit;
 
-    my $posts = app->db()->selectall_arrayref(
-        "SELECT forum_post.*, players.*, forum_post.post_text as preview,
-        count(forum_comment.forum_comment_id) as comment_count FROM forum_post
-            LEFT JOIN players ON forum_post.player_id = players.player_id 
-            INNER JOIN forum_comment ON forum_post.forum_post_id = forum_comment.forum_post_id
-            WHERE category = ?
-            GROUP BY forum_comment.forum_comment_id
-            LIMIT $limit OFFSET $offset
-            ",
-        { 'Slice' => {} },
-        topicToCategory($c->stash('topic'))
-    );
-    my $max = app->db()->selectrow_arrayref('SELECT COUNT(*) FROM forum_post WHERE category = ?'
-        ,
-        {},
-        topicToCategory($c->stash('topic'))
-    );
+    #my $posts = app->db()->selectall_arrayref(
+        #"SELECT forum_post.*, players.*, forum_post.post_text as preview,
+        #count(forum_comment.forum_comment_id) as comment_count FROM forum_post
+            #LEFT JOIN players ON forum_post.player_id = players.player_id 
+            #INNER JOIN forum_comment ON forum_post.forum_post_id = forum_comment.forum_post_id
+            #WHERE category = ?
+            #GROUP BY forum_comment.forum_comment_id
+            #LIMIT $limit OFFSET $offset
+            #",
+        #{ 'Slice' => {} },
+        #topicToCategory($c->stash('topic'))
+    #);
+    #my $max = app->db()->selectrow_arrayref('SELECT COUNT(*) FROM forum_post WHERE category = ?'
+        #,
+        #{},
+        #topicToCategory($c->stash('topic'))
+    #);
 
-    my $maxPage = $max->[0] / $limit;
-    $c->stash('page' => $page);
+    #my $maxPage = $max->[0] / $limit;
+    #$c->stash('page' => $page);
 
-    foreach my $post (@$posts) {
-        $post->{player} = new KungFuChess::Player({ row => $post }, app->db());
-    }
-    $c->stash('posts' => $posts);
+    #foreach my $post (@$posts) {
+        #$post->{player} = new KungFuChess::Player({ row => $post }, app->db());
+    #}
+    #$c->stash('posts' => $posts);
 
-    $c->render('template' => 'forumsTopic', format => 'html', handler => 'ep');
-};
+    #$c->render('template' => 'forumsTopic', format => 'html', handler => 'ep');
+#};
 
-sub topicToCategory {
-    my $topic = shift;
-    if ($topic eq 'kungfuchess') { return 'chess'; }
-    #if ($_ eq 'feedback') { return 'feedback'; }
-    #if ($_ eq 'off-topic') { return 'off-topic'; }
-    return $topic;
-}
+#sub topicToCategory {
+    #my $topic = shift;
+    #if ($topic eq 'kungfuchess') { return 'chess'; }
+    ##if ($_ eq 'feedback') { return 'feedback'; }
+    ##if ($_ eq 'off-topic') { return 'off-topic'; }
+    #return $topic;
+#}
 
 ### create a forum post
-post '/forums/:topic' => sub {
-    my $c = shift;
-    my $user = $c->current_user();
-    $c->stash('user' => $user);
-    my $topic   = $c->stash('topic');
-    my $subject = $c->req->param('subject');
-    my $text    = $c->req->param('body');
+#post '/forums/:topic' => sub {
+    #my $c = shift;
 
-    my $sth = app->db()->prepare('INSERT INTO forum_post (category, post_title, post_text, player_id, post_time) VALUES (?, ?, ?, ?, NOW())', {}); 
+    #my $topic   = $c->stash('topic');
+    #my $subject = $c->req->param('subject');
+    #my $text    = $c->req->param('body');
 
-    $sth->execute(
-        topicToCategory($c->stash('topic')),
-        $subject,
-        $text,
-        $user->{player_id}
-    );
+    #my $sth = app->db()->prepare('INSERT INTO forum_post (category, post_title, post_text, player_id, post_time) VALUES (?, ?, ?, ?, NOW())', {}); 
+
+    #$sth->execute(
+        #topicToCategory($c->stash('topic')),
+        #$subject,
+        #$text,
+        #$user->{player_id}
+    #);
     
-    my $id = $sth->{mysql_insertid};
+    #my $id = $sth->{mysql_insertid};
 
-    $c->redirect_to("/forums/$topic/$id");
-};
+    #$c->redirect_to("/forums/$topic/$id");
+#};
 
 ### create a forum post form
-get '/forums/:topic/post' => sub {
-    my $c = shift;
-    my $user = $c->current_user();
-    $c->stash('user' => $user);
-    $c->render('template' => 'forumsForm', format => 'html', handler => 'ep');
-};
+#get '/forums/:topic/post' => sub {
+    #my $c = shift;
 
-get '/forums/:topic/:postId' => sub {
-    my $c = shift;
-    my $user = $c->current_user();
-    $c->stash('user' => $user);
+    #$c->render('template' => 'forumsForm', format => 'html', handler => 'ep');
+#};
 
-    my $post = app()->db->selectrow_hashref('SELECT * FROM forum_post LEFT JOIN players ON forum_post.player_id = players.player_id WHERE forum_post_id = ?', {}, $c->stash('postId'));
-    $post->{player} = new KungFuChess::Player({ row => $post }, app->db());
-    $c->stash('post' => $post);
+#get '/forums/:topic/:postId' => sub {
+    #my $c = shift;
+
+    #my $post = app()->db->selectrow_hashref('SELECT * FROM forum_post LEFT JOIN players ON forum_post.player_id = players.player_id WHERE forum_post_id = ?', {}, $c->stash('postId'));
+    #$post->{player} = new KungFuChess::Player({ row => $post }, app->db());
+    #$c->stash('post' => $post);
 
 
-    my $comments = app()->db->selectall_arrayref(
-        'SELECT * FROM forum_comment LEFT JOIN players ON forum_comment.player_id = players.player_id WHERE forum_post_id = ?',
-        { 'Slice' => {} },
-        $c->stash('postId')
-    );
-    foreach my $comment (@$comments) {
-        $comment->{player} = new KungFuChess::Player({ row => $comment }, app->db());
-    }
-    $c->stash('comments' => $comments);
+    #my $comments = app()->db->selectall_arrayref(
+        #'SELECT * FROM forum_comment LEFT JOIN players ON forum_comment.player_id = players.player_id WHERE forum_post_id = ?',
+        #{ 'Slice' => {} },
+        #$c->stash('postId')
+    #);
+    #foreach my $comment (@$comments) {
+        #$comment->{player} = new KungFuChess::Player({ row => $comment }, app->db());
+    #}
+    #$c->stash('comments' => $comments);
 
-    $c->render('template' => 'forumPost', format => 'html', handler => 'ep');
-};
+    #$c->render('template' => 'forumPost', format => 'html', handler => 'ep');
+#};
 
 ### create a comment
-post '/forums/:topic/:postId' => sub {
-    my $c = shift;
-    my $user = $c->current_user();
-    $c->stash('user' => $user);
-    my $postId = $c->stash('postId');
-    my $commentText  = $c->req->param('comment');
-    my $topic  = $c->stash('topic');
+#post '/forums/:topic/:postId' => sub {
+    #my $c = shift;
 
-    my $sth = app->db()->prepare('INSERT INTO forum_comment (forum_post_id, comment_text, player_id, post_time) VALUES (?, ?, ?, NOW())', {}); 
+    #my $user = $c->stash('user');
 
-    $sth->execute(
-        $postId,
-        $commentText,
-        $user->{player_id}
-    );
+    #my $postId = $c->stash('postId');
+    #my $commentText  = $c->req->param('comment');
+    #my $topic  = $c->stash('topic');
 
-    $c->redirect_to('/forums/' . $topic . '/' . $postId);
-};
+    #my $sth = app->db()->prepare('INSERT INTO forum_comment (forum_post_id, comment_text, player_id, post_time) VALUES (?, ?, ?, NOW())', {}); 
+
+    #$sth->execute(
+        #$postId,
+        #$commentText,
+        #$user->{player_id}
+    #);
+
+    #$c->redirect_to('/forums/' . $topic . '/' . $postId);
+#};
 
 get '/profile/:screenname' => async sub {
     my $c = shift;
-    my $user = $c->current_user();
-    $c->stash('user' => $user);
+
+    my $user = $c->stash('user');
 
     my $data = { 'screenname' => $c->stash('screenname') };
     my $player = await new KungFuChess::Player($data, app->db());
@@ -824,8 +778,6 @@ get '/profile/:screenname' => async sub {
 
 get '/profile/:screenname/games/:speed/:type' => async sub {
     my $c = shift;
-    my $user = $c->current_user();
-    $c->stash('user' => $user);
 
     my $data      = { 'screenname' => $c->stash('screenname') };
     my $gameSpeed = $c->stash('speed');
@@ -912,8 +864,7 @@ get '/ajax/cancelGame/:uid' => sub {
 
 get '/openGames' => sub {
     my $c = shift;
-    my $user = $c->current_user();
-    $c->stash('user' => $user);
+    my $user = $c->stash('user');
 
     my $uid = $c->req->param('uid');
     my $myGame = getMyOpenGame($user, $uid);
@@ -927,8 +878,7 @@ get '/openGames' => sub {
 
 get '/ajax/openGames' => sub {
     my $c = shift;
-    my $user = $c->current_user();
-    $c->stash('user' => $user);
+    my $user = $c->stash('user');
 
     my $uid = $c->req->param('uid');
     my $myGame = getMyOpenGame($user, $uid);
@@ -970,8 +920,6 @@ get '/ajax/openGames' => sub {
 
 get '/ajax/activeGames' => sub {
     my $c = shift;
-    my $user = $c->current_user();
-    $c->stash('user' => $user);
 
     my $games = getActiveGames();
     $c->stash('games' => $games);
@@ -984,8 +932,6 @@ get '/ajax/activeGames' => sub {
 
 get '/activePlayers' => sub {
     my $c = shift;
-    my $user = $c->current_user();
-    $c->stash('user' => $user);
 
     my $ratingType = ($c->req->param('ratingType') // 'standard');
     
@@ -1003,8 +949,6 @@ get '/activePlayers' => sub {
 
 get '/rankings' => sub {
     my $c = shift;
-    my $user = $c->current_user();
-    $c->stash('user' => $user);
 
     my $playersStandard  = getTopPlayers('standard', 20);
     my $playersLightning = getTopPlayers('lightning', 20);
@@ -1207,8 +1151,6 @@ get '/game/:gameId' => sub {
 
 get '/createGame' => sub {
     my $c = shift;
-    my $user = $c->current_user();
-    $c->stash('user' => $user);
 
     $c->render('template' => 'createGame', format => 'html', handler => 'ep');
 };
@@ -1394,15 +1336,12 @@ post '/ajax/updateOptions' => sub {
 
 get '/register' => sub {
     my $c = shift;
-    my $user = $c->current_user();
-    $c->stash('user' => $user);
+
     $c->render('template' => 'register', format => 'html', handler => 'ep');
 };
 
 post '/register' => sub {
     my $c = shift;
-    my $user = $c->current_user();
-    $c->stash('user' => $user);
 
     my $rules = [
         {
@@ -1558,15 +1497,12 @@ get '/logout' => sub {
 
 get '/login' => sub {
     my $c = shift;
-    my $user = $c->current_user();
-    $c->stash('user' => $user);
 
     $c->render('template' => 'login', format => 'html', handler => 'ep');
 };
 
 post '/login' => sub {
     my $c = shift;
-
 
     my ($u, $p) = ($c->req->param('username'), $c->req->param('password'));
     if ($c->authenticate($u, encryptPassword($p))){
@@ -1639,19 +1575,7 @@ websocket '/ws' => sub {
                     $msg->{userAuthToken}
                 );
                 if ($playerRow) {
-                    app->db()->do('UPDATE players SET last_seen = NOW(), ip_address = ? WHERE player_id = ?', {}, $ip, $playerRow->{id});
-                    my $myChallenges = getMyOpenChallenges($playerRow->{player_id});
-
-                    if ($myChallenges) {
-                        $self->stash('openChallenges', $myChallenges);
-                        # "render_to_string" my ass it is a Mojo::ByteStream object
-                        my $html = $self->render_to_string('template' => 'challenges', format => 'html', handler => 'ep');
-                        my $challengeReturn = {
-                            'c' => 'challenge',
-                            'challenges' => $html->to_string
-                        };
-                        connectionBroadcast($self, $challengeReturn);
-                    }
+                    app->db()->do('UPDATE players SET last_seen = NOW(), ip_address = ? WHERE player_id = ?', {}, $ip, $playerRow->{player_id});
                 }
             }
         } elsif ($msg->{'c'} eq 'chat'){
@@ -1899,6 +1823,47 @@ websocket '/ws' => sub {
                         };
                         $game->playerBroadcast($sysMsg);
                     }
+                } elsif ($command eq 'fen') {
+                    my ($color, $gameRow, $successAuth) = authGameColor($msg->{auth}, $msg->{uid}, $msg->{gameId});
+                    if (! $color) {
+                        my $return = {
+                            'c' => 'gamechat',
+                            'author' => 'SYSTEM',
+                            'color' => 'red',
+                            'message' => "only players may change FEN",
+                            'text_color' => '#666666',
+                        };
+                        connectionBroadcast($self, $return);
+                        return 0;
+                    }
+                    if ($gameRow->{status} ne 'waiting to begin') {
+                        my $return = {
+                            'c' => 'gamechat',
+                            'author' => 'SYSTEM',
+                            'color' => 'red',
+                            'message' => "Cannot change FEN on active games.",
+                            'text_color' => '#666666',
+                        };
+                        connectionBroadcast($self, $return);
+                        return 0;
+                    }
+                    if ($gameRow->{rated} != 0) {
+                        my $return = {
+                            'c' => 'gamechat',
+                            'author' => 'SYSTEM',
+                            'color' => 'red',
+                            'message' => "Cannot change FEN on rated games.",
+                            'text_color' => '#666666',
+                        };
+                        connectionBroadcast($self, $return);
+                        return 0;
+                    }
+                    my $msg = {
+                        'c' => 'FENload',
+                        'FEN' => $args
+                    };
+                    $game->serverBroadcast($msg);
+
                 } elsif ($command eq 'switch') {
                     my $color = $game->authMove($msg);
                     my ($colorSrc, $colorDst) = split(' ', $args);
@@ -2033,6 +1998,11 @@ websocket '/ws' => sub {
             if (! gameauth($msg) ){ return 0; }
 
             $game->playerBroadcast($msg);
+        } elsif ($msg->{'c'} eq 'forceRefresh'){
+            my $commandMsg = {
+                'c' => 'refresh'
+            };
+            $game->playerBroadcast($commandMsg);
         } elsif ($msg->{'c'} eq 'forceDraw'){
             if (! gameauth($msg) ){ return 0; }
             endGame($msg->{gameId}, 'draw');
@@ -2944,35 +2914,35 @@ sub matchGameUid {
         ### check if this player is already matched to the game.
         if (
             ($poolRow->{player_id} eq $playerId) || 
-            ($poolRow->{challenge_player_id} && $poolRow->{challenge_player_id} eq $playerId) ||
-            ($poolRow->{challenge_player_2_id} && $poolRow->{challenge_player_2_id} eq $playerId) ||
-            ($poolRow->{challenge_player_3_id} && $poolRow->{challenge_player_3_id} eq $playerId)
+            ($poolRow->{matched_player_id} && $poolRow->{matched_player_id} eq $playerId) ||
+            ($poolRow->{matched_player_2_id} && $poolRow->{matched_player_2_id} eq $playerId) ||
+            ($poolRow->{matched_player_3_id} && $poolRow->{matched_player_3_id} eq $playerId)
         ) {
             # undef or game_id
             return ($poolRow->{matched_game} ? $poolRow->{matched_game} : -1);
         }
-        if (! $poolRow->{challenge_player_id}) {
-            app->db()->do('UPDATE pool SET challenge_player_id = ? WHERE private_game_key = ?', {}, $playerId, $uid);
+        if (! $poolRow->{matched_player_id}) {
+            app->db()->do('UPDATE pool SET matched_player_id = ? WHERE private_game_key = ?', {}, $playerId, $uid);
             return -1; ### special signal that we just added
-        } elsif (! $poolRow->{challenge_player_2_id} ) {
-            app->db()->do('UPDATE pool SET challenge_player_2_id = ? WHERE private_game_key = ?', {}, $playerId, $uid);
+        } elsif (! $poolRow->{matched_player_2_id} ) {
+            app->db()->do('UPDATE pool SET matched_player_2_id = ? WHERE private_game_key = ?', {}, $playerId, $uid);
             return -1; ### special signal that we just added
-        } elsif (! $poolRow->{challenge_player_3_id} ) {
+        } elsif (! $poolRow->{matched_player_3_id} ) {
             ### we are the last to join, make the game.
             my $gameId = createGame(
                 $poolRow->{game_type},
                 $poolRow->{game_speed},
                 $poolRow->{rated},
                 $poolRow->{player_id},
-                $poolRow->{challenge_player_id},
-                $poolRow->{challenge_player_2_id},
+                $poolRow->{matched_player_id},
+                $poolRow->{matched_player_2_id},
                 $playerId,
                 { 
                     piece_speed => $poolRow->{piece_speed},
                     piece_recharge => $poolRow->{piece_recharge},
                 }
             );
-            app->db()->do('UPDATE pool SET matched_game = ?, challenge_player_3_id = ? WHERE private_game_key = ?', {}, $gameId, $playerId, $uid);
+            app->db()->do('UPDATE pool SET matched_game = ?, matched_player_3_id = ? WHERE private_game_key = ?', {}, $gameId, $playerId, $uid);
             return $gameId;
         }
 
@@ -3005,12 +2975,12 @@ sub cancelGameUid {
     );
     if ($poolRow->{player_id} eq $playerId) {
         app->db()->do('DELETE FROM pool WHERE player_id = ? AND private_game_key = ?', {}, $playerId, $uid);
-    } elsif ($poolRow->{challenge_player_id} eq $playerId) {
-        app->db()->do('UPDATE pool SET challenge_player_id = NULL WHERE private_game_key = ?', {}, $uid);
-    } elsif ($poolRow->{challenge_player_2_id} eq $playerId) {
-        app->db()->do('UPDATE pool SET challenge_player_2_id = NULL WHERE private_game_key = ?', {}, $uid);
-    } elsif ($poolRow->{challenge_player_3_id} eq $playerId) {
-        app->db()->do('UPDATE pool SET challenge_player_3_id = NULL WHERE private_game_key = ?', {}, $uid);
+    } elsif ($poolRow->{matched_player_id} eq $playerId) {
+        app->db()->do('UPDATE pool SET matched_player_id = NULL WHERE private_game_key = ?', {}, $uid);
+    } elsif ($poolRow->{matched_player_2_id} eq $playerId) {
+        app->db()->do('UPDATE pool SET matched_player_2_id = NULL WHERE private_game_key = ?', {}, $uid);
+    } elsif ($poolRow->{matched_player_3_id} eq $playerId) {
+        app->db()->do('UPDATE pool SET matched_player_3_id = NULL WHERE private_game_key = ?', {}, $uid);
     }
 
     return 1;
