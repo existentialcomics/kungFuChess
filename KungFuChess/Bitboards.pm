@@ -75,6 +75,8 @@ use constant ({
 
     ### AI variables
     AI_FUTILITY  => 350,  # point loss from move to prune from tree
+    AI_INFINITY     =>  99999,
+    AI_NEG_INFINITY => -99999,
      
     WHITE_PAWN   => 101,
     WHITE_KNIGHT => 102,
@@ -1629,8 +1631,11 @@ sub evaluate {
                         }
                         if ($to & $us){ # we ran into ourselves
                             $inXray = 1;
-                            #$to = 0;
-                            #next;
+                            # no xrays with frozen pieces
+                            if ($to & $ai_frozenBB) {
+                                $to = 0;
+                                next;
+                            }
                         }
                         ### we ran into a currently moving piece, best to forget it
                         if ($to & $ai_movingBB) {
@@ -1778,7 +1783,7 @@ sub evaluate {
                         $additionalBonus[$color] += 40;
                     }
                     if ($attackingUnFrozen[$them][PAWN] & $bb) {
-                        $additionalPenalty[$color] += 200;
+                        $additionalPenalty[$color] += ($meFrozen ? 200 : 100);
                     }
                 ### knight and rook "safe" checks all knights all rooks
                 } elsif ($pType == ROOK) {
@@ -1786,27 +1791,27 @@ sub evaluate {
                         $additionalBonus[$color] += 40;
                     }
                     if ($attackingUnFrozen[$them][PAWN] & $bb) {
-                        $additionalPenalty[$color] += 400;
+                        $additionalPenalty[$color] += ($meFrozen ? 400 : 120);
                     }
                 } elsif ($pType == QUEEN) {
                     if ($safe) {
                         $additionalBonus[$color] += 20;
                     }
                     if ($attackingUnFrozen[$them][PAWN] & $bb) {
-                        $additionalPenalty[$color] += 700;
+                        $additionalPenalty[$color] += ($meFrozen ? 600 : 250);
                     }
                     if (($attackingUnFrozen[$them][QUEEN] & $bb)) {
                         if ($safe) {
                             $queenDangerPenalty[$us] += 200;
                         } else {
-                            $queenDangerPenalty[$us] += 600;
+                            $queenDangerPenalty[$us] += ($meFrozen ? 400 : 130);
                         }
                     }
                     if (($attackingUnFrozen[$them][ROOK] & $bb)) {
                         if ($safe) {
                             $queenDangerPenalty[$us] += 400;
                         } else {
-                            $queenDangerPenalty[$us] += 700;
+                            $queenDangerPenalty[$us] += ($meFrozen ? 500 : 110);
                         }
                     }
                     if (
@@ -1816,21 +1821,21 @@ sub evaluate {
                         if ($safe) {
                             $queenDangerPenalty[$us] += 500;
                         } else {
-                            $queenDangerPenalty[$us] += 750;
+                            $queenDangerPenalty[$us] += ($meFrozen ? 500 : 110);
                         }
                     }
                 } elsif ($pType == KING) {
                     if ($attackingUnFrozen[$them][ALL_P] & $bb) {
-                        $kingDangerPenalty[$color] += 1500;
+                        $kingDangerPenalty[$color] += ($meFrozen ? 1500 : 500);
                     }
                     if ($attackingFrozen[$them][ALL_P] & $bb) {
-                        $kingDangerPenalty[$color] += 110;
+                        $kingDangerPenalty[$color] += ($meFrozen ? 200 : 50);
                     }
                     if ($attackingUnFrozen[$them][ALL_P] & $kingRing[$us]) {
-                        $kingDangerPenalty[$color] += 120;
+                        $kingDangerPenalty[$color] += ($meFrozen ? 100 : 50);
                     }
                     if ($attackingFrozen[$them][ALL_P] & $kingRing[$us]) {
-                        $kingDangerPenalty[$color] += 20;
+                        $kingDangerPenalty[$color] += ($meFrozen ? 20 : 10);
                     }
                 }
             }
@@ -1866,6 +1871,10 @@ penal   - ($additionalPenalty[1] - $additionalPenalty[2] )
 
 sub clearAiMoves {
     $currentMoves = undef;
+}
+
+sub getCurrentScore {
+    return $aiScore;
 }
 
 sub aiThink {
@@ -2145,7 +2154,7 @@ sub prettyBoard {
     foreach my $i ( 0 .. 7 ) {
         my $r = 7-$i;
         foreach my $f ( 0 .. 7 ) {
-            if ($f eq 0){ $board .= " $r | "; }
+            if ($f eq 0){ $board .= " " . ($r + 1) . " | "; }
                 my $rf = RANKS->[$r] & FILES->[$f];
             if ($BB & $rf) {
                 $board .= "X | ";
