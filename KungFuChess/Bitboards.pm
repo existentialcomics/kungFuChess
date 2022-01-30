@@ -1915,7 +1915,8 @@ sub aiThink {
 
 sub aiRecommendMoves {
     my $color = shift;
-    my $maxMoves = shift;
+    my $maxMoves = shift // 1;
+    my $randomSkipChance = shift // 0; ### to sometimes select worse moves
 
     #print "colr: $color, $maxMoves\n";
     if (! $currentMoves) { return undef; }
@@ -1926,6 +1927,7 @@ sub aiRecommendMoves {
     push @myMoves, [ $move->[MOVE_FR], $move->[MOVE_TO], 0, 0, $move->[MOVE_SCORE] ];
 
     foreach my $depth (0 .. $maxMoves) {
+        if (rand() < $randomSkipChance) { next; }
         #print " --- $depth * $maxMoves\n";
         if (! defined($move->[MOVE_NEXT_MOVES])){ last; }
         $move = $move->[MOVE_NEXT_MOVES]->[$color]->[0];

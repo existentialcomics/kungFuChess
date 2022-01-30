@@ -189,7 +189,7 @@ sub _init {
     print "game key: $gameKey, authkey: $authKey, speed: $speed, mode: $mode, diff: $difficulty, color: $color, domain: $domain\n";
 
     $self->{startTime} = time();
-    
+
     my $cfg = new Config::Simple('kungFuChess.cnf');
     $self->{config} = $cfg;
     $self->{mode}   = $mode;
@@ -216,6 +216,15 @@ sub _init {
     print "AI: $ai\n";
     $self->{ai} = $ai;
 
+    ### variables:
+    # ai_thinkTime     max time calculating moves
+    # ai_depth         max depth
+    # ai_simul_moves   max moves to make at once
+    # ai_delay         random delay before move
+    # ai_min_delay     min random delay
+    # ai_interval      time to wait before next move
+    # ai_skip_best     % chance to skip the best move (and next again)
+
     if ($speed eq 'standard') {
         $self->{pieceSpeed} = 1;
         $self->{pieceRecharge} = 10;
@@ -223,71 +232,85 @@ sub _init {
             $self->{ai_thinkTime} = 1;
             $self->{ai_depth} = 1;
             $self->{ai_simul_moves} = 1;
-            $self->{ai_delay} = 1_000_000; ### random delay between moves in microseconds
-            $self->{ai_min_delay} = 0; 
+            $self->{ai_delay} = 2_000_000; ### random delay between moves in microseconds
+            $self->{ai_min_delay} = 1_000_000;
+            $self->{ai_interval} = 2_000_000;
+            $self->{ai_skip_best} = 0.7;
         } elsif ($difficulty eq '2') {
             $self->{ai_thinkTime} = 1;
-            $self->{ai_depth} = 2;
-            $self->{ai_simul_moves} = 2;
-            $self->{ai_delay} = 500_000; ### random delay between moves in microseconds
-            $self->{ai_min_delay} = 0; 
+            $self->{ai_depth} = 1;
+            $self->{ai_simul_moves} = 1;
+            $self->{ai_delay} = 1_000_000; ### random delay between moves in microseconds
+            $self->{ai_min_delay} = 200_000;
+            $self->{ai_interval} = 1_000_000;
+            $self->{ai_skip_best} = 0.4;
         } elsif ($difficulty eq '3') {
-            $self->{ai_thinkTime} = 1.50;
-            $self->{ai_depth} = 3;
-            $self->{ai_simul_moves} = 4;
-            $self->{ai_delay} = 200_000; ### random delay between moves in microseconds
-            $self->{ai_min_delay} = 0; 
-        } elsif ($difficulty eq '4') {
-            $self->{ai_thinkTime} = 2.50;
-            $self->{ai_depth} = 4;
-            $self->{ai_simul_moves} = 3;
-            $self->{ai_delay} = 300_000; ### random delay between moves in microseconds
-            $self->{ai_min_delay} = 0; 
+            $self->{ai_thinkTime} = 2.0;
+            $self->{ai_depth} = 1;
+            $self->{ai_simul_moves} = 1;
+            $self->{ai_delay} = 30_000; ### random delay between moves in microseconds
+            $self->{ai_min_delay} = 0;
+            $self->{ai_interval} = 25_000;
+            $self->{ai_skip_best} = 0.0;
         } elsif ($difficulty eq 'human_a') {
-            $self->{ai_thinkTime} = 3.00;
-            $self->{ai_depth} = 3;
-            $self->{ai_simul_moves} = 2;
-            $self->{ai_delay} = 500_000; ### random delay between moves in microseconds
-            $self->{ai_min_delay} = 200_000; 
+            $self->{ai_thinkTime} = 2.0;
+            $self->{ai_depth} = 1;
+            $self->{ai_simul_moves} = 1;
+            $self->{ai_delay} = 300_000; ### random delay between moves in microseconds
+            $self->{ai_min_delay} = 0;
+            $self->{ai_interval} = 500_000;
+            $self->{ai_skip_best} = 0.0;
         } else {
-            $self->{ai_thinkTime} = 1.50;
-            $self->{ai_depth} = 3;
-            $self->{ai_simul_moves} = 4;
-            $self->{ai_delay} = 200_000; ### random delay between moves in microseconds
+            $self->{ai_thinkTime} = 2.0;
+            $self->{ai_depth} = 1;
+            $self->{ai_simul_moves} = 1;
+            $self->{ai_delay} = 300_000; ### random delay between moves in microseconds
+            $self->{ai_min_delay} = 0;
+            $self->{ai_interval} = 500_000;
+            $self->{ai_skip_best} = 0.0;
         }
     } elsif ($speed eq 'lightning') {
         $self->{pieceRecharge} = 2;
         if ($difficulty eq '1') {
-            $self->{ai_thinkTime} = 0.75;
+            $self->{ai_thinkTime} = 1.0;
             $self->{ai_depth} = 1;
             $self->{ai_simul_moves} = 1;
-            $self->{ai_delay} = 800_000; ### random delay between moves in microseconds
-            $self->{ai_min_delay} = 200_000; 
+            $self->{ai_delay} = 1_000_000; ### random delay between moves in microseconds
+            $self->{ai_min_delay} = 500_000;
+            $self->{ai_interval} = 1_000_000;
+            $self->{ai_skip_best} = 0.7;
         } elsif ($difficulty eq '2') {
-            $self->{ai_thinkTime} = 0.5;
-            $self->{ai_depth} = 2;
-            $self->{ai_simul_moves} = 2;
-            $self->{ai_delay} = 300_000; ### random delay between moves in microseconds
-            $self->{ai_min_delay} = 100_000; 
-        } elsif ($difficulty eq '3') {
-            $self->{ai_thinkTime} = 0.3;
-            $self->{ai_depth} = 2;
-            $self->{ai_simul_moves} = 3;
-            $self->{ai_delay} = 1_000; ### random delay between moves in microseconds
-            $self->{ai_min_delay} = 0; 
-        } elsif ($difficulty eq 'human_a') {
-            $self->{ai_thinkTime} = 0.50;
-            $self->{ai_depth} = 2;
+            $self->{ai_thinkTime} = 1.0;
+            $self->{ai_depth} = 1;
             $self->{ai_simul_moves} = 1;
-            $self->{ai_delay} = 200_000; ### random delay between moves in microseconds
-            $self->{ai_min_delay} = 200_000; 
-            $self->{ai_min_delay} = 100_000; 
+            $self->{ai_delay} = 1_000_000; ### random delay between moves in microseconds
+            $self->{ai_min_delay} = 500_000;
+            $self->{ai_interval} = 500_000;
+            $self->{ai_skip_best} = 0.7;
+        } elsif ($difficulty eq '3') {
+            $self->{ai_thinkTime} = 1.0;
+            $self->{ai_depth} = 1;
+            $self->{ai_simul_moves} = 1;
+            $self->{ai_delay} = 100_000; ### random delay between moves in microseconds
+            $self->{ai_min_delay} = 100_000;
+            $self->{ai_interval} = 100_000;
+            $self->{ai_skip_best} = 0.0;
+        } elsif ($difficulty eq 'human_a') {
+            $self->{ai_thinkTime} = 1.0;
+            $self->{ai_depth} = 1;
+            $self->{ai_simul_moves} = 1;
+            $self->{ai_delay} = 1_000_000; ### random delay between moves in microseconds
+            $self->{ai_min_delay} = 500_000;
+            $self->{ai_interval} = 1_000_000;
+            $self->{ai_skip_best} = 7.0;
         } else {
-            $self->{ai_thinkTime} = 0.3;
-            $self->{ai_depth} = 2;
-            $self->{ai_simul_moves} = 3;
-            $self->{ai_delay} = 1_000; ### random delay between moves in microseconds
-            $self->{ai_min_delay} = 0; 
+            $self->{ai_thinkTime} = 1.0;
+            $self->{ai_depth} = 1;
+            $self->{ai_simul_moves} = 1;
+            $self->{ai_delay} = 1_000_000; ### random delay between moves in microseconds
+            $self->{ai_min_delay} = 500_000;
+            $self->{ai_interval} = 1_000_000;
+            $self->{ai_skip_best} = 7.0;
         }
     } else {
         warn "unknown game speed $speed\n";
@@ -307,7 +330,7 @@ sub _init {
     ];
 
 	my $client = AnyEvent::WebSocket::Client->new(
-        ssl_no_verify => 1,   
+        ssl_no_verify => 1,
     );
 
     my $wsDomain = $domain // 'ws://localhost:3001/ws';
@@ -327,7 +350,7 @@ sub _init {
 		 warn $@;
          exit;
 		}
-		   
+		
         sleep(1);
         # TODO do a proper "repeat until confirmed" like the js does here
 		my $msg = {
@@ -405,7 +428,7 @@ sub _init {
         after => 1,
         interval => 2.5,
         cb => sub {
-            if (! defined($self->{gameStartTime}) && 
+            if (! defined($self->{gameStartTime}) &&
                 time() - $self->{startTime} > 60
             ) {
                 my $abortMsg = {
@@ -443,7 +466,7 @@ sub setFrozen {
         after => ($self->{pieceRecharge} * 0.9),
         cb => sub {
             ### if the time doesn't match, another piece has moved here
-            if ($time == $self->{timeoutSquares}->{$to_bb}->{'time'}) { 
+            if ($time == $self->{timeoutSquares}->{$to_bb}->{'time'}) {
                 KungFuChess::Bitboards::unsetFrozen($to_bb);
                 delete $self->{timeoutSquares}->{$to_bb};
                 delete $self->{timeoutCBs}->{$to_bb};
@@ -471,7 +494,7 @@ sub handleMessage {
             push @{$self->{inducedMoves}}, $msg->{to_bb};
         }
 	} elsif ($msg->{c} eq 'suspend'){
-        $self->{suspendedPieces}->{$msg->{to_bb}} = 
+        $self->{suspendedPieces}->{$msg->{to_bb}} =
             KungFuChess::Bitboards::_getPieceBB($msg->{fr_bb} + 0);
 
         KungFuChess::Bitboards::_removePiece($msg->{fr_bb} + 0);
@@ -517,7 +540,7 @@ sub handleMessage {
         #usleep(($startTime + 0.1) * 1000);
         my @moves = ();
         my $rand = rand();
-        
+
         if ($self->{color} == 1) {
             if ($rand < 0.3) {
                 @moves = qw(e2e3 d2d4 g1f3 a2a4 a1a3 c1d2 b1c3 h2h3 d1e2);
@@ -541,7 +564,7 @@ sub handleMessage {
 
         $self->{aiInterval} = AnyEvent->timer(
             after => 3.2,
-            interval => $self->{ai_thinkTime} + ($self->{ai_thinkTime} / 3),
+            interval => ($self->{ai_interval} / 1_000_000),
             cb => sub {
                 if (time() - $self->{startTime} > (60 * 10)) {
                     my $msg = {
@@ -586,7 +609,11 @@ sub handleMessage {
                     if ($self->{ai_depth} >= 3 && (time() - $start) < $self->{ai_thinkTime}) {
                         KungFuChess::Bitboards::aiThink(3, $self->{ai_thinkTime});
                     }
-                    my $suggestedMoves = KungFuChess::Bitboards::aiRecommendMoves($self->{color}, $self->{ai_simul_moves});
+                    my $suggestedMoves = KungFuChess::Bitboards::aiRecommendMoves(
+                        $self->{color},
+                        $self->{ai_simul_moves},
+                        $self->{ai_skip_best}
+                    );
 
                     my $fr_moves = {};
                     my $to_moves = {};
