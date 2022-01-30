@@ -35,6 +35,7 @@ use constant {
     AI_USER_BERSERK => -5,
     SYSTEM_USER => -99,
     GAME_ERROR_AI_FULL => -1,
+    MAX_AI_GAMES => 2,
 };
 
 my $cfg = new Config::Simple('kungFuChess.cnf');
@@ -1199,6 +1200,16 @@ sub isAiUser {
          || $playerId == AI_USER_BERSERK);
 }
 
+sub getAiLevel {
+    my $playerId = shift;
+    if ($playerId == AI_USER_EASY)   { return 1; }
+    if ($playerId == AI_USER_MEDIUM) { return 2; }
+    if ($playerId == AI_USER_HARD)   { return 3; }
+    if ($playerId == AI_USER_BERSERK){ return 4; }
+
+    return 1;
+}
+
 sub getDefaultPieceSpeed {
     my $speed = shift;
 
@@ -1258,7 +1269,7 @@ sub createGame {
         my $lines = `ps aux | grep kungFuChessGame2wayAi.pl | grep -v grep | wc -l`;
         if ($lines) {
             my $activeAiGames = $lines - 1;
-            if ($activeAiGames > 1) {
+            if ($activeAiGames > MAX_AI_GAMES) {
                 return GAME_ERROR_AI_FULL;
             }
         }
@@ -1294,7 +1305,7 @@ sub createGame {
             $pieceSpeed,
             $pieceRecharge,
             $speedAdvantage // "1:1:1:1",
-            $options->{ai_difficulty} // 1,
+            $options->{ai_difficulty} // getAiLevel($black),
             2, # BLACK
             'ws://localhost:3001/ws',
             '/var/log/kungfuchess/' . $gameId . '-game-ai.log',

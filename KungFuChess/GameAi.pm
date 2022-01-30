@@ -220,7 +220,7 @@ sub _init {
     # ai_thinkTime     max time calculating moves
     # ai_depth         max depth
     # ai_simul_moves   max moves to make at once
-    # ai_delay         random delay before move
+    # ai_delay         random delay before move for queued moves only (opening)
     # ai_min_delay     min random delay
     # ai_interval      time to wait before next move
     # ai_skip_best     % chance to skip the best move (and next again)
@@ -232,7 +232,7 @@ sub _init {
             $self->{ai_thinkTime} = 1;
             $self->{ai_depth} = 1;
             $self->{ai_simul_moves} = 1;
-            $self->{ai_delay} = 2_000_000; ### random delay between moves in microseconds
+            $self->{ai_delay} = 1_000_000; 
             $self->{ai_min_delay} = 1_000_000;
             $self->{ai_interval} = 2_000_000;
             $self->{ai_skip_best} = 0.7;
@@ -240,7 +240,7 @@ sub _init {
             $self->{ai_thinkTime} = 1;
             $self->{ai_depth} = 1;
             $self->{ai_simul_moves} = 1;
-            $self->{ai_delay} = 1_000_000; ### random delay between moves in microseconds
+            $self->{ai_delay} = 800_000; 
             $self->{ai_min_delay} = 200_000;
             $self->{ai_interval} = 1_000_000;
             $self->{ai_skip_best} = 0.4;
@@ -248,15 +248,15 @@ sub _init {
             $self->{ai_thinkTime} = 2.0;
             $self->{ai_depth} = 1;
             $self->{ai_simul_moves} = 1;
-            $self->{ai_delay} = 30_000; ### random delay between moves in microseconds
+            $self->{ai_delay} = 100_000; 
             $self->{ai_min_delay} = 0;
-            $self->{ai_interval} = 25_000;
+            $self->{ai_interval} = 50_000;
             $self->{ai_skip_best} = 0.0;
         } elsif ($difficulty eq 'human_a') {
             $self->{ai_thinkTime} = 2.0;
             $self->{ai_depth} = 1;
             $self->{ai_simul_moves} = 1;
-            $self->{ai_delay} = 300_000; ### random delay between moves in microseconds
+            $self->{ai_delay} = 300_000; 
             $self->{ai_min_delay} = 0;
             $self->{ai_interval} = 500_000;
             $self->{ai_skip_best} = 0.0;
@@ -264,7 +264,7 @@ sub _init {
             $self->{ai_thinkTime} = 2.0;
             $self->{ai_depth} = 1;
             $self->{ai_simul_moves} = 1;
-            $self->{ai_delay} = 300_000; ### random delay between moves in microseconds
+            $self->{ai_delay} = 300_000; 
             $self->{ai_min_delay} = 0;
             $self->{ai_interval} = 500_000;
             $self->{ai_skip_best} = 0.0;
@@ -275,15 +275,15 @@ sub _init {
             $self->{ai_thinkTime} = 1.0;
             $self->{ai_depth} = 1;
             $self->{ai_simul_moves} = 1;
-            $self->{ai_delay} = 1_000_000; ### random delay between moves in microseconds
+            $self->{ai_delay} = 1_000_000; 
             $self->{ai_min_delay} = 500_000;
-            $self->{ai_interval} = 1_000_000;
+            $self->{ai_interval} = 2_000_000;
             $self->{ai_skip_best} = 0.7;
         } elsif ($difficulty eq '2') {
             $self->{ai_thinkTime} = 1.0;
             $self->{ai_depth} = 1;
             $self->{ai_simul_moves} = 1;
-            $self->{ai_delay} = 1_000_000; ### random delay between moves in microseconds
+            $self->{ai_delay} = 1_000_000; 
             $self->{ai_min_delay} = 500_000;
             $self->{ai_interval} = 500_000;
             $self->{ai_skip_best} = 0.7;
@@ -291,7 +291,7 @@ sub _init {
             $self->{ai_thinkTime} = 1.0;
             $self->{ai_depth} = 1;
             $self->{ai_simul_moves} = 1;
-            $self->{ai_delay} = 100_000; ### random delay between moves in microseconds
+            $self->{ai_delay} = 100_000; 
             $self->{ai_min_delay} = 100_000;
             $self->{ai_interval} = 100_000;
             $self->{ai_skip_best} = 0.0;
@@ -299,7 +299,7 @@ sub _init {
             $self->{ai_thinkTime} = 1.0;
             $self->{ai_depth} = 1;
             $self->{ai_simul_moves} = 1;
-            $self->{ai_delay} = 1_000_000; ### random delay between moves in microseconds
+            $self->{ai_delay} = 1_000_000; 
             $self->{ai_min_delay} = 500_000;
             $self->{ai_interval} = 1_000_000;
             $self->{ai_skip_best} = 7.0;
@@ -307,7 +307,7 @@ sub _init {
             $self->{ai_thinkTime} = 1.0;
             $self->{ai_depth} = 1;
             $self->{ai_simul_moves} = 1;
-            $self->{ai_delay} = 1_000_000; ### random delay between moves in microseconds
+            $self->{ai_delay} = 1_000_000; 
             $self->{ai_min_delay} = 500_000;
             $self->{ai_interval} = 1_000_000;
             $self->{ai_skip_best} = 7.0;
@@ -586,6 +586,7 @@ sub handleMessage {
                         }
                         $self->{movesQueue} = [];
                 } else {
+                    print "color: $self->{color}\n";
                     KungFuChess::Bitboards::resetAiBoards($self->{color});
                     #print KungFuChess::Bitboards::getFENstring();
                     #print KungFuChess::Bitboards::pretty_ai();
@@ -643,7 +644,7 @@ sub handleMessage {
                             'c'     => 'move'
                         };
                         $self->send($msg);
-                        usleep(rand($self->{ai_delay}) + $self->{ai_min_delay});
+                        #usleep(rand($self->{ai_delay}) + $self->{ai_min_delay});
                     }
 
                     ### dodges or discovered attacks
