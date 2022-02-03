@@ -11,13 +11,17 @@ use Data::Dumper;
 use KungFuChess::Bitboards;
 use KungFuChess::BBHash;
 
-
 my $fen = shift;
+my $frozenIn = shift;
 if ($fen) {
     print "fen: $fen\n";
     KungFuChess::Bitboards::loadFENstring($fen);
 } else {
     KungFuChess::Bitboards::setupInitialPosition();
+}
+if ($frozenIn) {
+    KungFuChess::Bitboards::setFrozen($frozenIn);
+    KungFuChess::Bitboards::resetAiBoards();
 }
 #print KungFuChess::Bitboards::debug();
 
@@ -42,7 +46,7 @@ while ($go) {
         print KungFuChess::Bitboards::pretty_ai();
     } elsif ($input =~ m/^setFrozen ([0-9]+)$/) {
         my $frozen = $1 + 0;
-        KungFuChess::Bitboards::addFrozen($frozen);
+        KungFuChess::Bitboards::setFrozen($frozen);
         KungFuChess::Bitboards::resetAiBoards();
         print KungFuChess::Bitboards::prettyFrozen();
     } elsif ($input =~ m/^freeze ([a-z][0-9])$/) {
@@ -86,10 +90,10 @@ while ($go) {
         print "\n\n";
         print KungFuChess::Bitboards::pretty_ai();
     } elsif ($input =~ m/^think ([\d\.]+) (\d+)$/) {
-        my $time = $1;
-        my $depth = $2;
+        my $depth = $1;
+        my $time = $2;
         my $start = time();
-        print "think time: $time, $depth\n";
+        print "think time: $time, depth: $depth\n";
         print KungFuChess::Bitboards::pretty_ai();
         my $moves = KungFuChess::Bitboards::aiThink($depth, $time, 2);
         my $suggestedMoves = KungFuChess::Bitboards::aiRecommendMoves(2, 999);
@@ -172,9 +176,11 @@ while ($go) {
         print "command not found, commands:\n";
         print "  think <time> <depth>\n";
         print "  moves <white|black> (show recommendedMoves)\n";
-        print "  show <white|black> (show moves available)\n";
+        print "  show <white|black> <filter> (show moves available)\n";
+        print "  ponder <white|black> <filter> (move and show moves tree)\n";
         print "  eval\n";
         print "  <move> (i.e. e2e4)\n";
+        print "  setFrozen <bb> (i.e. 1024)\n";
         print "  freeze <move> (i.e. e2e4)\n";
         print "  unfreeze <move> (i.e. e2e4)\n";
         print "  frozen (show frozen moves)\n";

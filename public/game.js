@@ -1774,8 +1774,8 @@ function addGameMessage(author, message, usercolor, textcolor, dt, authColor) {
     if (doLog) {
         message = decodeURIComponent(escape(message));
         $('#game-chat-input').removeAttr('disabled'); // let the user write another message
-        game_chatContent.append('<span class="' + usercolor + 'beltColor" style="font-size: 0.7em;">' + author + '</span><span style="font-size: 0.4em;color:grey"> ' + dtString 
-            + '</span>&nbsp;&nbsp;<span style="font-size: 0.7em; color:' + textcolor + '">' + message + '</span>' + '<br />');
+        game_chatContent.append('<span class="' + usercolor + 'beltColor" style="font-size: 0.8em;">' + author + '</span><span style="font-size: 0.5em;color:grey"> ' + dtString 
+            + '</span>&nbsp;&nbsp;<span style="font-size: 0.8em; color:' + textcolor + '">' + message + '</span>' + '<br />');
         $("#game-chat-log").scrollTop($("#game-chat-log")[0].scrollHeight);
     }
 }

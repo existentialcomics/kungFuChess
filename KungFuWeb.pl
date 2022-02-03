@@ -65,12 +65,20 @@ my %gameConnections = ();
 my %rematches = ();
 
 my $badWordsRegex = '^$';
+my @jokes;
 
 if (-f 'badwords.txt') {
     open my $handle, '<', 'badwords.txt';
     chomp(my @badWords = <$handle>);
     close $handle;
     $badWordsRegex = join("|", @badWords);
+}
+
+if (-f 'jokes.txt') {
+    open my $handle, '<', 'jokes.txt';
+    chomp(@jokes = <$handle>);
+    @jokes = grep { $_ ne '' } @jokes;
+    close $handle;
 }
 
 app->plugin('database', { 
@@ -1046,6 +1054,19 @@ get '/game/:gameId' => sub {
         $gameId
     );
 
+    if (@jokes) {
+        unshift(@{$chatLog},{
+            'post_time' => time,
+            'game_id' => undef,
+            'player_id' => 1,
+            'comment_text' => $jokes[$gameRow->{game_id} % $#{jokes}],
+            'screenname' => 'GAME TIP:',
+            'color' => 'red',
+            'text_color' => '#666666',
+            'chat_log_id' => 1
+        });
+    }
+
     if ($gameRow->{game_type} eq '4way') {
         unshift(@{$chatLog},{
             'post_time' => time,
@@ -1687,14 +1708,14 @@ websocket '/ws' => sub {
                     'screenname' => $player->{screenname}
                 };
                 $game->addWatcher($player);
-                # TODO make more efficient, sends all every time
-                foreach my $user ($game->getWatchers()) {
-                    my $watcherMsg = {
-                        'c' => 'watcherAdded',
-                        'screenname' => $player->{screenname}
-                    };
-                    connectionBroadcast($self, $watcherMsg);
-                }
+            }
+            # TODO make more efficient, sends all every time
+            foreach my $user ($game->getWatchers()) {
+                my $watcherMsg = {
+                    'c' => 'watcherAdded',
+                    'screenname' => $user->{screenname}
+                };
+                connectionBroadcast($self, $watcherMsg);
             }
 
             if ($game->serverReady()) {

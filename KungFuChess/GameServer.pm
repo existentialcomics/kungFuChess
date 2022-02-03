@@ -193,6 +193,7 @@ sub _init {
         my $msg = {
            'c' => 'authjoin',
         };
+        print "sending authjoin...\n";
         $self->send($msg);
 
         $self->setupInitialBoard();
