@@ -239,7 +239,7 @@ sub _init {
             $self->{ai_skip_best} = 0.7;
         } elsif ($difficulty eq '2') {
             $self->{ai_thinkTime} = 1;
-            $self->{ai_depth} = 2;
+            $self->{ai_depth} = 1;
             $self->{ai_simul_moves} = 1;
             $self->{ai_delay} = 800_000; 
             $self->{ai_min_delay} = 200_000;
@@ -247,7 +247,7 @@ sub _init {
             $self->{ai_skip_best} = 0.4;
         } elsif ($difficulty eq '3') {
             $self->{ai_thinkTime} = 2.0;
-            $self->{ai_depth} = 3;
+            $self->{ai_depth} = 1;
             $self->{ai_simul_moves} = 1;
             $self->{ai_delay} = 100_000; 
             $self->{ai_min_delay} = 0;
@@ -605,7 +605,7 @@ sub handleMessage {
                     my $moves = KungFuChess::Bitboards::aiThink($self->{ai_depth}, $self->{ai_thinkTime}, $self->{color});
 
                     #print "current score: " . KungFuChess::Bitboards::getCurrentScore() . "\n";
-                    KungFuChess::BBHash::displayMoves($moves, $self->{color}, 0, undef, undef, undef);
+                    #KungFuChess::BBHash::displayMoves($moves, $self->{color}, 0, undef, undef, undef);
 
                     my $suggestedMoves = KungFuChess::Bitboards::aiRecommendMoves($self->{color}, $self->{ai_simul_moves});
 
