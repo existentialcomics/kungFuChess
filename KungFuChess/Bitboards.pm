@@ -64,14 +64,9 @@ use constant ({
     ### array of a move for AI
     MOVE_FR         => 0,
     MOVE_TO         => 1,
-    MOVE_PIECE      => 2,
-    MOVE_PIECE_TYPE => 3,
-    MOVE_SCORE      => 4,
-    MOVE_ALPHA      => 5, # higher our score
-    MOVE_BETA       => 6, # lowest their score
-    MOVE_NEXT_MOVES => 7,
-    MOVE_DEPTH      => 8, # how much deeper we have analized from THIS point in the tree, -1 means we've pruned this tree
-    MOVE_STATE      => 9,
+    MOVE_SCORE      => 3,
+    MOVE_DISTANCE   => 4, 
+    MOVE_NEXT_MOVES => 5,
 
     ### AI variables
     AI_FUTILITY  => 350,  # point loss from move to prune from tree
@@ -294,6 +289,17 @@ sub getBBfromSquare {
     return $human_to_bb->{$_[0]} + 0;
 }
 
+my $isEndgame = 0;
+sub S {
+    return $isEndgame ? $_[0]->[1] : $_[0]->[0];
+}
+sub setIsEndgame {
+    $isEndgame = $_[0];
+}
+sub getIsEndgame {
+    return $isEndgame;
+}
+
 ########################## for AI only ###########################
 #
 # copied from stockfish, only the "middlegame" numbers for now
@@ -301,63 +307,63 @@ sub getBBfromSquare {
 my $SQ_BONUS = [
     [], # all
     [   # pawn
-        [  3,   3,  10, 19, 16, 19,   7,  -5 ],
-        [ -9, -15,  11, 15, 32, 22,   5, -22 ],
-        [ -8, -23,   6, 20, 40, 17,   4, -12 ],
-        [ 13,   0, -13,  1, 11, -2, -13,  5  ],
-        [ -5, -12,  -7, 22, -8, -5, -15, -18 ],
-        [ -7,   7,  -3, -13, 5, -16, 10, -8  ],
-        [] ### pawn shouldn't fuckin be here
+      [ [  2, -8], [  4, -6], [ 11,  9], [ 18,  5], [ 16, 16], [ 21,  6], [  9, -6], [ -3,-18] ],
+      [ [ -9, -9], [-15, -7], [ 11,-10], [ 15,  5], [ 31,  2], [ 23,  3], [  6, -8], [-20, -5] ],
+      [ [ -3,  7], [-20,  1], [  8, -8], [ 19, -2], [ 39,-14], [ 17,-13], [  2,-11], [ -5, -6] ],
+      [ [ 11, 12], [ -4,  6], [-11,  2], [  2, -6], [ 11, -5], [  0, -4], [-12, 14], [  5,  9] ],
+      [ [  3, 27], [-11, 18], [ -6, 19], [ 22, 29], [ -8, 30], [ -5,  9], [-14,  8], [-11, 14] ],
+      [ [ -7, -1], [  6,-14], [ -2, 13], [-11, 22], [  4, 24], [-14, 17], [ 10,  7], [ -9,  7] ],
+    [] ### pawn shouldn't fuckin be here
     ],
     [ # Knight
-        [ -175, -92, -74, -73, -73, -74, -92, -175 ],
-        [  -77, -41, -27, -15, -15, -27, -41,  -77 ],
-        [  -61, -17,   6,  12,  12,   6, -17,  -61 ],
-        [  -35,   8,  40,  49,  49,  40,   8,  -35 ],
-        [  -34,  13,  44,  51,  51,  44,  13,  -34 ],
-        [   -9,  22,  58,  53,  53,  58,  22,   -9 ],
-        [  -67, -27,   4,  37,  37,   4, -27,  -67 ],
-        [ -201, -83, -56, -26, -26, -56, -83, -201 ],
+      [ [-175, -96], [-92,-65], [-74,-49], [-73,-21], [-73,-21], [-74,-49], [-92,-65], [-175, -96]],
+      [ [ -77, -67], [-41,-54], [-27,-18], [-15,  8], [-15,  8], [-27,-18], [-41,-54], [ -77, -67]],
+      [ [ -61, -40], [-17,-27], [  6, -8], [ 12, 29], [ 12, 29], [  6, -8], [-17,-27], [ -61, -40]],
+      [ [ -35, -35], [  8, -2], [ 40, 13], [ 49, 28], [ 49, 28], [ 40, 13], [  8, -2], [ -35, -35]],
+      [ [ -34, -45], [ 13,-16], [ 44,  9], [ 51, 39], [ 51, 39], [ 44,  9], [ 13,-16], [ -34, -45]],
+      [ [  -9, -51], [ 22,-44], [ 58,-16], [ 53, 17], [ 53, 17], [ 58,-16], [ 22,-44], [  -9, -51]],
+      [ [ -67, -69], [-27,-50], [  4,-51], [ 37, 12], [ 37, 12], [  4,-51], [-27,-50], [ -67, -69]],
+      [ [-201,-100], [-83,-88], [-56,-56], [-26,-17], [-26,-17], [-56,-56], [-83,-88], [-201,-100]]
     ],
     [ # Bishop
-        [ -53,  -5,  -8, -23, -23,  -8,  -5, -53 ],
-        [ -15,   8,  19,   4,   4,  19,   8, -15 ],
-        [  -7,  21,  -5,  17,  17,  -5,  21,  -7 ],
-        [  -5,  11,  25,  39,  39,  25,  11,  -5 ],
-        [ -12,  29,  22,  31,  31,  22,  29, -12 ],
-        [ -16,   6,   1,  11,  11,   1,   6, -16 ],
-        [ -17, -14,   5,   0,   0,   5, -14, -17 ],
-        [ -48,   1, -14, -23, -23, -14,   1, -48 ],
+      [ [-37,-40], [-4 ,-21], [ -6,-26], [-16, -8], [-16, -8], [ -6,-26], [-4 ,-21], [-37,-40]],
+      [ [-11,-26], [  6, -9], [ 13,-12], [  3,  1], [  3,  1], [ 13,-12], [  6, -9], [-11,-26]],
+      [ [-5 ,-11], [ 15, -1], [ -4, -1], [ 12,  7], [ 12,  7], [ -4, -1], [ 15, -1], [-5 ,-11]],
+      [ [-4 ,-14], [  8, -4], [ 18,  0], [ 27, 12], [ 27, 12], [ 18,  0], [  8, -4], [-4 ,-14]],
+      [ [-8 ,-12], [ 20, -1], [ 15,-10], [ 22, 11], [ 22, 11], [ 15,-10], [ 20, -1], [-8 ,-12]],
+      [ [-11,-21], [  4,  4], [  1,  3], [  8,  4], [  8,  4], [  1,  3], [  4,  4], [-11,-21]],
+      [ [-12,-22], [-10,-14], [  4, -1], [  0,  1], [  0,  1], [  4, -1], [-10,-14], [-12,-22]],
+      [ [-34,-32], [  1,-29], [-10,-26], [-16,-17], [-16,-17], [-10,-26], [  1,-29], [-34,-32]]
     ],
     [ # Rook
-        [ -31, -20, -14, -5, -5, -14, -20, -31 ],
-        [ -21, -13,  -8,  6,  6,  -8, -13, -21 ],
-        [ -25, -11,  -1,  3,  3,  -1, -11, -25 ],
-        [ -13,  -5,  -4, -6, -6,  -4,  -5, -13 ],
-        [ -27, -15,  -4,  3,  3,  -4, -15, -27 ],
-        [ -22,  -2,   6, 12, 12,   6,  -2, -22 ],
-        [  -2,  12,  16, 18, 18,  16,  12,  -2 ],
-        [ -17, -19,  -1,  9,  9,  -1, -19, -17 ],
+      [ [-31, -9], [-20,-13], [-14,-10], [-5, -9], [-5, -9], [-14,-10], [-20,-13], [-31, -9]],
+      [ [-21,-12], [-13, -9], [ -8, -1], [ 6, -2], [ 6, -2], [ -8, -1], [-13, -9], [-21,-12]],
+      [ [-25,  6], [-11, -8], [ -1, -2], [ 3, -6], [ 3, -6], [ -1, -2], [-11, -8], [-25,  6]],
+      [ [-13, -6], [ -5,  1], [ -4, -9], [-6,  7], [-6,  7], [ -4, -9], [ -5,  1], [-13, -6]],
+      [ [-27, -5], [-15,  8], [ -4,  7], [ 3, -6], [ 3, -6], [ -4,  7], [-15,  8], [-27, -5]],
+      [ [-22,  6], [ -2,  1], [  6, -7], [12, 10], [12, 10], [  6, -7], [ -2,  1], [-22,  6]],
+      [ [ -2,  4], [ 12,  5], [ 16, 20], [18, -5], [18, -5], [ 16, 20], [ 12,  5], [ -2,  4]],
+      [ [-17, 18], [-19,  0], [ -1, 19], [ 9, 13], [ 9, 13], [ -1, 19], [-19,  0], [-17, 18]]
     ],
     [ # Queen
-        [  3, -5, -5,  4,  4, -5, -5,  3 ],
-        [ -3,  5,  8, 12, 12,  8,  5, -3 ],
-        [ -3,  6, 13,  7,  7, 13,  6, -3 ],
-        [  4,  5,  9,  8,  8,  9,  5,  4 ],
-        [  0, 14, 12,  5,  5, 12, 14,  0 ],
-        [ -4, 10,  6,  8,  8,  6, 10, -4 ],
-        [ -5,  6, 10,  8,  8, 10,  6, -5 ],
-        [ -2, -2,  1, -2, -2,  1, -2, -2 ],
+      [ [ 3,-69], [-5,-57], [-5,-47], [ 4,-26], [ 4,-26], [-5,-47], [-5,-57], [ 3,-69]],
+      [ [-3,-54], [ 5,-31], [ 8,-22], [12, -4], [12, -4], [ 8,-22], [ 5,-31], [-3,-54]],
+      [ [-3,-39], [ 6,-18], [13, -9], [ 7,  3], [ 7,  3], [13, -9], [ 6,-18], [-3,-39]],
+      [ [ 4,-23], [ 5, -3], [ 9, 13], [ 8, 24], [ 8, 24], [ 9, 13], [ 5, -3], [ 4,-23]],
+      [ [ 0,-29], [14, -6], [12,  9], [ 5, 21], [ 5, 21], [12,  9], [14, -6], [ 0,-29]],
+      [ [-4,-38], [10,-18], [ 6,-11], [ 8,  1], [ 8,  1], [ 6,-11], [10,-18], [-4,-38]],
+      [ [-5,-50], [ 6,-27], [10,-24], [ 8, -8], [ 8, -8], [10,-24], [ 6,-27], [-5,-50]],
+      [ [-2,-74], [-2,-52], [ 1,-43], [-2,-34], [-2,-34], [ 1,-43], [-2,-52], [-2,-74]]
     ],
     [ # King
-        [ 271, 327, 271, 198, 198, 271, 327, 271 ],
-        [ 278, 303, 234, 179, 179, 234, 303, 278 ],
-        [ 195, 258, 169, 120, 120, 169, 258, 195 ],
-        [ 164, 190, 138,  98,  98, 138, 190, 164 ],
-        [ 154, 179, 105,  70,  70, 105, 179, 154 ],
-        [ 123, 145,  81,  31,  31,  81, 145, 123 ],
-        [  88, 120,  65,  33,  33,  65, 120,  88 ],
-        [  59,  89,  45,  -1,  -1,  45,  89,  59 ],
+      [ [271,  1], [327, 45], [271, 85], [198, 76], [198, 76], [271, 85], [327, 45], [271,  1]],
+      [ [278, 53], [303,100], [234,133], [179,135], [179,135], [234,133], [303,100], [278, 53]],
+      [ [195, 88], [258,130], [169,169], [120,175], [120,175], [169,169], [258,130], [195, 88]],
+      [ [164,103], [190,156], [138,172], [ 98,172], [ 98,172], [138,172], [190,156], [164,103]],
+      [ [154, 96], [179,166], [105,199], [ 70,199], [ 70,199], [105,199], [179,166], [154, 96]],
+      [ [123, 92], [145,172], [ 81,184], [ 31,191], [ 31,191], [ 81,184], [145,172], [123, 92]],
+      [ [ 88, 47], [120,121], [ 65,116], [ 33,131], [ 33,131], [ 65,116], [120,121], [ 88, 47]],
+      [ [ 59, 11], [ 89, 59], [ 45, 73], [ -1, 78], [ -1, 78], [ 45, 73], [ 89, 59], [ 59, 11]]
     ]
 ];
 
@@ -1576,7 +1582,7 @@ sub evaluate {
             ### for square bonuses
             my $sq_f = $f;
             my $sq_r = $color == WHITE ? $r : 7 - $r;
-            $squareBonus[$color] += $SQ_BONUS->[$pieceType]->[$sq_r]->[$sq_f];
+            $squareBonus[$color] += S($SQ_BONUS->[$pieceType]->[$sq_r]->[$sq_f]);
 
             if ($pieceType == KING) {
                 $material[$color] += 10000;
@@ -1586,15 +1592,12 @@ sub evaluate {
                     $kingRing[$color] |= $to;
                     if ($to != 0 && !($to & $us) && !($to & $ai_movingBB) ){
                         if (! $frozen) {
-                            #$moves[$color]->{sprintf('%s-%s', $fr, $to)} = [
                             push @{$moves[$color]}, [
                                 $fr,
                                 $to,
-                                $piece,
-                                $pieceType,
+                                1,
                                 undef, # score
                                 undef, # children moves
-                                0      # depth
                             ];
                         }
                         $attacking[$color]->[$pieceType] |= $to;
@@ -1625,7 +1628,9 @@ sub evaluate {
                     my $inXray = 0;
                     my $to = $fr;
                     $to = shift_BB($to, $shift);
+                    my $distance = 0;
                     while ($to != 0) {
+                        $distance++;
                         $attacking[$color]->[$pieceType] |= $to;
                         $attacking[$color]->[ALL_P]      |= $to;
                         if ($frozen) {
@@ -1654,11 +1659,9 @@ sub evaluate {
                                 push @{$moves[$color]}, [
                                     $fr,
                                     $to,
-                                    $piece,
-                                    $pieceType,
+                                    $distance,
                                     undef, # score
                                     undef, # children moves
-                                    0      # depth
                                 ];
                             }
                         }
@@ -1694,15 +1697,12 @@ sub evaluate {
                         }
                         $mobilityBonus[$color] += 15;
                         if (! ($to & $us) && ! $frozen) {
-                            #$moves[$color]->{sprintf('%s-%s', $fr, $to)} = [
                             push @{$moves[$color]}, [
                                 $fr,
                                 $to,
-                                $piece,
-                                $pieceType,
+                                2.5,
                                 undef, # score
                                 undef, # children moves
-                                0      # depth
                             ];
                         }
                     }
@@ -1711,15 +1711,12 @@ sub evaluate {
                 $material[$color] += 100;
                 my $to = (shift_BB($fr, $pawnDir));
                 if (! ($to & $us) && ! ($to & $them) && ! $frozen) {
-                    #$moves[$color]->{sprintf('%s-%s', $fr, $to)} = [
                     push @{$moves[$color]}, [
                         $fr,
                         $to,
-                        $piece,
-                        $pieceType,
+                        1,
                         undef, # score
                         undef, # children moves
-                        0      # depth
                     ];
                 }
                 $to = shift_BB($fr, $pawnDir + WEST);
@@ -1733,15 +1730,12 @@ sub evaluate {
                     $attackingUnFrozen[$color]->[ALL_P]      |= $to;
                 }
                 if (($to & $them) && ! $frozen) {
-                    #$moves[$color]->{sprintf('%s-%s', $fr, $to)} = [
                     push @{$moves[$color]}, [
                         $fr,
                         $to,
-                        $piece,
-                        $pieceType,
+                        1,
                         undef, # score
                         undef, # children moves
-                        0      # depth
                     ];
                 }
                 $to = shift_BB($fr, $pawnDir + EAST);
@@ -1755,20 +1749,23 @@ sub evaluate {
                     $attackingUnFrozen[$color]->[ALL_P]      |= $to;
                 }
                 if (($to & $them) && ! $frozen && !($to & $ai_movingBB) ) {
-                    #$moves[$color]->{sprintf('%s-%s', $fr, $to)} = [
                     push @{$moves[$color]}, [
                         $fr,
                         $to,
-                        $piece,
-                        $pieceType,
+                        1,
                         undef, # score
                         undef, # children moves
-                        0      # depth
                     ];
                 }
             }
         }
     }
+
+    # Protected or unattacked squares
+    #my $safe = ~$attackedUnFrozen[$them][ALL_P] | $attackedUnFrozen[$us][ALL_P];
+
+    # Enemies not strongly protected and under our attack
+    #weak = pos.pieces(Them) & ~stronglyProtected & attackedBy[Us][ALL_PIECES];
 
     my $pcount = 0;
     foreach my $color (1 .. 2) {
@@ -1875,8 +1872,10 @@ penal   - ($additionalPenalty[1] - $additionalPenalty[2] )
         $score = 0 - $score;
     }
 
+    my $totalMaterial = $material[1] + $material[2];
+
     #return ($score + rand($aiRandomness), \@moves);
-    return ($score, \@moves);
+    return ($score, \@moves, $totalMaterial);
 }
 
 sub clearAiMoves {
@@ -2012,7 +2011,6 @@ sub evaluateTree {
 
     foreach my $move (@{$moves->[$color]}) {
         my $moveS = "";
-        $moveS = KungFuChess::BBHash::getSquareFromBB($move->[MOVE_FR]) . KungFuChess::BBHash::getSquareFromBB($move->[MOVE_TO]);
         if ($aiDebug) {
             print "  " x (5 - $depth);
             print ($color == WHITE ? 'w' : 'b');
@@ -2052,14 +2050,14 @@ sub evaluateTree {
             $maxEval = ($newScore > $maxEval ? $newScore : $maxEval);
             $alpha   = ($newScore > $alpha   ? $newScore : $alpha);
             if ($maxEval > $beta) {
-                #last;
+                last;
             }
             $alpha = $newScore;
         } elsif (! $maximizingPlayer) {
             $minEval = ($newScore < $minEval ? $newScore : $minEval);
             $beta    = ($newScore < $beta   ? $newScore : $beta);
             if ($maxEval < $alpha) {
-                #last;
+                last;
             }
         }
 
@@ -2082,9 +2080,9 @@ sub evaluateTree {
         if ($newMoves) {
             $move->[MOVE_NEXT_MOVES] = $newMoves;
         }
-        if ($state) {
-            $move->[MOVE_STATE] = $state;
-        }
+        #if ($state) {
+            #$move->[MOVE_STATE] = $state;
+        #}
 
         if (defined($newScore)) {
             $move->[MOVE_SCORE] = $newScore;

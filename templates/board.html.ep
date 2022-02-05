@@ -129,7 +129,9 @@
                 <% } %>
             </div>
             <div id="gameStatusComplete" <%== $gameStatus eq 'finished' ? '' : 'style="display:none;"' %>>
+                <button type="button" class="btn btn-primary btn-block" id="replayGameSlow" >Replay Game Slow</button>
                 <button type="button" class="btn btn-primary btn-block" id="replayGame" >Replay Game</button>
+                <button type="button" class="btn btn-primary btn-block" id="replayGameFast" >Replay Game Fast</button>
             </div>
             <% if ($color eq 'black') { %>
                 %= include 'blackPlayer'

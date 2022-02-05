@@ -247,7 +247,7 @@ sub _init {
             $self->{ai_skip_best} = 0.4;
         } elsif ($difficulty eq '3') {
             $self->{ai_thinkTime} = 2.0;
-            $self->{ai_depth} = 1;
+            $self->{ai_depth} = 3;
             $self->{ai_simul_moves} = 1;
             $self->{ai_delay} = 100_000; 
             $self->{ai_min_delay} = 0;
@@ -255,12 +255,13 @@ sub _init {
             $self->{ai_skip_best} = 0.0;
         } elsif ($difficulty eq 'human_a') {
             $self->{ai_thinkTime} = 2.0;
-            $self->{ai_depth} = 1;
+            $self->{ai_depth} = 4;
             $self->{ai_simul_moves} = 1;
             $self->{ai_delay} = 300_000; 
             $self->{ai_min_delay} = 0;
             $self->{ai_interval} = 500_000;
             $self->{ai_skip_best} = 0.0;
+            $self->{ai_human} = 1;
         } else {
             $self->{ai_thinkTime} = 2.0;
             $self->{ai_depth} = 1;
@@ -616,19 +617,21 @@ sub handleMessage {
                     #print KungFuChess::Bitboards::getFENstring();
 
                     ### this is for testing, there is no reason to resign lost positions for the real AI
-                    #if (KungFuChess::Bitboards::getCurrentScore() < -2000) {
-                        #$self->{resignCount} ++;
-                        #if ($self->{resignCount} > 15) {
-                            #print "resigning...\n";
-                            #my $msg = {
-                                #'c'     => 'resign'
-                            #};
-                            #$self->send($msg);
-                            #exit;
-                        #}
-                    #} else {
-                        #$self->{resignCount} = 0;
-                    #}
+                    if ($self->{ai_human}) {
+                        if (KungFuChess::Bitboards::getCurrentScore() < -2000) {
+                            $self->{resignCount} ++;
+                            if ($self->{resignCount} > 15) {
+                                print "resigning...\n";
+                                my $msg = {
+                                    'c'     => 'resign'
+                                };
+                                $self->send($msg);
+                                exit;
+                            }
+                        } else {
+                            $self->{resignCount} = 0;
+                        }
+                    }
 
                     foreach my $move (@$suggestedMoves) {
                         #print "moving...";

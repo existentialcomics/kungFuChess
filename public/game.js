@@ -1810,8 +1810,33 @@ $(function () {
         };
         sendMsg(msg);
     });
-    $("#replayGame").click(function() {
+	var orig_speedAdvantage  = speedAdvantage;
+	var orig_timerSpeed      = timerSpeed;
+	var orig_timerRecharge   = timerRecharge;
+	var orig_timerSpeedWhite = timerSpeedWhite;
+	var orig_timerSpeedBlack = timerSpeedBlack;
+	var orig_timerSpeedRed   = timerSpeedRed;
+	var orig_timerSpeedGreen = timerSpeedGreen;
+	var orig_timerRechargeWhite = timerRechargeWhite;
+	var orig_timerRechargeBlack = timerRechargeBlack;
+	var orig_timerRechargeRed   = timerRechargeRed;
+	var orig_timerRechargeGreen = timerRechargeGreen;
+
+    var replayGame = function(speed = 1) {
         replayMode = true;
+
+        speedAdvantage  = orig_speedAdvantage * speed;
+        timerSpeed      = orig_timerSpeed * speed;
+        timerRecharge   = orig_timerRecharge * speed;
+        timerSpeedWhite = orig_timerSpeedWhite * speed;
+        timerSpeedBlack = orig_timerSpeedBlack * speed;
+        timerSpeedRed   = orig_timerSpeedRed * speed;
+        timerSpeedGreen = orig_timerSpeedGreen * speed;
+        timerRechargeWhite = orig_timerRechargeWhite * speed;
+        timerRechargeBlack = orig_timerRechargeBlack * speed;
+        timerRechargeRed   = orig_timerRechargeRed * speed;
+        timerRechargeGreen = orig_timerRechargeGreen * speed;
+
         clearBoard();
 
         // clears all active timeouts
@@ -1845,7 +1870,7 @@ $(function () {
             } else {
                 var msgTimeout = 0;
                 if (logMsg.msg.c != 'spawn' && logMsg.msg.c != 'playerReady') {
-                    msgTimeout = (logMsg.time - startTime) * 1000;
+                    msgTimeout = (logMsg.time - startTime) * 1000 * speed;
                     setTimeout(
                         function() {
                             handleMessage(logMsg.msg);
@@ -1855,6 +1880,16 @@ $(function () {
                 }
             }
         });
+
+    };
+    $("#replayGameFast").click(function() {
+        replayGame(0.5);
+    });
+    $("#replayGame").click(function() {
+        replayGame(1);
+    });
+    $("#replayGameSlow").click(function() {
+        replayGame(2);
     });
     // game chat
     $('#game-chat-input').bind("enterKey",function(e){
