@@ -1,13 +1,13 @@
--- MySQL dump 10.13  Distrib 5.7.36, for Linux (x86_64)
+-- MySQL dump 10.19  Distrib 10.3.32-MariaDB, for debian-linux-gnu (x86_64)
 --
 -- Host: localhost    Database: kungfuchess
 -- ------------------------------------------------------
--- Server version	5.7.36-0ubuntu0.18.04.1
+-- Server version	10.3.32-MariaDB-0ubuntu0.20.04.1
 
 /*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
 /*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
 /*!40101 SET @OLD_COLLATION_CONNECTION=@@COLLATION_CONNECTION */;
-/*!40101 SET NAMES utf8 */;
+/*!40101 SET NAMES utf8mb4 */;
 /*!40103 SET @OLD_TIME_ZONE=@@TIME_ZONE */;
 /*!40103 SET TIME_ZONE='+00:00' */;
 /*!40014 SET @OLD_UNIQUE_CHECKS=@@UNIQUE_CHECKS, UNIQUE_CHECKS=0 */;
@@ -30,7 +30,7 @@ CREATE TABLE `chat_log` (
   `player_color` varchar(45) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `post_time` datetime NOT NULL,
   PRIMARY KEY (`chat_log_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=3910 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=37431 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -47,7 +47,7 @@ CREATE TABLE `forum_comment` (
   `player_id` int(11) NOT NULL,
   `post_time` datetime NOT NULL,
   PRIMARY KEY (`forum_comment_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+) ENGINE=InnoDB AUTO_INCREMENT=8 DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -87,10 +87,14 @@ CREATE TABLE `game_log` (
   `result` enum('win','draw','loss') NOT NULL,
   `rating_before` int(11) DEFAULT NULL,
   `rating_after` int(11) DEFAULT NULL,
-  `rated` tinyint(4) NOT NULL DEFAULT '1',
-  `time_ended` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  PRIMARY KEY (`game_log_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=6433 DEFAULT CHARSET=latin1;
+  `rated` tinyint(4) NOT NULL DEFAULT 1,
+  `time_ended` timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`game_log_id`),
+  KEY `player_id_idx` (`player_id`),
+  KEY `opponent_id_idx` (`opponent_id`),
+  KEY `gameChatIdx` (`game_id`),
+  KEY `playerChatIdx` (`player_id`)
+) ENGINE=InnoDB AUTO_INCREMENT=137 DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -104,7 +108,7 @@ CREATE TABLE `games` (
   `game_id` int(11) NOT NULL AUTO_INCREMENT,
   `game_speed` enum('standard','lightning') NOT NULL DEFAULT 'standard',
   `game_type` enum('2way','4way') NOT NULL DEFAULT '2way',
-  `time_created` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `time_created` timestamp NOT NULL DEFAULT current_timestamp(),
   `time_ended` datetime DEFAULT NULL,
   `white_player` int(11) DEFAULT NULL,
   `black_player` int(11) DEFAULT NULL,
@@ -117,22 +121,22 @@ CREATE TABLE `games` (
   `result` varchar(80) DEFAULT NULL,
   `score` varchar(40) DEFAULT NULL,
   `status` enum('waiting to begin','active','finished') NOT NULL DEFAULT 'waiting to begin',
-  `rated` tinyint(4) DEFAULT '1',
+  `rated` tinyint(4) DEFAULT 1,
   `white_anon_key` varchar(90) DEFAULT NULL,
   `black_anon_key` varchar(90) DEFAULT NULL,
   `red_anon_key` varchar(90) DEFAULT NULL,
   `green_anon_key` varchar(90) DEFAULT NULL,
-  `final_position` text,
-  `game_log` mediumtext,
+  `final_position` text DEFAULT NULL,
+  `game_log` mediumtext DEFAULT NULL,
   `ws_server` varchar(255) DEFAULT NULL,
   `server_auth_key` varchar(90) DEFAULT NULL,
   `speed_advantage` varchar(40) DEFAULT NULL,
+  `piece_speed` decimal(4,2) NOT NULL DEFAULT 1.00,
+  `piece_recharge` decimal(4,2) NOT NULL DEFAULT 1.00,
   `teams` varchar(20) DEFAULT NULL,
-  `piece_recharge` decimal(4,2) NOT NULL DEFAULT '1.00',
-  `piece_speed` decimal(4,2) NOT NULL DEFAULT '1.00',
   PRIMARY KEY (`game_id`),
   KEY `game_auth_idx` (`server_auth_key`)
-) ENGINE=InnoDB AUTO_INCREMENT=34618 DEFAULT CHARSET=latin1;
+) ENGINE=InnoDB AUTO_INCREMENT=100 DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
 ALTER DATABASE `kungfuchess` CHARACTER SET latin1 COLLATE latin1_swedish_ci ;
 /*!50003 SET @saved_cs_client      = @@character_set_client */ ;
@@ -204,38 +208,40 @@ CREATE TABLE `players` (
   `screenname` varchar(30) NOT NULL,
   `password` varchar(255) DEFAULT NULL,
   `email` varchar(255) DEFAULT NULL,
-  `rating_standard` int(11) NOT NULL DEFAULT '1600',
-  `rating_lightning` int(11) NOT NULL DEFAULT '1600',
-  `rating_standard_4way` int(11) NOT NULL DEFAULT '1600',
-  `rating_lightning_4way` int(11) NOT NULL DEFAULT '1600',
-  `games_played_standard` int(11) NOT NULL DEFAULT '0',
-  `games_played_lightning` int(11) NOT NULL DEFAULT '0',
-  `games_played_standard_4way` int(11) NOT NULL DEFAULT '0',
-  `games_played_lightning_4way` int(11) NOT NULL DEFAULT '0',
-  `games_won_standard` int(11) NOT NULL DEFAULT '0',
-  `games_won_lightning` int(11) NOT NULL DEFAULT '0',
-  `games_won_standard_4way` int(11) NOT NULL DEFAULT '0',
-  `games_won_lightning_4way` int(11) NOT NULL DEFAULT '0',
-  `games_drawn_standard` int(11) NOT NULL DEFAULT '0',
-  `games_drawn_lightning` int(11) NOT NULL DEFAULT '0',
-  `games_drawn_standard_4way` int(11) NOT NULL DEFAULT '0',
-  `games_drawn_lightning_4way` int(11) NOT NULL DEFAULT '0',
-  `games_lost_standard` int(11) NOT NULL DEFAULT '0',
-  `games_lost_lightning` int(11) NOT NULL DEFAULT '0',
-  `games_lost_standard_4way` int(11) NOT NULL DEFAULT '0',
-  `games_lost_lightning_4way` int(11) NOT NULL DEFAULT '0',
-  `date_created` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `rating_standard` int(11) NOT NULL DEFAULT 1600,
+  `rating_lightning` int(11) NOT NULL DEFAULT 1600,
+  `rating_standard_4way` int(11) NOT NULL DEFAULT 1600,
+  `rating_lightning_4way` int(11) NOT NULL DEFAULT 1600,
+  `games_played_standard` int(11) NOT NULL DEFAULT 0,
+  `games_played_lightning` int(11) NOT NULL DEFAULT 0,
+  `games_played_standard_4way` int(11) NOT NULL DEFAULT 0,
+  `games_played_lightning_4way` int(11) NOT NULL DEFAULT 0,
+  `games_won_standard` int(11) NOT NULL DEFAULT 0,
+  `games_won_lightning` int(11) NOT NULL DEFAULT 0,
+  `games_won_standard_4way` int(11) NOT NULL DEFAULT 0,
+  `games_won_lightning_4way` int(11) NOT NULL DEFAULT 0,
+  `games_drawn_standard` int(11) NOT NULL DEFAULT 0,
+  `games_drawn_lightning` int(11) NOT NULL DEFAULT 0,
+  `games_drawn_standard_4way` int(11) NOT NULL DEFAULT 0,
+  `games_drawn_lightning_4way` int(11) NOT NULL DEFAULT 0,
+  `games_lost_standard` int(11) NOT NULL DEFAULT 0,
+  `games_lost_lightning` int(11) NOT NULL DEFAULT 0,
+  `games_lost_standard_4way` int(11) NOT NULL DEFAULT 0,
+  `games_lost_lightning_4way` int(11) NOT NULL DEFAULT 0,
+  `date_created` timestamp NOT NULL DEFAULT current_timestamp(),
   `last_login` timestamp NOT NULL DEFAULT '1970-01-01 05:00:00',
   `last_seen` timestamp NOT NULL DEFAULT '1970-01-01 05:00:00',
   `auth_token` varchar(255) DEFAULT NULL,
-  `default_minimum_rating` int(11) DEFAULT '-200',
-  `default_maximum_rating` int(11) DEFAULT '200',
+  `default_minimum_rating` int(11) DEFAULT -200,
+  `default_maximum_rating` int(11) DEFAULT 200,
   `show_chat` enum('public','players','none') NOT NULL DEFAULT 'public',
-  `speed_advantage` varchar(40) DEFAULT NULL,
+  `chat_sounds` tinyint(4) NOT NULL DEFAULT 0,
+  `game_sounds` tinyint(4) NOT NULL DEFAULT 0,
+  `music_sounds` tinyint(4) NOT NULL DEFAULT 0,
   `ip_address` varchar(50) DEFAULT NULL,
   PRIMARY KEY (`player_id`),
   UNIQUE KEY `screenname` (`screenname`)
-) ENGINE=InnoDB AUTO_INCREMENT=1121 DEFAULT CHARSET=latin1;
+) ENGINE=InnoDB AUTO_INCREMENT=3386 DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -247,21 +253,21 @@ DROP TABLE IF EXISTS `pool`;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `pool` (
   `player_id` int(11) NOT NULL,
-  `rated` tinyint(4) NOT NULL DEFAULT '1',
-  `entered_pool` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `rated` tinyint(4) NOT NULL DEFAULT 1,
+  `entered_pool` timestamp NOT NULL DEFAULT current_timestamp(),
   `last_ping` timestamp NOT NULL DEFAULT '1970-01-01 05:00:00',
   `matched_game` int(11) DEFAULT NULL,
-  `in_matching_pool` tinyint(4) NOT NULL DEFAULT '1',
-  `open_to_public` tinyint(4) NOT NULL DEFAULT '1',
+  `in_matching_pool` tinyint(4) NOT NULL DEFAULT 1,
+  `open_to_public` tinyint(4) NOT NULL DEFAULT 1,
   `private_game_key` varchar(255) DEFAULT NULL,
   `game_speed` enum('standard','lightning') NOT NULL DEFAULT 'standard',
   `game_type` enum('2way','4way') NOT NULL DEFAULT '2way',
   `challenge_player_id` int(11) DEFAULT NULL,
-  `challenge_player_2_id` int(11) DEFAULT NULL,
-  `challenge_player_3_id` int(11) DEFAULT NULL,
-  `average_rating` int(11) DEFAULT '1400',
-  `piece_speed` decimal(4,2) NOT NULL DEFAULT '1.00',
-  `piece_recharge` decimal(4,2) NOT NULL DEFAULT '10.00'
+  `matched_player_id` int(11) DEFAULT NULL,
+  `matched_player_2_id` int(11) DEFAULT NULL,
+  `matched_player_3_id` int(11) DEFAULT NULL,
+  `piece_speed` decimal(4,2) NOT NULL DEFAULT 1.00,
+  `piece_recharge` decimal(4,2) NOT NULL DEFAULT 10.00
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -274,7 +280,7 @@ DROP TABLE IF EXISTS `session`;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `session` (
   `sid` varchar(40) NOT NULL,
-  `data` text,
+  `data` text DEFAULT NULL,
   `expires` int(10) unsigned NOT NULL,
   PRIMARY KEY (`sid`),
   UNIQUE KEY `sid` (`sid`)
@@ -290,4 +296,4 @@ CREATE TABLE `session` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2021-11-19 22:19:39
+-- Dump completed on 2022-02-13 21:24:54
