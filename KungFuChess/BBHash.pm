@@ -70,6 +70,15 @@ our %bitboardToSquare = (
     '64' => 'g1',
     '128' => 'h1',
 );
+use constant ({
+    ### array of a move for AI
+    MOVE_FR         => 0,
+    MOVE_TO         => 1,
+    MOVE_SCORE      => 2,
+    MOVE_DISTANCE   => 3, 
+    MOVE_NEXT_MOVES => 4,
+    MOVE_ATTACKS    => 5,
+});
 
 sub getSquareFromBB {
     return $bitboardToSquare{$_[0]};
@@ -97,8 +106,8 @@ sub displayBestMoves {
 sub displayMovesArray {
     my $suggestedMoves = shift;
     foreach my $move (@$suggestedMoves) {
-        print getSquareFromBB($move->[0]) . getSquareFromBB($move->[1]);
-        print "($move->[4])\n";
+        print getSquareFromBB($move->[MOVE_FR]) . getSquareFromBB($move->[MOVE_TO]);
+        print ", scr: " . $move->[MOVE_SCORE] . "\n";
     }
 
     #foreach my $move (@$moves) {
@@ -127,16 +136,17 @@ sub displayMoves {
     my $ponder = shift;
     my $indent = shift;
     my $filter = shift;
+    my $depth = shift // 0;
     $ponder = $ponder ? $ponder : '';
     $indent = $indent ? $indent : '';
 
     foreach my $move (@{$moves->[$color]}) {
         #print $k;
-        my $moveS = getSquareFromBB($move->[0]) . getSquareFromBB($move->[1]);
+        my $moveS = getSquareFromBB($move->[MOVE_FR]) . getSquareFromBB($move->[MOVE_TO]);
         if (! $filter || ($moveS =~ m/^$filter/)) {
             print $indent;
             print $moveS;
-            my $mScore = $move->[4];
+            my $mScore = $move->[MOVE_SCORE];
             if ($mScore) {
                 print ($mScore > $score ? " * " : "   ") ;
                 print  $mScore;
@@ -146,16 +156,20 @@ sub displayMoves {
             print "\n";
             if (($moveS eq $ponder) || $ponder eq 'all') {
                 displayMoves(
-                    $move->[5],
-                    $color == 2 ? 1 : 2,
+                    $move->[MOVE_NEXT_MOVES],
+                    #$color == 2 ? ($depth % 2 ? 1 : 2) : ($depth % 2 ? 2 : 1),
+                    $color == 2 ? (0 ? 1 : 2) : (0 ? 2 : 1),
                     $mScore,
-                    '',
-                    ' x '
+                    #$depth < 10 ? 'all' : '',
+                    'all',
+                    ' x ' x ($depth + 2),
+                    $filter,
+                    $depth+1
                 );
             }
             if (($move eq $ponder) || $ponder eq 'all') {
                 displayMoves(
-                    $move->[5],
+                    $move->[MOVE_NEXT_MOVES],
                     $color,
                     $mScore,
                     '',
@@ -163,6 +177,7 @@ sub displayMoves {
                 );
             }
         }
+        #last;
     }
 }
 

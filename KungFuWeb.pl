@@ -1691,6 +1691,7 @@ websocket '/ws' => sub {
                 };
                 connectionBroadcast($self, $retNotReady);
             }
+            $gameConnections{$msg->{gameId}}->{$connId} = $self;
             return 0;
         }
 
@@ -1958,6 +1959,10 @@ websocket '/ws' => sub {
                 $msg->{'color'} = $color;
                 $game->playerBroadcast($msg);
             };
+        } elsif ($msg->{'c'} eq 'cancelPremove'){
+            my $color = $game->authMove($msg);
+            $msg->{'color'} = $color;
+            $game->serverBroadcast($msg);
         } elsif ($msg->{'c'} eq 'move'){
             app->log->debug('moving, ready to auth');
             return 0 if (!$game->gameBegan());
@@ -1990,6 +1995,11 @@ websocket '/ws' => sub {
             if (! gameauth($msg) ){ return 0; }
             # pass the move request to the server
             $msg->{'c'} = 'suspend';
+            $game->playerBroadcast($msg);
+        } elsif ($msg->{'c'} eq 'authcancelpremove'){
+            if (! gameauth($msg) ){ return 0; }
+            # pass the move request to the server
+            $msg->{'c'} = 'cancelPremove';
             $game->playerBroadcast($msg);
         } elsif ($msg->{'c'} eq 'authmovestep'){
             if (! gameauth($msg) ){ return 0; }
@@ -2075,7 +2085,7 @@ websocket '/ws' => sub {
 
             endGame($msg->{gameId}, 'aborted');
         } elsif ($msg->{'c'} eq 'resign'){
-            my $color = $game->authMove($msg);
+            my $color = $game->msg($msg);
             return 0 if (!$color);
 
             $msg->{'color'} = $color;

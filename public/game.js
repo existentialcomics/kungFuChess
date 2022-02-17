@@ -650,6 +650,12 @@ var handleMessage = function(msg) {
                 stopFunction();
             }
         }
+    } else if (msg.c == 'cancelPremove'){ 
+        console.log(msg);
+        var from = getSquareFromBB(msg.fr_bb);
+        var to   = getSquareFromBB(msg.to_bb);
+        var pieceFrom = piecesByBoardPos[from];
+        hidePremoves(pieceFrom);
     } else if (msg.c == 'premove'){ 
         if (msg.color == myColor) {
             var from = getSquareFromBB(msg.fr_bb);
@@ -1083,6 +1089,14 @@ var spawn = function(chr, square) {
                 piece = getPawn(x, y, color);
             } 
             piece.id = maxPieceId++;
+            piece.image.on('click', (e) => {
+                if (e.evt.button === 2) {
+                    var msg = {
+                        'c'  : 'cancelPremove',
+                        'sq' : xToFile[piece.x] + yToRank[piece.y]                    }
+                    sendMsg(msg);
+                }
+            });
             pieceLayer.add(piece.image);
             pieces[piece.id] = piece;
             if (piece.color == myColor || myColor == 'both'){
@@ -1633,6 +1647,10 @@ var setupBoard = function(){
         height: height + 20
     });
 
+    stage.on('contextmenu', (e) => {
+        e.evt.preventDefault();
+    });
+
     for(var i = 0; i < boardSize; i++){
         for(var j = 0; j < boardSize; j++){
             var light = '#b2aca3';
@@ -1722,9 +1740,6 @@ var setupEvents = function(stage) {
 
         var msg = {
             'c'  : 'move',
-            'id' : piece.id,
-            'x'  : boardPos.x,
-            'y'  : boardPos.y,
             'move' : xToFile[piece.x] + yToRank[piece.y] + xToFile[boardPos.x] + yToRank[boardPos.y]
         }
         sendMsg(msg);

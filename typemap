@@ -1,0 +1,14 @@
+TYPEMAP
+Bitboard T_U_LONG_LONG
+uint64_t T_U_LONG_LONG              # equivalent to typedef unsigned long long uint64_t;
+
+INPUT
+T_U_LONG_LONG
+    $var = (unsigned long long)SvUV($arg)
+
+OUTPUT
+T_U_LONG_LONG
+    sv_setuv($arg, (UV)$var);
+
+TYPEMAP
+Square T_UV

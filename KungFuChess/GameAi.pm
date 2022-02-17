@@ -255,11 +255,11 @@ sub _init {
             $self->{ai_skip_best} = 0.0;
         } elsif ($difficulty eq 'human_a') {
             $self->{ai_thinkTime} = 2.0;
-            $self->{ai_depth} = 4;
+            $self->{ai_depth} = 3;
             $self->{ai_simul_moves} = 1;
             $self->{ai_delay} = 300_000; 
-            $self->{ai_min_delay} = 0;
-            $self->{ai_interval} = 500_000;
+            $self->{ai_min_delay} = 150_000;
+            $self->{ai_interval} = 300_000;
             $self->{ai_skip_best} = 0.0;
             $self->{ai_human} = 1;
         } else {
@@ -352,6 +352,7 @@ sub _init {
 		 warn $@;
          exit;
 		}
+        print "connected\n";
 		
         sleep(1);
         # TODO do a proper "repeat until confirmed" like the js does here
@@ -376,6 +377,9 @@ sub _init {
 			my($connection, $message) = @_;
 			my $msg = $message->body;
 			my $msgJSON = decode_json($msg);
+            if ($msgJSON->{c}) {
+
+            }
 			$self->handleMessage($msgJSON, $connection);
 		});
 
@@ -535,8 +539,8 @@ sub handleMessage {
         delete $self->{frozen}->{$msg->{bb}};
         KungFuChess::Bitboards::_removePiece($msg->{bb} + 0);
         KungFuChess::Bitboards::resetAiBoards(1);
-	} elsif ($msg->{c} eq 'playerlost' || $msg->{c} eq 'resign' || $msg->{c} eq 'gameOver'){
-        exit;
+	} elsif ($msg->{c} eq 'playerlost' || $msg->{c} eq 'resign' || $msg->{c} eq 'gameOver' || $msg->{c} eq 'abort'){
+        $self->endGame();
 	} elsif ($msg->{c} eq 'gameBegins'){
         #print "game begins\n";
         $self->{gameStartTime} = time();
@@ -582,8 +586,9 @@ sub handleMessage {
                         'c'     => 'resign'
                     };
                     $self->send($msg);
-                    exit;
+                    $self->endGame();
                 }
+                my $debug = 1;
                 if ($#{$self->{movesQueue}} > -1) {
                         foreach my $move (@{$self->{movesQueue}}) {
                             my ($fr_bb, $to_bb, $fr_rank, $fr_file, $to_rank, $to_file) = KungFuChess::Bitboards::parseMove($move);
@@ -601,20 +606,23 @@ sub handleMessage {
                     # depth, thinkTime
                     my $start = time();
                     my $score = 0;
-                    #my $moves = KungFuChess::Bitboards::aiThink($self->{ai_depth} * 2, $self->{ai_thinkTime});
                     #print "time: $start\n";
-                    my $moves = KungFuChess::Bitboards::aiThink($self->{ai_depth}, $self->{ai_thinkTime}, $self->{color});
+                    my ($aiScore, $moves, $totalMaterial, $attackedBy) = KungFuChess::Bitboards::aiThink($self->{ai_depth}, $self->{ai_thinkTime}, $self->{color});
 
-                    #print "current score: " . KungFuChess::Bitboards::getCurrentScore() . "\n";
-                    #KungFuChess::BBHash::displayMoves($moves, $self->{color}, 0, undef, undef, undef);
+                    if ($debug) {
+                        print "current score: " . KungFuChess::Bitboards::getCurrentScore() . "\n";
+                        KungFuChess::BBHash::displayMoves($moves, $self->{color}, 0, undef, undef, undef);
+                    }
 
                     my $suggestedMoves = KungFuChess::Bitboards::aiRecommendMoves($self->{color}, $self->{ai_simul_moves});
 
                     my $fr_moves = {};
                     my $to_moves = {};
-                    #print KungFuChess::Bitboards::pretty_ai();
-                    #print KungFuChess::Bitboards::prettyFrozen();
-                    #print KungFuChess::Bitboards::getFENstring();
+                    if ($debug) {
+                        print KungFuChess::Bitboards::pretty_ai();
+                        #print KungFuChess::Bitboards::prettyFrozen();
+                        print KungFuChess::Bitboards::getFENstring();
+                    }
 
                     ### this is for testing, there is no reason to resign lost positions for the real AI
                     if ($self->{ai_human}) {
@@ -626,7 +634,7 @@ sub handleMessage {
                                     'c'     => 'resign'
                                 };
                                 $self->send($msg);
-                                exit;
+                                $self->endGame();
                             }
                         } else {
                             $self->{resignCount} = 0;
@@ -634,10 +642,17 @@ sub handleMessage {
                     }
 
                     foreach my $move (@$suggestedMoves) {
-                        #print "moving...";
-                        #print KungFuChess::BBHash::getSquareFromBB($move->[0]);
-                        #print KungFuChess::BBHash::getSquareFromBB($move->[1]);
-                        #print "\n";
+                        if ($debug) {
+                            print "moving...";
+                            print KungFuChess::BBHash::getSquareFromBB($move->[0]);
+                            print KungFuChess::BBHash::getSquareFromBB($move->[1]);
+                            print "\n";
+                        }
+
+                        # no suggested moves, everything is probably frozen
+                        if (! defined($move->[0])) {
+                            last;
+                        }
                         ### skip frozen pieces or it will premove
                         if (defined($self->{timeoutSquares}->{$move->[0]})) {
                             last;
@@ -666,7 +681,7 @@ sub handleMessage {
                     foreach my $induced_fr (@{$self->{inducedMoves}}) {
                         $self->{lastMoved} = time();
                         $induced_fr += 0;
-                        my ($best_to, $score) = KungFuChess::Bitboards::recommendMoveForBB($induced_fr, $self->{color});
+                        my ($best_to, $score) = KungFuChess::Bitboards::recommendMoveForBB($induced_fr, $self->{color}, $attackedBy);
                         if ($best_to) {
                             my $msg = {
                                 'fr_bb' => $induced_fr,
@@ -707,8 +722,17 @@ sub checkForForceDraw {
 sub endGame {
     my $self = shift;
 
-    if ($self->{stockfishPid}) { system("kill $self->{stockfishPid}"); }
-    exit;
+    if ($self->{is_human}) {
+        sleep(rand(5));
+        my $dataPost = {
+            'uid' => $self->{anonKey},
+            'gameId' => $self->{gameId},
+            'c' => 'rematch',
+        };
+    } else {
+        if ($self->{stockfishPid}) { system("kill $self->{stockfishPid}"); }
+        exit;
+    }
 }
 
 sub send {

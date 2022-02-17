@@ -239,6 +239,19 @@ sub handleMessage {
 
     if ($msg->{c} eq 'join'){
         $self->sendAllGamePieces($msg->{connId});
+    } elsif ($msg->{c} eq 'cancelPremove'){
+        my $bb = KungFuChess::Bitboards::parseSquare($msg->{sq});
+        if ($self->{timeoutSquares}->{$bb} && $self->{timeoutSquares}->{$bb}->{'color'}) {
+            if ($msg->{color} eq $self->{timeoutSquares}->{$bb}->{'color'}) {
+                $msg->{fr_bb} = $self->{timeoutSquares}->{$bb}->{'fr_bb'};
+                $msg->{to_bb} = $self->{timeoutSquares}->{$bb}->{'to_bb'};
+                delete $self->{timeoutSquares}->{$bb}->{'fr_bb'};
+                delete $self->{timeoutSquares}->{$bb}->{'to_bb'};
+                delete $self->{timeoutSquares}->{$bb}->{'color'};
+                $msg->{c} = 'authcancelpremove';
+                $self->send($msg);
+            }
+        }
     } elsif ($msg->{c} eq 'move'){
         if ($msg->{move}) {
             $self->moveIfLegal($msg->{color}, $msg->{move});
