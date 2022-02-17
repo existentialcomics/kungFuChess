@@ -2085,7 +2085,7 @@ websocket '/ws' => sub {
 
             endGame($msg->{gameId}, 'aborted');
         } elsif ($msg->{'c'} eq 'resign'){
-            my $color = $game->msg($msg);
+            my $color = $game->authMove($msg);
             return 0 if (!$color);
 
             $msg->{'color'} = $color;
