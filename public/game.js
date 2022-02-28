@@ -604,7 +604,6 @@ var handleMessage = function(msg) {
         if (! msg.hasOwnProperty('bb')) {
             msg.bb_square = getSquareFromBB(msg.bb);
         }
-        //console.log(msg);
     }
     if (msg.c == 'move'){  // called when a piece changes positions (many times in one "move")
         var from = getSquareFromBB(msg.fr_bb);
@@ -1609,21 +1608,16 @@ var getPiece = function(x, y, color, image){
             heightBuffer = 0;
         }
 
-        //piece.delayRect = new Konva.Rect({
-            //x: getX(piece.x * width / boardSize, piece.y * width / boardSize),
-            //y: getY(piece.x * width / boardSize, piece.y * width / boardSize) + heightBuffer,
-            //width: width / boardSize,
-            //height: (height / boardSize) * (startRatio),
-            //fill: '#d7c31d',
-            //opacity: 0.5
-        //});
-        //delayLayer.add(piece.delayRect);
+        var abs_x = getXCoordinate(piece.x, piece.y);
+        var abs_y = getYCoordinate(piece.x, piece.y);
         
-        delays["" + piece.x + "" + piece.y].opacity(0.5);
-        delays["" + piece.x + "" + piece.y].height((height / boardSize) * (startRatio));
-        delays["" + piece.x + "" + piece.y].y(getY(piece.x * width / boardSize, piece.y * width / boardSize) + heightBuffer);
+        var delayKey = "" + piece.x + "" + piece.y;
+        delays[delayKey].opacity(0.5);
+        delays[delayKey].height((height / boardSize) * (startRatio));
+        delays[delayKey].x(getX(piece.x * width / boardSize, piece.y * width / boardSize));
+        delays[delayKey].y(getY(piece.x * width / boardSize, piece.y * width / boardSize) + heightBuffer);
         piece.tween = new Konva.Tween({
-            node: delays["" + piece.x + "" + piece.y],
+            node: delays[delayKey],
             // TIMER
             duration: timeToDelay,
             height: 0,

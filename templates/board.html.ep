@@ -223,7 +223,7 @@
 </script>
 
 <script src="/pieces/pieces.js"></script>
-<script src="/game.js?cache=2022-02-27"></script>
+<script src="/game.js?cache=2022-02-28"></script>
 
 <script>
 $('input[type=radio]').on('change', function() {
