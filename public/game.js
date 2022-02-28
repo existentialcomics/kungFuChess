@@ -507,11 +507,13 @@ var bindGameEvents = function(ws_conn) {
     };
 };
 var conn = new WebSocket(wsProtocol + "://" + wsGameDomain + "/ws");
-bindGameEvents(conn);
+if (isActiveGame) {
+    bindGameEvents(conn);
+}
 
 var game_reconnectInterval;
 var game_reconnectMain = function() {
-    if (isConnectedGame == false) {
+    if (isConnectedGame == false && isActiveGame) {
         $("#connectionStatus").html("Reconnecting...");
         conn = null;
         conn = new WebSocket(wsProtocol + "://" + wsDomain + "/ws");
@@ -587,10 +589,12 @@ var getPieceSquare = function(piece) {
 }
 
 var premoves = [];
+var delays   = [];
 
 var debug = false;
 var handleMessage = function(msg) {
     if (msg.c != 'ping' && debug == true) {
+        console.log(msg);
         if (msg.hasOwnProperty('fr_bb')) {
             msg.fr_square = getSquareFromBB(msg.fr_bb);
         }
@@ -600,7 +604,7 @@ var handleMessage = function(msg) {
         if (! msg.hasOwnProperty('bb')) {
             msg.bb_square = getSquareFromBB(msg.bb);
         }
-        console.log(msg);
+        //console.log(msg);
     }
     if (msg.c == 'move'){  // called when a piece changes positions (many times in one "move")
         var from = getSquareFromBB(msg.fr_bb);
@@ -651,7 +655,6 @@ var handleMessage = function(msg) {
             }
         }
     } else if (msg.c == 'cancelPremove'){ 
-        console.log(msg);
         var from = getSquareFromBB(msg.fr_bb);
         var to   = getSquareFromBB(msg.to_bb);
         var pieceFrom = piecesByBoardPos[from];
@@ -1109,13 +1112,20 @@ var spawn = function(chr, square) {
         }
 }
 
-var clearBoard = function() {
+var clearBoard = function(clearPremoves = false, clearDelays = false) {
     for(id in pieces){
 		pieces[id].image.destroy();
     }
     pieces = [];
     piecesByBoardPos = {};
     pieceLayer.draw();
+
+    Object.keys(premoves).forEach(function (key) {
+        premoves[key].opacity(0.0);
+    })
+    Object.keys(delays).forEach(function (key) {
+        delays[key].opacity(0.0);
+    })
 }
 
 conn.onmessage = function(evt) {
@@ -1432,7 +1442,6 @@ var getKnight = function(x, y, color){
     return piece;
 }
 
-
 // piece that is inheritted from
 var getPiece = function(x, y, color, image){
     var piece = {};
@@ -1444,6 +1453,7 @@ var getPiece = function(x, y, color, image){
     piece.isMoving  = false;
     piece.firstMove = true;
 
+    // TODO need to redraw premoves and piece delays here
     piece.refreshImage = function() {
         piece.image = getPieceImage(piece.x, piece.y, piece.rawImage);
         if (piece.color == myColor || myColor == 'both'){
@@ -1454,25 +1464,28 @@ var getPiece = function(x, y, color, image){
         pieceLayer.add(piece.image);
     }
     
-    if (color == 'white') {
-        piece.timerSpeed = timerSpeedWhite;
-    } else if (color == 'black') {
-        piece.timerSpeed = timerSpeedBlack;
-    } else if (color == 'red') {
-        piece.timerSpeed = timerSpeedRed;
-    } else if (color == 'green') {
-        piece.timerSpeed = timerSpeedGreen;
+    piece.setPieceSpeed = function() {
+        if (color == 'white') {
+            piece.timerSpeed = timerSpeedWhite;
+        } else if (color == 'black') {
+            piece.timerSpeed = timerSpeedBlack;
+        } else if (color == 'red') {
+            piece.timerSpeed = timerSpeedRed;
+        } else if (color == 'green') {
+            piece.timerSpeed = timerSpeedGreen;
+        }
+        
+        if (color == 'white') {
+            piece.timerRecharge = timerRechargeWhite;
+        } else if (color == 'black') {
+            piece.timerRecharge = timerRechargeBlack;
+        } else if (color == 'red') {
+            piece.timerRecharge = timerRechargeRed;
+        } else if (color == 'green') {
+            piece.timerRecharge = timerRechargeGreen;
+        }
     }
-    
-    if (color == 'white') {
-        piece.timerRecharge = timerRechargeWhite;
-    } else if (color == 'black') {
-        piece.timerRecharge = timerRechargeBlack;
-    } else if (color == 'red') {
-        piece.timerRecharge = timerRechargeRed;
-    } else if (color == 'green') {
-        piece.timerRecharge = timerRechargeGreen;
-    }
+    piece.setPieceSpeed();
 
     piece.image_id = piece.image._id;
     piecesByImageId[piece.image_id] = piece;
@@ -1596,18 +1609,21 @@ var getPiece = function(x, y, color, image){
             heightBuffer = 0;
         }
 
-        piece.delayRect = new Konva.Rect({
-            x: getX(piece.x * width / boardSize, piece.y * width / boardSize),
-            y: getY(piece.x * width / boardSize, piece.y * width / boardSize) + heightBuffer,
-            width: width / boardSize,
-            height: (height / boardSize) * (startRatio),
-            fill: '#d7c31d',
-            opacity: 0.5
-        });
-        delayLayer.add(piece.delayRect);
-
+        //piece.delayRect = new Konva.Rect({
+            //x: getX(piece.x * width / boardSize, piece.y * width / boardSize),
+            //y: getY(piece.x * width / boardSize, piece.y * width / boardSize) + heightBuffer,
+            //width: width / boardSize,
+            //height: (height / boardSize) * (startRatio),
+            //fill: '#d7c31d',
+            //opacity: 0.5
+        //});
+        //delayLayer.add(piece.delayRect);
+        
+        delays["" + piece.x + "" + piece.y].opacity(0.5);
+        delays["" + piece.x + "" + piece.y].height((height / boardSize) * (startRatio));
+        delays["" + piece.x + "" + piece.y].y(getY(piece.x * width / boardSize, piece.y * width / boardSize) + heightBuffer);
         piece.tween = new Konva.Tween({
-            node: piece.delayRect,
+            node: delays["" + piece.x + "" + piece.y],
             // TIMER
             duration: timeToDelay,
             height: 0,
@@ -1669,6 +1685,17 @@ var setupBoard = function(){
               fill: color,
             });
             boardLayer.add(rect);
+
+            var delayRect = new Konva.Rect({
+              x: i * (width / boardSize),
+              y: j * (width / boardSize),
+              width: width / boardSize,
+              height: height / boardSize,
+              fill: '#d7c31d',
+              opacity: 0.0
+            });
+            delays["" + i + "" + j] = delayRect;
+            delayLayer.add(delayRect);
 
             var premoveRect = new Konva.Rect({
               x: i * (width / boardSize),
@@ -1797,6 +1824,13 @@ function addGameMessage(author, message, usercolor, textcolor, dt, authColor) {
 
 //$(document).ready(function () {
 $(function () {
+    $("#progressBar").click(function(e) {
+        var width = $(this).width();
+        var rect = e.target.getBoundingClientRect();
+        var x = e.clientX - rect.left; //x position within the element.
+
+        replayGame(1, 0, x / width);
+    });
     var dt = new Date();
 
     sweepAudio = new Audio('/sound/Sweep Kick-SoundBible.com-808409893.mp3');
@@ -1837,9 +1871,7 @@ $(function () {
 	var orig_timerRechargeRed   = timerRechargeRed;
 	var orig_timerRechargeGreen = timerRechargeGreen;
 
-    var replayGame = function(speed = 1) {
-        replayMode = true;
-
+    var setGameSpeed = function(speed) {
         speedAdvantage  = orig_speedAdvantage * speed;
         timerSpeed      = orig_timerSpeed * speed;
         timerRecharge   = orig_timerRecharge * speed;
@@ -1851,6 +1883,16 @@ $(function () {
         timerRechargeBlack = orig_timerRechargeBlack * speed;
         timerRechargeRed   = orig_timerRechargeRed * speed;
         timerRechargeGreen = orig_timerRechargeGreen * speed;
+
+        for(id in pieces){
+            pieces[id].setPieceSpeed();
+        }
+    }
+
+    var replayGame = function(speed = 1, jumpTo = 0, jumpToPercent = 0) {
+        replayMode = true;
+
+        setGameSpeed(speed);
 
         clearBoard();
 
@@ -1878,23 +1920,61 @@ $(function () {
                 }
             }
         });
+        // get the game length and possibly breakpoints of spawn groups
+        var gameLength = 0;
+        gameLog.forEach(function (logMsg) {
+            if (logMsg.msg.c == 'gameBegins') {
+                startTime = logMsg.time + 3;
+            } else {
+                // sort of dumb to loop through them all but the last msg will set this finally
+                gameLength = logMsg.time - startTime;
+            }
+        });
+
+        if (jumpToPercent) {
+            jumpTo = (gameLength * jumpToPercent);
+        }
+
+        var gameTimeElapsed = 0;      // in game with nothing altered
+        var realTimeElapsed = 0;      // time if sped up / slowed down
+        var hasJumped = false;
+
+        var lastMsgTime = 0;
+        var hasStartedDelayedMsgs = false;
         gameLog.forEach(function (logMsg) {
             if (logMsg.msg.c == 'gameBegins') {
                 startTime = logMsg.time + 3;
                 gameStart = true;
             } else {
                 var msgTimeout = 0;
+                var timeSinceLast = (logMsg.time - lastMsgTime);
+                realTimeElapsed += (timeSinceLast * speed);
                 if (logMsg.msg.c != 'spawn' && logMsg.msg.c != 'playerReady') {
-                    msgTimeout = (logMsg.time - startTime) * 1000 * speed;
-                    setTimeout(
-                        function() {
-                            handleMessage(logMsg.msg);
-                        },
-                        msgTimeout
-                    );
+                    if (jumpTo > 0 && realTimeElapsed < jumpTo) {
+                        handleMessage(logMsg.msg);
+                        setGameSpeed(0.0001);
+                    } else {
+                        if (! hasStartedDelayedMsgs) {
+                            //startTime = lastMsgTime;
+                            setGameSpeed(speed);
+                            hasStartedDelayedMsgs = true;
+
+                        }
+                        msgTimeout = (logMsg.time - startTime);
+                        msgTimeout *= speed;
+
+                        setTimeout(
+                            function() {
+                                handleMessage(logMsg.msg);
+                            },
+                            msgTimeout * 1000
+                        );
+                    }
                 }
             }
+            lastMsgTime = logMsg.time;
         });
+        progress(gameLength - jumpTo, gameLength, $("#progressBar"));
 
     };
     $("#replayGameFast").click(function() {
@@ -1926,3 +2006,60 @@ $(function () {
         }
     });
 });
+
+function progress(timeleft, timetotal, $element) {
+    var progressBarWidth = $element.width() - (timeleft * $element.width() / timetotal);
+    if (timeleft < 0) {
+        timeleft = 0;
+    }
+
+    var timeHtml = "";
+    if (Math.floor(timeleft/60) > 0) {
+        timeHtml = Math.floor(timeleft/60).toString().padStart(2, '0') + ":"+ Math.floor(timeleft % 60).toString().padStart(2, '0');
+    } else if ((timeleft/60) > 10) {
+        timeHtml = Math.floor(timeleft % 60).toString().padStart(2, '0');
+    } else if (timeleft > 0) {
+        timeHtml = Math.floor(timeleft % 60);
+    }
+    
+    $element.find('div').animate(
+        { width: progressBarWidth }
+        , 500
+    ).html(timeHtml);
+    if(timeleft > 0) {
+        setTimeout(function() {
+            progress(timeleft - 1, timetotal, $element);
+        }, 1000);
+    }
+};
+
+/*
+ *  Creates a progressbar.
+ *  @param id the id of the div we want to transform in a progressbar
+ *  @param duration the duration of the timer example: '10s'
+ *  @param callback, optional function which is called when the progressbar reaches 0.
+ */
+function createProgressbar(id, duration, callback) {
+  // We select the div that we want to turn into a progressbar
+  var progressbar = document.getElementById(id);
+  progressbar.className = 'progressbar';
+
+  // We create the div that changes width to show progress
+  var progressbarinner = document.createElement('div');
+  progressbarinner.className = 'inner';
+
+  // Now we set the animation parameters
+  progressbarinner.style["animation-duration"]  = duration + "s";
+
+  // Eventually couple a callback
+  if (typeof(callback) === 'function') {
+    progressbarinner.addEventListener('animationend', callback);
+  }
+
+  // Append the progressbar to the main progressbardiv
+  $("#" + id).empty();
+  progressbar.appendChild(progressbarinner);
+
+  // When everything is set up we start the animation
+  progressbarinner.style.animationPlayState = 'running';
+}

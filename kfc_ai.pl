@@ -79,132 +79,87 @@ $mech->submit_form(
     #button    => 'Search Now'
 );
 
+my $mode = 'searchForGame';
 my $gameId = undef;;
-while() {
-    $mech->get($domain);
 
-    my $authToken;
-    if ($mech->content() =~ m/var userAuthToken = "(.+?)"/){ 
-        $authToken = $1;
-    };
-    print "authToken: $authToken\n";
+$mech->get($domain);
 
+my $authToken;
+if ($mech->content() =~ m/var userAuthToken = "(.+?)"/){ 
+    $authToken = $1;
+};
+print "authToken: $authToken\n";
 
-    my $uid = '';
-    if (! defined($gameId)) {
-        while () {
-            sleep 2;
+my $uid = '';
+my $wsdomain = '';
+my $color;
+my $aiInterval = AnyEvent->timer(
+    after => 3,
+    interval => 3,
+    cb => sub {
+        if ($mode eq 'searchForGame') {
             #$mech->get('/activePlayers?ratingType=standard');
-            $mech->get('/ajax/pool/' . $speed . '/2way?uuid=' . $uid);
-            if ($mech->content() =~ m/"uid":"(.+?)"/) {
-                $uid = $1;
-            }
-            if ($mech->content() =~ m/"gameId":"?(\d+)"?/) {
-                $gameId = $1;
-                last;
-            }
-        }
-    }
-
-    print "getting GAME $gameId\n";
-    $mech->get('/game/' . $gameId);
-    if ($mech->content() =~ m/var userAuthToken = "(.+?)"/){ 
-        $authToken = $1;
-    };
-
-    my $color = 1;
-
-    if ($mech->content() =~ m/var myColor\s+=\s*"black"/) {
-        $color = 2;
-    }
-
-    my $wsdomain; 
-    my $wsconn;
-    # var wsGameDomain = "ws1.kungfuchess.org";
-    if ($mech->content() =~ m/var wsGameDomain\s+=\s*"(.+?)"/) {
-        my $d = $1;
-        if ($d =~ m/localhost|127/) {
-            $wsdomain = "ws://" . $d . "/ws";
-        } else {
-            $wsdomain = "wss://" . $d . "/ws";
-        }
-    }
-	my $client = AnyEvent::WebSocket::Client->new(
-        ssl_no_verify => 1,
-    );
-
-    my $cmdAi = sprintf('/usr/bin/perl ./kungFuChessGame%sAi.pl %s %s %s %s %s %s %s %s >%s 2>%s',
-        '2way',
-        $gameId,
-        $authToken,
-        ($speed eq 'standard' ? 10 : 1),
-        ($speed eq 'standard' ? 10 : 1),
-        '1-1-1-1',
-        $level,
-        $color,
-        $wsdomain,
-        "/var/log/kungfuchess/$gameId-$color-game-ai.log",
-        "/var/log/kungfuchess/$gameId-$color-error-ai.log"
-    );
-
-    print $cmdAi . "\n";
-
-    my $pid;
-    #if ($pid = fork) {
-
-    #} else {
-        system($cmdAi);
-    #}
-
-    my $ae = AnyEvent->condvar;
-    print "connecting to ws server...\n";
-    print "ws: $wsdomain\n";
-    $client->connect($wsdomain)->cb(sub {
-		my $hs = shift;
-		our $connection = eval { $hs->recv };
-        $wsconn = $connection;
-        print "setting wsconn\n";
-		$connection->on(each_message => sub {
-			# $connection is the same connection object
-			# $message isa AnyEvent::WebSocket::Message
-			my($connection, $message) = @_;
-			my $msg = $message->body;
-			my $msgJSON = decode_json($msg);
-            print Dumper($msgJSON);
-            if ($msgJSON->{c} eq 'rematch') {
-                if ($msgJSON->{gameId}) {
-                    $gameId = $msgJSON->{gameId};
-                    print "continue we have $gameId\n";
-                    ### continue the loop
-                    $ae->send;
+            if (! $uid) {
+                $mech->get('/ajax/pool/' . $speed . '/2way');
+                if ($mech->content() =~ m/"uid":"(.+?)"/) {
+                    $uid = $1;
                 }
+            } else {
+                $mech->get('/ajax/openGames?uid=' . $uid);
             }
-		});
-    });
 
-    my $rematchEvent = AnyEvent->timer(
-        after => 2,
-        cb => sub {
-            print "done\n";
-            my $msg = {
-                'c' => 'join',
-            };
-            sendMsg($msg);
-            sleep(1);
-            $msg = {
-                'c' => 'rematch',
-            };
-            print "sending rematch\n";
-            sendMsg($msg);
+            if ($mech->content() =~ m/"(?:gameId|matchedGame)":"?(\d+)"?/) {
+                $gameId = $1;
+                $mode = 'game';
+                print "getting GAME $gameId\n";
+                $mech->get('/game/' . $gameId);
+                if ($mech->content() =~ m/var userAuthToken = "(.+?)"/){ 
+                    $authToken = $1;
+                };
+                my $color = 1;
+                if ($mech->content() =~ m/var myColor\s+=\s*"black"/) {
+                    $color = 2;
+                }
+                if ($mech->content() =~ m/var wsGameDomain\s+=\s*"(.+?)"/) {
+                    my $d = $1;
+                    if ($d =~ m/localhost|127/) {
+                        $wsdomain = "ws://" . $d . "/ws";
+                    } else {
+                        $wsdomain = "wss://" . $d . "/ws";
+                    }
+                }
+                my $cmdAi = sprintf('/usr/bin/perl ./kungFuChessGame%sAi.pl %s %s %s %s %s %s %s %s >%s 2>%s',
+                    '2way',
+                    $gameId,
+                    $authToken,
+                    ($speed eq 'standard' ? 10 : 1),
+                    ($speed eq 'standard' ? 10 : 1),
+                    '1-1-1-1',
+                    $level,
+                    $color,
+                    $wsdomain,
+                    "/var/log/kungfuchess/$gameId-$color-game-ai.log",
+                    "/var/log/kungfuchess/$gameId-$color-error-ai.log"
+                );
+
+                print $cmdAi . "\n";
+                my $pid = system($cmdAi);
+                print "game finished\n";
+                $uid = undef;
+                $mode = 'searchForGame';
+            }
         }
-    );
-
-    sub sendMsg {
-        my $msg = shift;
-        $msg->{auth} = $authToken;
-        $msg->{gameId} = $gameId;
-        $wsconn->send(encode_json $msg);
     }
-	$ae->recv;
-    $ae = undef;
+);
+
+sub sendMsg {
+    my $conn = shift;
+    my $msg = shift;
+    $msg->{auth} = $authToken;
+    $conn->send(encode_json $msg);
 }
+
+
+print "ae->recv\n";
+my $ae = AnyEvent->condvar;
+$ae->recv;

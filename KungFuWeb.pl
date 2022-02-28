@@ -1627,6 +1627,15 @@ websocket '/ws' => sub {
                     connectionBroadcast($self, $return);
                 }
             }
+        } elsif ($msg->{'c'} eq 'revokeRematch'){
+            my $gameId = $msg->{gameId};
+            my ($color, $gameRow, $successAuth) = authGameColor($msg->{auth}, $msg->{uid}, $gameId);
+                delete $rematches{$gameId}->{$color};
+                my $returnMsg = {
+                    'c' => 'revokeRematch',
+                    'color' => $color
+                };
+                gameBroadcast($returnMsg, $gameId);
         } elsif ($msg->{'c'} eq 'rematch'){
             my $gameId = $msg->{gameId};
             my ($color, $gameRow, $successAuth) = authGameColor($msg->{auth}, $msg->{uid}, $gameId);

@@ -110,6 +110,30 @@
                     %= include 'greenPlayer'
                 </div>
             <% } %>
+<style>
+#progressBar {
+  width: 90%;
+  margin: 10px auto;
+  height: 22px;
+  background-color: #0A5F44;
+}
+
+#progressBar div {
+  height: 100%;
+  text-align: right;
+  padding: 0 10px;
+  line-height: 22px; /* same as #progressBar height if we want text middle aligned */
+  width: 0;
+  background-color: #CBEA00;
+  box-sizing: border-box;
+}
+
+</style>
+<% if ($gameStatus eq 'finished') { %>
+    <div id="progressBar">
+      <div class="bar"></div>
+    </div>
+<% } %>
             <div id="gameStatusWaitingToStart" <%== $gameStatus eq 'waiting to begin' ? '' : 'style="display:none;"' %>>
                 <% if ($color ne 'watch') { %>
                 <button type="button" class="btn btn-primary btn-block" id="readyToStart" onclick="readyToStart()">Ready To Start</button>
@@ -155,6 +179,7 @@
 </div>
 
 <script>
+    var isActiveGame = <%== $gameStatus eq 'finished' ? 'false' : 'true' %>;
     var wsGameDomain = "<%= $wsGameDomain %>";
 
     var whitePlayer = JSON.parse('<%== $whitePlayer->getJsonMsg() %>');
@@ -198,7 +223,7 @@
 </script>
 
 <script src="/pieces/pieces.js"></script>
-<script src="/game.js?cache=2022-02-17"></script>
+<script src="/game.js?cache=2022-02-27"></script>
 
 <script>
 $('input[type=radio]').on('change', function() {
