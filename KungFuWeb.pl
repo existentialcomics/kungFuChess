@@ -2896,6 +2896,7 @@ sub enterUpdatePool {
     my $gameType        = $options->{gameType}   // '2way';
     my $uuid            = $options->{uuid}       // 0;
 
+    ### uuid is being passed if we are continually entering pool
     if ($uuid) {
         my $poolRow = app->db()->selectrow_hashref('SELECT * FROM pool WHERE private_game_key = ?',
             { 'Slice' => {} },
@@ -3090,6 +3091,7 @@ sub matchPool {
             AND game_type = ?
             AND rated = ?
             AND matched_game IS NULL
+            AND challenge_player_id IS NULL
             AND last_ping > NOW() - INTERVAL 5 SECOND
             LIMIT ' . $needed;
     my $playerMatchedRow = app->db()->selectall_arrayref(
