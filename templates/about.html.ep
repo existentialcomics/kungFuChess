@@ -43,7 +43,9 @@
             <div id="blackbelt"></div>
             <p class="beltText">Black Belt (2000-2199)</p><br />
             <div id="doubleblackbelt"></div>
-            <p class="beltText">Double Black Belt (2200+)</p><br />
+            <p class="beltText">Double Black Belt (2200-2399)</p><br />
+            <div id="tripleblackbelt"></div>
+            <p class="beltText">Triple Black Belt (2400+)</p><br />
         </div>
     <br />
 

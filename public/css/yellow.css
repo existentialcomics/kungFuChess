@@ -16,9 +16,6 @@
 html * {
   font-family: 'Mochiy Pop P One', sans-serif; }
 
-.text-chat {
-  font-size: small; }
-
 body {
   margin: 0;
   padding: 0;
@@ -138,6 +135,17 @@ li a:hover {
   color: #111111; }
 
 #doubleblackbelt {
+  width: 20px;
+  height: 20px;
+  background-color: #000000;
+  display: inline-block;
+  padding: 1px;
+  border: 2px solid grey; }
+
+.tripleblackbeltColor {
+  color: #111111; }
+
+#tripleblackbelt {
   width: 20px;
   height: 20px;
   background-color: #000000;

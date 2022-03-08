@@ -1,0 +1,37 @@
+/* import the necessary Bootstrap files */
+@import "bootstrap/scss/_functions";
+@import "bootstrap/scss/_variables";
+
+// Changing the theme colors
+$primary: black;  // light green
+$secondary: #777777; // gold
+/*$success: #65ff9f;*/
+/*$info: #7164ff;*/
+/*$warning: #ff9f65;*/
+/*$danger: #ff457b;*/
+$light: #444444;  // very light green
+$dark: black;   // dark green
+
+/*// Your variable overrides*/
+$body-bg: $dark;
+$card-bg: $secondary;
+$body-color: black;
+
+$theme-colors: (
+    // this is but a tiny snippet of _variables.scss
+    'primary':       $primary,
+    'secondary':     $secondary,
+    'success':       $success,
+    'info':          $info,
+    'warning':       $warning,
+    'danger':        $danger,
+    'light':         $light,
+    'dark':          $dark
+);
+
+#navigation,.navbar .navbar-default {
+    /*background-image: url("/tripleBlackBelt.png");*/
+}
+
+@import "global";
+@import "bootstrap/scss/bootstrap";

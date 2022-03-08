@@ -56,6 +56,7 @@ use constant ({
     MOVE_KNIGHT     => 5,
     MOVE_PUT_PIECE  => 6,
     MOVE_PROMOTE    => 7,
+    MOVE_DOUBLE_PAWN => 8,
     
     ### matches Stockfish
     ALL_PIECES  => 000,
@@ -555,6 +556,17 @@ my @MOVES_Q = (@MOVES_B, @MOVES_R);
 sub setupInitialPosition {
     my $color = shift;
 
+    $pawns    = 0x0000000000000000;
+    $knights  = 0x0000000000000000;
+    $bishops  = 0x0000000000000000;
+    $rooks    = 0x0000000000000000;
+    $queens   = 0x0000000000000000;
+    $kings    = 0x0000000000000000;
+    $white     = 0x0000000000000000;
+    $black     = 0x0000000000000000;
+    $occupied  = 0x0000000000000000;
+    $enPassant = 0x0000000000000000;
+
     if (! $color || $color eq 'white') {
     ### pawns
     $occupied |= RANKS_H->{2};
@@ -740,6 +752,10 @@ sub setMoving {
 sub unsetMoving {
     my $bb = shift;
     $movingBB &= ~$bb;
+}
+sub isMoving {
+    my $bb = shift;
+    return $movingBB & $bb;
 }
 
 sub blockers {
@@ -962,9 +978,11 @@ sub isLegalMove {
 
         # we dont worry about color for ranks because you can't move two that way anyway
         if ((shift_BB($fr_bb, $pawnDir + $pawnDir) & $to_bb) && ($fr_bb & (RANKS->[1] | RANKS->[6])) ){
-            if ($to_bb & $occupied) {
-                return @noMove;
-            }
+            $pawnMoveType = MOVE_DOUBLE_PAWN;
+            # it can be occupied for double moves
+            #if ($to_bb & $occupied) {
+                #return @noMove;
+            #}
             # piece between
             if (shift_BB($fr_bb, $pawnDir) & $occupied) {
                 return @noMove;
@@ -1506,8 +1524,9 @@ sub setPosXS {
     );
 }
 
-sub setMovesXS {
-    xs::getAllMoves();
+sub evaluateXS {
+    xs::setAllMoves();
+    return xs::evaluate();
 }
 
 ### evaluate a single board position staticly, returns the score and moves
@@ -2066,6 +2085,8 @@ sub recommendMoveForBB {
     my $distance = shift; ### how far does the enemy have to move? TODO implement this
     my $best_to = 0;
 
+    my $distancePenalty = 5;
+
     my $occupiedColor = occupiedColor($bb + 0);
     ### dodge
     if ($color == $occupiedColor) {
@@ -2074,7 +2095,7 @@ sub recommendMoveForBB {
             if ($move->[MOVE_FR] == $bb && defined($move->[MOVE_SCORE])) {
                 if ($color == $aiColor) {
                     if ($move->[MOVE_SCORE] > $bestScore) {
-                        $bestScore = $move->[MOVE_SCORE];
+                        $bestScore = $move->[MOVE_SCORE] - ($move->[MOVE_DISTANCE] * $distancePenalty);
                         $best_to = $move->[MOVE_TO];
                     }
                 } else {

@@ -6,6 +6,7 @@ $redBeltColor: #ff0000;
 $brownBeltColor: #a04e01;
 $blackBeltColor: #111111;
 $doubleBlackBeltColor: #000000;
+$tripleBlackBeltColor: #000000;
 
 html *
 {
@@ -143,6 +144,7 @@ li a:hover {
     padding:2px;
     border: 1px solid black ;
 }
+
 .doubleblackbeltColor {
     color:$blackBeltColor;
 }
@@ -153,10 +155,22 @@ li a:hover {
     background-color:$doubleBlackBeltColor;
     display:inline-block;
     padding:1px;
-    border: 2px solid gold ;
+    border: 2px solid grey;
+}
+.tripleblackbeltColor {
+    color:$blackBeltColor;
+}
+
+#tripleblackbelt {
+    width:20px;
+    height:20px;
+    background-color:$tripleBlackBeltColor;
+    display:inline-block;
+    padding:1px;
+    border: 2px solid gold;
 }
 .blackbeltColor {
-    color:$doubleBlackBeltColor;
+    color:$tripleBlackBeltColor;
 }
 
 #brownbelt {

@@ -24,10 +24,12 @@ if ($frozenIn) {
     KungFuChess::Bitboards::resetAiBoards();
 }
 print KungFuChess::Bitboards::setPosXS();
-print KungFuChess::Bitboards::setMovesXS();
 
 #print KungFuChess::Bitboards::pretty();
 print KungFuChess::Bitboards::pretty_ai();
+print "XS evaluate:\n";
+print KungFuChess::Bitboards::evaluateXS();
+print "\n\n";
 #print KungFuChess::Bitboards::debug();
 #print KungFuChess::Bitboards::debug2();
 #my ($score, $moves) = KungFuChess::Bitboards::evaluate();

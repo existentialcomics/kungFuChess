@@ -90,12 +90,13 @@ sub getBelt {
 sub getBeltStatic {
     my $rating = shift;
 
-    return 'yellow' if ($rating < 1400); 
-    return 'orange' if ($rating < 1600); 
-    return 'red'    if ($rating < 1800); 
-    return 'brown'  if ($rating < 2000); 
-    return 'black'  if ($rating < 2200); 
-    return 'doubleblack';
+    return 'yellow'       if ($rating < 1400); 
+    return 'orange'       if ($rating < 1600); 
+    return 'red'          if ($rating < 1800); 
+    return 'brown'        if ($rating < 2000); 
+    return 'black'        if ($rating < 2200); 
+    return 'doubleblack'  if ($rating < 2400); 
+    return 'tripleblack';
 }
 
 sub getRating {

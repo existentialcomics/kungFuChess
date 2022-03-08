@@ -461,6 +461,23 @@ sub moveIfLegal {
 
     my ($colorbit, $moveType, $moveDir, $fr_bb, $to_bb)
         = KungFuChess::Bitboards::isLegalMove($move_fr_bb, $move_to_bb, $fr_rank, $fr_file, $to_rank, $to_file);
+    my $usColor   = KungFuChess::Bitboards::occupiedColor($fr_bb);
+    my $themColor = KungFuChess::Bitboards::occupiedColor($to_bb);
+    ### capture
+    if ($usColor && $themColor && ($usColor != $themColor)) {
+        ### distance of one, we want to prevent quick captures here
+        if ($to_bb == KungFuChess::Bitboards::shift_BB($fr_bb, $moveDir) ) {
+            my $isQuickCapture = (
+                ($self->{stopMoves}->{$to_bb}
+                   && $self->{stopMoves}->{$to_bb} > time() - ($self->{$colorbit}->{pieceSpeed}) / 2)
+            );
+
+            if ($isQuickCapture) {
+                $moveType = 0;
+            }
+
+        }
+    }
 
     if ($moveType == 0) {
         return 0;
@@ -503,6 +520,7 @@ sub moveIfLegal {
         if (
             ($moveType == KungFuChess::Bitboards::MOVE_NORMAL || 
                 $moveType == KungFuChess::Bitboards::MOVE_PROMOTE ||
+                $moveType == KungFuChess::Bitboards::MOVE_DOUBLE_PAWN ||
                 $moveType == KungFuChess::Bitboards::MOVE_EN_PASSANT 
             ) 
             &&
@@ -530,6 +548,7 @@ sub moveIfLegal {
         ###
         if ($moveType == KungFuChess::Bitboards::MOVE_NORMAL || 
             $moveType == KungFuChess::Bitboards::MOVE_PROMOTE || 
+            $moveType == KungFuChess::Bitboards::MOVE_DOUBLE_PAWN ||
             $moveType == KungFuChess::Bitboards::MOVE_EN_PASSANT 
         ) {
             my $moving_to_bb = 0;
@@ -574,7 +593,6 @@ sub moveIfLegal {
                         $self->send($msgStep);
                     }
                 } else { ### we hit a stopped enemy
-
                     ### UNCOMMENT to restore full sweep
                     ### stop unless the piece starting moving after us;
                     #my $shouldStop = (! $self->{startMoves}->{$moving_to_bb}
@@ -589,26 +607,31 @@ sub moveIfLegal {
                             (! $self->{startMoves}->{$moving_to_bb}
                             || $self->{startMoves}->{$moving_to_bb} < $startTime)
                         );
-                    ;
 
-                    # 2nd arg is for isSweep, technically if we don't stop here it's a sweep
-                    # they didn't arrive in time to complete the animation and stand their ground
-                    $self->killPieceBB($moving_to_bb, $colorbit, ($shouldStop ? undef : 1));
-                    KungFuChess::Bitboards::move($fr_bb, $moving_to_bb);
-                    my $msgStep = {
-                        'c' => 'authmovestep',
-                        'color'  => $colorbit,
-                        'fr_bb'  => $fr_bb,
-                        'to_bb'  => $moving_to_bb
-                    };
-                    $self->send($msgStep);
-
+                    ### double pawn moves always stop if they hit something, even enemy
+                    ### AND we don't move!
+                    if ($moveType == KungFuChess::Bitboards::MOVE_DOUBLE_PAWN) {
+                        print "move double pawn should stop hit enemey\n";
+                        $shouldStop = 2; ### 2 means stop now...
+                    } else {
+                        # 2nd arg is for isSweep, technically if we don't stop here it's a sweep
+                        # they didn't arrive in time to complete the animation and stand their ground
+                        $self->killPieceBB($moving_to_bb, $colorbit, ($shouldStop ? undef : 1));
+                        KungFuChess::Bitboards::move($fr_bb, $moving_to_bb);
+                        my $msgStep = {
+                            'c' => 'authmovestep',
+                            'color'  => $colorbit,
+                            'fr_bb'  => $fr_bb,
+                            'to_bb'  => $moving_to_bb
+                        };
+                        $self->send($msgStep);
+                    }
                     if ($shouldStop) {
                         my $msg = {
                             'c' => 'authstop',
-                            'delay' => $self->{$colorbit}->{pieceSpeed},
+                            'delay' => ($shouldStop == 2 ? 0 : $self->{$colorbit}->{pieceSpeed}),
                             'color' => $colorbit,
-                            'fr_bb' => $moving_to_bb,
+                            'fr_bb' => ($shouldStop == 2 ? $fr_bb : $moving_to_bb),
                         };
                         $self->send($msg);
                         delete $self->{"stoptimer_$moving_to_bb"};
@@ -910,7 +933,6 @@ sub moveIfLegal {
     my $restartAnimation = 0;
     $moveStep->($self, $moveStep, $fr_bb, $to_bb, $moveDir, $startTime, $moveType, '', $colorbit, $restartAnimation);
 
-    KungFuChess::Bitboards::resetAiBoards();
     return 1;
 }
 
