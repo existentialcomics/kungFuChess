@@ -5,7 +5,8 @@ use strict; use warnings;
 
 package KungFuChess::GameAi;
 
-use AnyEvent::WebSocket::Client;
+#use AnyEvent::WebSocket::Client;
+use AnyEvent::WebSocket::Client 0.12;
 use AnyEvent;
 use JSON::XS;
 #use KungFuChess::Bitboards;
@@ -247,7 +248,7 @@ sub _init {
             $self->{ai_skip_best} = 0.4;
         } elsif ($difficulty eq '3') {
             $self->{ai_thinkTime} = 2.0;
-            $self->{ai_depth} = 3;
+            $self->{ai_depth} = 2;
             $self->{ai_simul_moves} = 1;
             $self->{ai_delay} = 100_000; 
             $self->{ai_min_delay} = 0;
@@ -370,6 +371,10 @@ sub _init {
 
 		$self->setupInitialBoard();
 
+		#$connection->on(error => sub {
+                #print "ERROR: $!\n";
+        #});
+
 		# recieve message from the websocket...
 		$connection->on(each_message => sub {
 			# $connection is the same connection object
@@ -380,6 +385,7 @@ sub _init {
             if ($msgJSON->{c}) {
 
             }
+            print "handling message time: " . time() . "\n";
 			$self->handleMessage($msgJSON, $connection);
 		});
 
@@ -577,18 +583,59 @@ sub handleMessage {
         #print "setting ai interval:\n";
         $self->{movesQueue} = \@moves;
 
-        $self->{aiInterval} = AnyEvent->timer(
+        my $w2; 
+        # Start a timer that, at most once every 0.5 seconds, sleeps
+        # for 1 second, and then prints "timer":
+        my $w1; $w1 = deferred_interval(
             after => 3.2,
+            reference => \$w2,  
+            interval => 0.5,
             cb => sub {
                 $self->aiTick();
+                #sleep 1; # Simulated blocking operation.
+                #say "timer";
+            },
+        );
+        #$self->{aiInterval} = AnyEvent->timer(
+            #after => 3.2,
+            #cb => sub {
+                #$self->aiTick();
+            #}
+        #);
+	}
+}
+
+sub deferred_interval {
+    my %args = @_;
+    # Some silly wrangling to emulate AnyEvent's normal
+    # "watchers are uninstalled when they are destroyed" behavior:
+    ${$args{reference}} = 1;
+    $args{oldref} //= delete($args{reference});
+    return unless ${$args{oldref}};
+
+    AnyEvent::postpone {
+        ${$args{oldref}} = AnyEvent->timer(
+            after => delete($args{after}) // $args{interval},
+            cb => sub {
+                $args{cb}->(@_);
+                deferred_interval(%args);
             }
         );
-	}
+    };
+
+    return ${$args{oldref}};
 }
 
 sub aiTick {
     my $self = shift;
     my $aiStartTime = time();
+
+    my $handle = $self->{conn}->{handle};
+    $handle->push_read( 'line' => sub {
+    });
+    while (my $q = pop(@{$handle->{_queue}})) {
+        &$q();
+    }
 
     ### auto resign after 10 minutes to prevent stale games
     if (time() - $self->{startTime} > (60 * 10)) {
@@ -598,7 +645,7 @@ sub aiTick {
         $self->send($msg);
         $self->endGame();
     }
-    my $debug = 1;
+    my $debug = 0;
     if ($#{$self->{movesQueue}} > -1) {
         foreach my $move (@{$self->{movesQueue}}) {
             my ($fr_bb, $to_bb, $fr_rank, $fr_file, $to_rank, $to_file) = KungFuChess::Bitboards::parseMove($move);
@@ -616,7 +663,6 @@ sub aiTick {
         # depth, thinkTime
         my $start = time();
         my $score = 0;
-        #print "time: $start\n";
         my ($aiScore, $moves, $totalMaterial, $attackedBy) = KungFuChess::Bitboards::aiThink($self->{ai_depth}, $self->{ai_thinkTime}, $self->{color});
 
         if ($debug) {
@@ -670,11 +716,11 @@ sub aiTick {
             }
             ### don't move if we already moved from or to the same spot!
             if (exists($fr_moves->{$move->[1]})) {
-                print "fr move!\n";
+                #print "fr move!\n";
                 next;
             }
             if (exists($to_moves->{$move->[1]})) {
-                print "to move!\n";
+                #print "to move!\n";
                 next;
             }
             $fr_moves->{$move->[0]} = 1;
@@ -714,6 +760,11 @@ sub aiTick {
     ### at least a tenth of a second to recieve messages
     if ($intervalLeft < 0.1) {
         $intervalLeft = 0.1;
+    }
+    $intervalLeft = 1;
+
+    if ($self->{debug}) {
+        print "time ending " . time() . "\n";
     }
     $self->{aiInterval} = AnyEvent->timer(
         after => $intervalLeft, 
@@ -790,7 +841,7 @@ sub moveNotation {
 
     my $self = shift;
     my $notation = shift;
-    print "ai move: $notation\n";
+    #print "ai move: $notation\n";
     if ($notation =~ m/([a-z])([0-9])([a-z])([0-9])/) {
         my ($startFile, $startRank, $endFile, $endRank) = ($1, $2, $3, $4);
 
