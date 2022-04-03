@@ -8,49 +8,23 @@
 #include <utility>
 #include <algorithm>
 #include <bitset>
-
+#include "xs.h"
+//#include <pre/json/to_json.hpp>
 
 namespace chess_xs {
 
-typedef uint64_t Bitboard;
-
-const size_t NCOLORS = 3;
-enum Color : int {
-    ALL_COLORS = 0, WHITE, BLACK
-};
 
 //Inverts the color (WHITE -> BLACK) and (BLACK -> WHITE)
 constexpr Color operator~(Color c) {
 	return Color(c ^ BLACK);
 }
 
-const size_t NDIRS = 8;
-enum Direction : int {
-	NORTH = 8, NORTH_EAST = 9, EAST = 1, SOUTH_EAST = -7,
-	SOUTH = -8, SOUTH_WEST = -9, WEST = -1, NORTH_WEST = 7,
-	NORTH_NORTH = 16, SOUTH_SOUTH = -16
-};
-
-enum File : int {
-	AFILE, BFILE, CFILE, DFILE, EFILE, FFILE, GFILE, HFILE
-};	
-
-enum Rank : int {
-	RANK1, RANK2, RANK3, RANK4, RANK5, RANK6, RANK7, RANK8
-};
-
-//Lookup tables of square names in algebraic chess notation
-const char* SQSTR[65] = {
-	"a1", "b1", "c1", "d1", "e1", "f1", "g1", "h1",
-	"a2", "b2", "c2", "d2", "e2", "f2", "g2", "h2",
-	"a3", "b3", "c3", "d3", "e3", "f3", "g3", "h3",
-	"a4", "b4", "c4", "d4", "e4", "f4", "g4", "h4",
-	"a5", "b5", "c5", "d5", "e5", "f5", "g5", "h5",
-	"a6", "b6", "c6", "d6", "e6", "f6", "g6", "h6",
-	"a7", "b7", "c7", "d7", "e7", "f7", "g7", "h7",
-	"a8", "b8", "c8", "d8", "e8", "f8", "g8", "h8",
-	"None"
-};
+Direction pawn_push(Color c) {
+    if (c == WHITE) {
+        return NORTH;
+    }
+    return SOUTH;
+}
 
 //All masks have been generated from a Java program
 
@@ -87,7 +61,7 @@ const Bitboard MASK_ANTI_DIAGONAL[15] = {
 
 //Shifts a bitboard in a particular direction. There is no wrapping, so bits that are shifted of the edge are lost
 template<Direction D>
-constexpr Bitboard shift(Bitboard b) {
+Bitboard shift(Bitboard b) {
     return D == NORTH ? b << 8 : D == SOUTH ? b >> 8
         : D == NORTH + NORTH ? b << 16 : D == SOUTH + SOUTH ? b >> 16
         : D == EAST ? (b & ~MASK_FILE[HFILE]) << 1 : D == WEST ? (b & ~MASK_FILE[AFILE]) >> 1
@@ -97,19 +71,6 @@ constexpr Bitboard shift(Bitboard b) {
         : D == SOUTH_WEST ? (b & ~MASK_FILE[AFILE]) >> 9
         : 0;
 }
-
-const size_t NSQUARES = 64;
-enum Square : int {
-	a1, b1, c1, d1, e1, f1, g1, h1,
-	a2, b2, c2, d2, e2, f2, g2, h2,
-	a3, b3, c3, d3, e3, f3, g3, h3,
-	a4, b4, c4, d4, e4, f4, g4, h4,
-	a5, b5, c5, d5, e5, f5, g5, h5,
-	a6, b6, c6, d6, e6, f6, g6, h6,
-	a7, b7, c7, d7, e7, f7, g7, h7,
-	a8, b8, c8, d8, e8, f8, g8, h8,
-	NO_SQUARE
-};
 
 inline Square& operator++(Square& s) { return s = Square(int(s) + 1); }
 constexpr Square operator+(Square s, Direction d) { return Square(int(s) + int(d)); }
@@ -229,11 +190,6 @@ Bitboard reverse(Bitboard b) {
 		((b >> 16) & 0xffff0000) | (b >> 48);
 }
 
-constexpr Rank rank_of(Square s) { return Rank(s >> 3); }
-constexpr File file_of(Square s) { return File(s & 0b111); }
-constexpr int diagonal_of(Square s) { return 7 + rank_of(s) - file_of(s); }
-constexpr int anti_diagonal_of(Square s) { return rank_of(s) + file_of(s); }
-
 //Calculates sliding attacks from a given square, on a given axis, taking into
 //account the blocking pieces. This uses the Hyperbola Quintessence Algorithm.
 Bitboard sliding_attacks(Square square, Bitboard occ, Bitboard mask) {
@@ -310,19 +266,6 @@ const Bitboard kf = 0x0101010101010101;
 Bitboard LINE[64][64];
 
 Bitboard SQUARES_BETWEEN_BB[64][64];
-// from stockfish
-enum PieceType {
-  NO_PIECE_TYPE, PAWN, KNIGHT, BISHOP, ROOK, QUEEN, KING,
-  ALL_PIECES = 0,
-  PIECE_TYPE_NB = 8
-};
-
-enum Piece {
-  NO_PIECE,
-  W_PAWN = PAWN,     W_KNIGHT, W_BISHOP, W_ROOK, W_QUEEN, W_KING,
-  B_PAWN = PAWN + 8, B_KNIGHT, B_BISHOP, B_ROOK, B_QUEEN, B_KING,
-  PIECE_NB = 16
-};
 
 constexpr Piece make_piece(Color c, PieceType pt) {
   return Piece((c << 3) + pt);
@@ -332,7 +275,7 @@ constexpr PieceType type_of(Piece pc) {
   return PieceType(pc & 7);
 }
 
-Bitboard PAWN_ATTACKS[NCOLORS][NSQUARES];
+Bitboard PAWN_ATTACKS[COLOR_NB][NSQUARES];
 Bitboard PSEUDO_LEGAL_ATTACKS[PIECE_TYPE_NB][NSQUARES];
 
 //Returns number of set bits in the bitboard
@@ -402,8 +345,71 @@ enum MoveFlags : int {
 	PC_KNIGHT = 0b1100, PC_BISHOP = 0b1101, PC_ROOK = 0b1110, PC_QUEEN = 0b1111,
 };
 
+//const int SQUARE_NB = 65;
+
 /// popcount() counts the number of non-zero bits in a bitboard
 uint8_t PopCnt16[1 << 16];
+uint8_t SquareDistance[SQUARE_NB][SQUARE_NB];
+
+
+/// xorshift64star Pseudo-Random Number Generator
+/// This class is based on original code written and dedicated
+/// to the public domain by Sebastiano Vigna (2014).
+/// It has the following characteristics:
+///
+///  -  Outputs 64-bit numbers
+///  -  Passes Dieharder and SmallCrush test batteries
+///  -  Does not require warm-up, no zeroland to escape
+///  -  Internal state is a single 64-bit integer
+///  -  Period is 2^64 - 1
+///  -  Speed: 1.60 ns/call (Core i7 @3.40GHz)
+///
+/// For further analysis see
+///   <http://vigna.di.unimi.it/ftp/papers/xorshift.pdf>
+
+class PRNG {
+
+  uint64_t s;
+
+  uint64_t rand64() {
+
+    s ^= s >> 12, s ^= s << 25, s ^= s >> 27;
+    return s * 2685821657736338717LL;
+  }
+
+public:
+  PRNG(uint64_t seed) : s(seed) { assert(seed); }
+
+  template<typename T> T rand() { return T(rand64()); }
+
+  /// Special generator used to fast init magic numbers.
+  /// Output values only have 1/8th of their bits set on average.
+  template<typename T> T sparse_rand()
+  { return T(rand64() & rand64() & rand64()); }
+};
+
+
+// Magic holds all magic bitboards relevant data for a single square
+struct Magic {
+  Bitboard  mask;
+  Bitboard  magic;
+  Bitboard* attacks;
+  unsigned  shift;
+
+  // Compute the attack's index using the 'magic bitboards' approach
+  unsigned index(Bitboard occupied) const {
+
+    if (HasPext)
+        return unsigned(pext(occupied, mask));
+
+    if (Is64Bit)
+        return unsigned(((occupied & mask) * magic) >> shift);
+
+    unsigned lo = unsigned(occupied) & unsigned(mask);
+    unsigned hi = unsigned(occupied >> 32) & unsigned(mask >> 32);
+    return (lo * unsigned(magic) ^ hi * unsigned(magic >> 32)) >> shift;
+  }
+};
 
 inline int popcount(Bitboard b) {
 
@@ -467,6 +473,10 @@ using namespace chess_xs;
 	////bool operator!=(Move a) const { return to_from() != a.to_from(); }
 //};
 
+Move make_move(Square from, Square to, MoveFlags flags) {
+    return (flags << 12) | (from << 6) | to;
+}
+
 // TODO make it faster like Stockfish?
 bool is_endgame = false;
 #define S(mg, eg) make_score(mg, eg)
@@ -478,7 +488,7 @@ int make_score(int mg, int eg) {
 void initialise_rook_attacks() {
     Bitboard edges, subset, index;
 
-    for (Square sq = a1; sq <= h8; ++sq) {
+    for (Square sq = SQ_A1; sq <= SQ_H8; ++sq) {
         edges = ((MASK_RANK[AFILE] | MASK_RANK[HFILE]) & ~MASK_RANK[rank_of(sq)]) |
             ((MASK_FILE[AFILE] | MASK_FILE[HFILE]) & ~MASK_FILE[file_of(sq)]);
         ROOK_ATTACK_MASKS[sq] = (MASK_RANK[rank_of(sq)]
@@ -500,7 +510,7 @@ void initialise_rook_attacks() {
 void initialise_bishop_attacks() {
 	Bitboard edges, subset, index;
 
-	for (Square sq = a1; sq <= h8; ++sq) {
+	for (Square sq = SQ_A1; sq <= SQ_H8; ++sq) {
 		edges = ((MASK_RANK[AFILE] | MASK_RANK[HFILE]) & ~MASK_RANK[rank_of(sq)]) |
 			((MASK_FILE[AFILE] | MASK_FILE[HFILE]) & ~MASK_FILE[file_of(sq)]);
 		BISHOP_ATTACK_MASKS[sq] = (MASK_DIAGONAL[diagonal_of(sq)]
@@ -522,8 +532,8 @@ void initialise_bishop_attacks() {
 //two squares are not aligned)
 void initialise_squares_between() {
 	Bitboard sqs;
-	for (Square sq1 = a1; sq1 <= h8; ++sq1)
-		for (Square sq2 = a1; sq2 <= h8; ++sq2) {
+	for (Square sq1 = SQ_A1; sq1 <= SQ_H8; ++sq1)
+		for (Square sq2 = SQ_A1; sq2 <= SQ_H8; ++sq2) {
 			sqs = SQUARE_BB[sq1] | SQUARE_BB[sq2];
 			if (file_of(sq1) == file_of(sq2) || rank_of(sq1) == rank_of(sq2))
 				SQUARES_BETWEEN_BB[sq1][sq2] =
@@ -541,7 +551,7 @@ void initialise_pseudo_legal() {
 	memcpy(PAWN_ATTACKS[BLACK], BLACK_PAWN_ATTACKS, sizeof(BLACK_PAWN_ATTACKS));
 	memcpy(PSEUDO_LEGAL_ATTACKS[KNIGHT], KNIGHT_ATTACKS, sizeof(KNIGHT_ATTACKS));
 	memcpy(PSEUDO_LEGAL_ATTACKS[KING], KING_ATTACKS, sizeof(KING_ATTACKS));
-	for (Square s = a1; s <= h8; ++s) {
+	for (Square s = SQ_A1; s <= SQ_H8; ++s) {
 		PSEUDO_LEGAL_ATTACKS[ROOK][s] = get_rook_attacks_for_init(s, 0);
 		PSEUDO_LEGAL_ATTACKS[BISHOP][s] = get_bishop_attacks_for_init(s, 0);
 		PSEUDO_LEGAL_ATTACKS[QUEEN][s] = PSEUDO_LEGAL_ATTACKS[ROOK][s] |
@@ -553,8 +563,8 @@ void initialise_pseudo_legal() {
 //Initializes the lookup table for the bitboard of all squares along the line of two given squares (0 if the 
 //two squares are not aligned)
 void initialise_line() {
-	for (Square sq1 = a1; sq1 <= h8; ++sq1)
-		for (Square sq2 = a1; sq2 <= h8; ++sq2) {
+	for (Square sq1 = SQ_A1; sq1 <= SQ_H8; ++sq1)
+		for (Square sq2 = SQ_A1; sq2 <= SQ_H8; ++sq2) {
 			if (file_of(sq1) == file_of(sq2) || rank_of(sq1) == rank_of(sq2))
 				LINE[sq1][sq2] =
 				get_rook_attacks_for_init(sq1, 0) & get_rook_attacks_for_init(sq2, 0)
@@ -566,14 +576,85 @@ void initialise_line() {
 		}
 }
 
-//Initializes lookup tables for rook moves, bishop moves, in-between squares, aligned squares and pseudolegal moves
-void initialise_all_databases() {
-	initialise_rook_attacks();
-	initialise_bishop_attacks();
-	initialise_squares_between();
-	initialise_line();
-	initialise_pseudo_legal();
+/// distance() functions return the distance between x and y, defined as the
+/// number of steps for a king in x to reach y.
+
+int distanceFile(Square x, Square y) { return std::abs(file_of(x) - file_of(y)); }
+int distanceRank(Square x, Square y) { return std::abs(rank_of(x) - rank_of(y)); }
+int distanceSquare(Square x, Square y) { return SquareDistance[x][y]; }
+
+//constexpr Square from_sq(Move m) {
+  //return Square((m >> 6) & 0x3F);
+//}
+
+//constexpr Square to_sq(Move m) {
+  //return Square(m & 0x3F);
+//}
+
+//constexpr int from_to(Move m) {
+ //return m & 0xFFF;
+//}
+
+constexpr bool is_ok(Square s) {
+  return s >= SQ_A1 && s <= SQ_H8;
 }
+//constexpr bool is_ok(Move m) {
+  //return from_sq(m) != to_sq(m); // Catch MOVE_NULL and MOVE_NONE
+//}
+
+inline int edge_distance(File f) { return std::min(f, File(HFILE - f)); }
+inline int edge_distance(Rank r) { return std::min(r, Rank(RANK_8 - r)); }
+
+/// safe_destination() returns the bitboard of target square for the given step
+/// from the given square. If the step is off the board, returns empty bitboard.
+
+inline Bitboard safe_destination(Square s, int step) {
+    Square to = Square(s + step);
+    return is_ok(to) && distanceSquare(s, to) <= 2 ? square_bb(to) : Bitboard(0);
+}
+
+// init_magics() computes all rook and bishop attacks at startup. Magic
+// bitboards are used to look up attacks of sliding pieces. As a reference see
+// www.chessprogramming.org/Magic_Bitboards. In particular, here we use the so
+// called "fancy" approach.
+
+constexpr Bitboard rank_bb(Rank r) {
+  return Rank1BB << (8 * r);
+}
+
+constexpr Bitboard rank_bb(Square s) {
+  return rank_bb(rank_of(s));
+}
+
+constexpr Bitboard file_bb(File f) {
+  return FileABB << f;
+}
+
+constexpr Bitboard file_bb(Square s) {
+  return file_bb(file_of(s));
+}
+
+Bitboard sliding_attack(PieceType pt, Square sq, Bitboard occupied) {
+    Bitboard attacks = 0;
+    Direction   RookDirections[4] = {NORTH, SOUTH, EAST, WEST};
+    Direction BishopDirections[4] = {NORTH_EAST, SOUTH_EAST, SOUTH_WEST, NORTH_WEST};
+
+    for (Direction d : (pt == ROOK ? RookDirections : BishopDirections))
+    {
+        Square s = sq;
+        while (safe_destination(s, d) && !(occupied & s))
+            attacks |= (s += d);
+    }
+
+    //std::cout << "square: " << sq << ", attacks:" << attacks << "\n";
+    return attacks;
+}
+
+Magic RookMagics[SQUARE_NB];
+Magic BishopMagics[SQUARE_NB];
+
+Bitboard RookTable[0x19000];  // To store rook attacks
+Bitboard BishopTable[0x1480]; // To store bishop attacks
 
 //Returns the attacks bitboard for a rook at a given square, using the magic lookup table
 Bitboard get_rook_attacks(Square square, Bitboard occ) {
@@ -596,17 +677,20 @@ Bitboard get_bishop_attacks(Square square, Bitboard occ) {
 }
 
 //Returns a bitboard containing pawn attacks from all pawns in the given bitboard
-//template<Color C>
-//constexpr Bitboard pawn_attacks(Bitboard p) {
-    //return C == WHITE ? shift<NORTH_WEST>(p) | shift<NORTH_EAST>(p) :
-        //shift<SOUTH_WEST>(p) | shift<SOUTH_EAST>(p);
+Bitboard pawn_attacks(Color C, Bitboard p) {
+    return C == WHITE ? shift<NORTH_WEST>(p) | shift<NORTH_EAST>(p) :
+        shift<SOUTH_WEST>(p) | shift<SOUTH_EAST>(p);
+}
+
+//Bitboard pawn_attacks(Color C) {
+    //return pawn_attacks(C, PAWN_BB[C]);
 //}
 
 //Returns a bitboard containing pawn attacks from the pawn on the given square
 Bitboard pawn_attacks(Color C, Square s) {
     return PAWN_ATTACKS[C][s];
 }
-//
+
 //Returns a bitboard containing pawn attacks from the pawn on the given square
 Bitboard king_attacks(Square s) {
     return KING_ATTACKS[s];
@@ -620,6 +704,151 @@ Bitboard get_xray_bishop_attacks(Square square, Bitboard occ, Bitboard blockers)
 	return attacks ^ get_bishop_attacks(square, occ ^ blockers);
 }
 
+
+void init_magics(PieceType pt, Bitboard table[], Magic magics[]) {
+
+    // Optimal PRNG seeds to pick the correct magics in the shortest time
+    int seeds[][RANK_NB] = { { 8977, 44560, 54343, 38998,  5731, 95205, 104912, 17020 },
+                             {  728, 10316, 55013, 32803, 12281, 15100,  16645,   255 } };
+
+    Bitboard occupancy[4096], reference[4096], edges, b;
+    int epoch[4096] = {}, cnt = 0, size = 0;
+
+    for (Square s = SQ_A1; s <= SQ_H8; ++s)
+    {
+        // Board edges are not considered in the relevant occupancies
+        edges = ((Rank1BB | Rank8BB) & ~rank_bb(s)) | ((FileABB | FileHBB) & ~file_bb(s));
+
+        // Given a square 's', the mask is the bitboard of sliding attacks from
+        // 's' computed on an empty board. The index must be big enough to contain
+        // all the attacks for each possible subset of the mask and so is 2 power
+        // the number of 1s of the mask. Hence we deduce the size of the shift to
+        // apply to the 64 or 32 bits word to get the index.
+        Magic& m = magics[s];
+        m.mask  = sliding_attack(pt, s, 0) & ~edges;
+        m.shift = (Is64Bit ? 64 : 32) - popcount(m.mask);
+
+        // Set the offset for the attacks table of the square. We have individual
+        // table sizes for each square with "Fancy Magic Bitboards".
+        m.attacks = s == SQ_A1 ? table : magics[s - 1].attacks + size;
+
+        // Use Carry-Rippler trick to enumerate all subsets of masks[s] and
+        // store the corresponding sliding attack bitboard in reference[].
+        b = size = 0;
+        do {
+            occupancy[size] = b;
+            reference[size] = sliding_attack(pt, s, b);
+
+            if (HasPext)
+                m.attacks[pext(b, m.mask)] = reference[size];
+
+            size++;
+            b = (b - m.mask) & m.mask;
+        } while (b);
+
+        if (HasPext)
+            continue;
+
+        PRNG rng(seeds[Is64Bit][rank_of(s)]);
+
+        // Find a magic for square 's' picking up an (almost) random number
+        // until we find the one that passes the verification test.
+        for (int i = 0; i < size; )
+        {
+            for (m.magic = 0; popcount((m.magic * m.mask) >> 56) < 6; ) {
+                m.magic = rng.sparse_rand<Bitboard>();
+            }
+
+            // A good magic must map every possible occupancy to an index that
+            // looks up the correct sliding attack in the attacks[s] database.
+            // Note that we build up the database for square 's' as a side
+            // effect of verifying the magic. Keep track of the attempt count
+            // and save it in epoch[], little speed-up trick to avoid resetting
+            // m.attacks[] after every failed attempt.
+            for (++cnt, i = 0; i < size; ++i)
+            {
+                unsigned idx = m.index(occupancy[i]);
+
+                if (epoch[idx] < cnt)
+                {
+                    epoch[idx] = cnt;
+                    m.attacks[idx] = reference[i];
+                }
+                else if (m.attacks[idx] != reference[i])
+                    break;
+            }
+        }
+    }
+}
+
+Bitboard attacks_bb(PieceType pt, Square s, Bitboard occupied) {
+
+  assert((pt != PAWN) && (is_ok(s)));
+
+  switch (pt)
+  {
+  case BISHOP: return BishopMagics[s].attacks[BishopMagics[s].index(occupied)];
+  case ROOK  : return   RookMagics[s].attacks[  RookMagics[s].index(occupied)];
+  case QUEEN : return attacks_bb(BISHOP, s, occupied) | attacks_bb(ROOK, s, occupied);
+  default    : return PseudoAttacks[pt][s];
+  }
+}
+
+void initialise_bitboard() {
+
+  for (unsigned i = 0; i < (1 << 16); ++i)
+      PopCnt16[i] = uint8_t(std::bitset<16>(i).count());
+
+  for (Square s = SQ_A1; s <= SQ_H8; ++s)
+      SquareBB[s] = (1ULL << s);
+
+  for (Square s1 = SQ_A1; s1 <= SQ_H8; ++s1) {
+      for (Square s2 = SQ_A1; s2 <= SQ_H8; ++s2) {
+          SquareDistance[s1][s2] = std::max(distanceFile(s1, s2), distanceRank(s1, s2));
+          //std::cout << std::max(distanceFile(s1, s2), distanceRank(s1, s2)) << ":" << s1 << " vs " << s2 << "\n";
+      }
+  }
+
+  init_magics(ROOK, RookTable, RookMagics);
+  init_magics(BISHOP, BishopTable, BishopMagics);
+
+  for (Square s1 = SQ_A1; s1 <= SQ_H8; ++s1)
+  {
+      PawnAttacks[WHITE][s1] = pawn_attacks(WHITE, square_bb(s1));
+      PawnAttacks[BLACK][s1] = pawn_attacks(BLACK, square_bb(s1));
+
+      for (int step : {-9, -8, -7, -1, 1, 7, 8, 9} )
+         PseudoAttacks[KING][s1] |= safe_destination(s1, step);
+
+      for (int step : {-17, -15, -10, -6, 6, 10, 15, 17} )
+         PseudoAttacks[KNIGHT][s1] |= safe_destination(s1, step);
+
+      PseudoAttacks[QUEEN][s1]  = PseudoAttacks[BISHOP][s1] = attacks_bb(BISHOP, s1, 0);
+      PseudoAttacks[QUEEN][s1] |= PseudoAttacks[  ROOK][s1] = attacks_bb(ROOK, s1, 0);
+
+      for (PieceType pt : { BISHOP, ROOK })
+          for (Square s2 = SQ_A1; s2 <= SQ_H8; ++s2)
+          {
+              if (PseudoAttacks[pt][s1] & s2)
+              {
+                  LineBB[s1][s2]    = (attacks_bb(pt, s1, 0) & attacks_bb(pt, s2, 0)) | s1 | s2;
+                  BetweenBB[s1][s2] = (attacks_bb(pt, s1, square_bb(s2)) & attacks_bb(pt, s2, square_bb(s1)));
+              }
+              BetweenBB[s1][s2] |= s2;
+          }
+  }
+}
+
+
+//Initializes lookup tables for rook moves, bishop moves, in-between squares, aligned squares and pseudolegal moves
+void initialise_all_databases() {
+    initialise_bitboard();
+	initialise_rook_attacks();
+	initialise_bishop_attacks();
+	initialise_squares_between();
+	initialise_line();
+	initialise_pseudo_legal();
+}
 Bitboard pawns   = 0x0;
 Bitboard knights = 0x0;
 Bitboard bishops = 0x0;
@@ -631,7 +860,6 @@ Bitboard white  = 0x0;
 Bitboard black  = 0x0;
 Bitboard frozen = 0x0;
 Bitboard moving = 0x0;
-
 
 // attacks
 Bitboard PAWN_ATTACKERS[3] = {
@@ -660,7 +888,7 @@ Bitboard KING_ATTACKERS[3] = {
     0x0
 };
 
-// attacks
+// pieces
 Bitboard PAWN_BB[3] = {
     0x0,
     0x0,
@@ -691,11 +919,13 @@ Bitboard KING_BB[3] = {
     0x0,
     0x0
 };
-Bitboard PIECES_BB[3] = {
+Bitboard byColorBB[3] = {
     0x0,
     0x0,
     0x0
 };
+Bitboard byTypeBB[PIECE_TYPE_NB];
+
 //#define moveSet int[6];
 
 
@@ -715,12 +945,15 @@ Piece piece_on(Square sq) {
 // similar to Evaluation::pieces() in stockfish
 void setAllMoves() {
     // technically you can have more than 195 legal moves but whatever
-    MoveList movesAry;
+    //MoveList movesAry;
+    std::vector<int> moveArray(200);
     int movePos = 0;
 
     std::cout << "getAllMoves()";
     std::cout << "\n";
-    for (Color c = WHITE; c != BLACK; c = ~c) {
+    for (Color c : { WHITE, BLACK }) {
+        std::cout << "color: " << c << "\n";
+
         Bitboard b = 0x0;
 
         Color Us   =  c;
@@ -734,6 +967,9 @@ void setAllMoves() {
             // TODO how does this work? attacks only?
             PAWN_ATTACKERS[Us] |= myMoves;
             board[sq] = piece;
+            while (Square sq_to = pop_lsb(b)) {
+                Move m = make_move(sq, sq_to, QUIET);
+            }
         }
         
         //*********************** kings
@@ -742,6 +978,9 @@ void setAllMoves() {
             Bitboard myMoves = king_attacks(sq);
             Piece piece = make_piece(c, KING);
             board[sq] = piece;
+            while (Square sq_to = pop_lsb(b)) {
+                Move m = make_move(sq, sq_to, QUIET);
+            }
         }
         
         //*********************** bishops
@@ -751,6 +990,9 @@ void setAllMoves() {
             PIECE_ATTACKERS[Us] |= att_bb;
             Piece piece = make_piece(c, BISHOP);
             board[sq] = piece;
+            while (Square sq_to = pop_lsb(b)) {
+                Move m = make_move(sq, sq_to, QUIET);
+            }
         }
         
         //*********************** rooks
@@ -760,6 +1002,9 @@ void setAllMoves() {
             ROOK_ATTACKERS[Us] |= att_bb;
             Piece piece = make_piece(c, ROOK);
             board[sq] = piece;
+            while (Square sq_to = pop_lsb(b)) {
+                Move m = make_move(sq, sq_to, QUIET);
+            }
         }
     
         //*********************** queens
@@ -769,9 +1014,11 @@ void setAllMoves() {
             QUEEN_ATTACKERS[Us] |= att_bb;
             Piece piece = make_piece(c, QUEEN);
             board[sq] = piece;
+            while (Square sq_to = pop_lsb(b)) {
+                Move m = make_move(sq, sq_to, QUIET);
+            }
         }
     }
-    //return movesAry;
 }
 
 
@@ -785,6 +1032,7 @@ int threats [2];
 Bitboard attackedBy[3][NB_PIECES];
 Bitboard attackedBy2[3];
 Bitboard kingRing[3];
+Bitboard mobilityArea[3];
 int kingAttackersCount[3];
 int kingAttackersWeight[3];
 int kingAttacksCount[3];
@@ -821,7 +1069,6 @@ int TrappedRook         = S( 55, 13);
 int WeakQueenProtection = S( 14,  0);
 int WeakQueen           = S( 56, 15);
 
-
 // copied as much as possible from Stockfish
 int evaluateThreats(Color Us) {
     Color Them = ~Us;
@@ -831,7 +1078,7 @@ int evaluateThreats(Color Us) {
     int score = 0;
 
     // Non-pawn enemies
-    nonPawnEnemies = PIECES_BB[Them] & ~PAWN_BB[Them];
+    nonPawnEnemies = byColorBB[Them] & ~PAWN_BB[Them];
 
     // Squares strongly protected by the enemy, either because they defend the
     // square with a pawn, or because they defend the square twice and we don't.
@@ -842,7 +1089,7 @@ int evaluateThreats(Color Us) {
     defended = nonPawnEnemies & stronglyProtected;
 
     // Enemies not strongly protected and under our attack
-    weak = PIECES_BB[Them] & ~stronglyProtected & attackedBy[Us][ALL_COLORS];
+    weak = byColorBB[Them] & ~stronglyProtected & attackedBy[Us][ALL_PIECES];
 
     // Bonus according to the kind of attacking pieces
     if (defended | weak)
@@ -880,94 +1127,110 @@ int evaluateThreats(Color Us) {
     b = PAWN_ATTACKERS[Us] & nonPawnEnemies;
     score += ThreatBySafePawn * popcount(b);
 
+    std::cout << "eval threats for " << Us << ": " << score << "\n";
     return score;
 }
 
-constexpr Bitboard DarkSquares = 0xAA55AA55AA55AA55ULL;
-
-constexpr Bitboard FileABB = 0x0101010101010101ULL;
-constexpr Bitboard FileBBB = FileABB << 1;
-constexpr Bitboard FileCBB = FileABB << 2;
-constexpr Bitboard FileDBB = FileABB << 3;
-constexpr Bitboard FileEBB = FileABB << 4;
-constexpr Bitboard FileFBB = FileABB << 5;
-constexpr Bitboard FileGBB = FileABB << 6;
-constexpr Bitboard FileHBB = FileABB << 7;
-
-constexpr Bitboard Rank1BB = 0xFF;
-constexpr Bitboard Rank2BB = Rank1BB << (8 * 1);
-constexpr Bitboard Rank3BB = Rank1BB << (8 * 2);
-constexpr Bitboard Rank4BB = Rank1BB << (8 * 3);
-constexpr Bitboard Rank5BB = Rank1BB << (8 * 4);
-constexpr Bitboard Rank6BB = Rank1BB << (8 * 5);
-constexpr Bitboard Rank7BB = Rank1BB << (8 * 6);
-constexpr Bitboard Rank8BB = Rank1BB << (8 * 7);
-
-//int pieces(Color C, PieceType Pt) {
-    //attackedBy[Us][Pt] = 0;
+//int pieces(color c, piecetype pt) {
+    //attackedby[us][pt] = 0;
 
 //}
 
-void evalInit(Color C) {
+//template<Direction D>
+Bitboard shift(Direction D, Bitboard b) {
+  return  D == NORTH      ?  b             << 8 : D == SOUTH      ?  b             >> 8
+        : D == NORTH+NORTH?  b             <<16 : D == SOUTH+SOUTH?  b             >>16
+        : D == EAST       ? (b & ~FileHBB) << 1 : D == WEST       ? (b & ~FileABB) >> 1
+        : D == NORTH_EAST ? (b & ~FileHBB) << 9 : D == NORTH_WEST ? (b & ~FileABB) << 7
+        : D == SOUTH_EAST ? (b & ~FileHBB) >> 7 : D == SOUTH_WEST ? (b & ~FileABB) >> 9
+        : 0;
+}
 
-    //Color     Them = ~Us;
-    //Direction Up   = pawn_push(Us);
-    //Direction Down = -Up;
-    //Bitboard LowRanks = (Us == WHITE ? Rank2BB | Rank3BB : Rank7BB | Rank6BB);
-    /*
+Bitboard pieces(PieceType pt = ALL_PIECES) {
+  return byTypeBB[pt];
+}
 
-    const Square ksq = pos.square<KING>(Us);
+Bitboard pieces(PieceType pt1, PieceType pt2) {
+  return pieces(pt1) | pieces(pt2);
+}
 
-    Bitboard dblAttackByPawn = pawn_double_attacks_bb<Us>(pos.pieces(Us, PAWN));
+Bitboard pieces(Color c) {
+  return byColorBB[c];
+}
 
-    // Find our pawns that are blocked or on the first two ranks
-    Bitboard b = pos.pieces(Us, PAWN) & (shift<Down>(pos.pieces()) | LowRanks);
+Bitboard pieces(Color c, PieceType pt) {
+  return pieces(c) & pieces(pt);
+}
 
-    // Squares occupied by those pawns, by our king or queen, by blockers to attacks on our king
-    // or controlled by enemy pawns are excluded from the mobility area.
-    mobilityArea[Us] = ~(b | pos.pieces(Us, KING, QUEEN) | pos.blockers_for_king(Us) | pe->pawn_attacks(Them));
+Bitboard pieces(Color c, PieceType pt1, PieceType pt2) {
+  return pieces(c) & (pieces(pt1) | pieces(pt2));
+}
 
-    // Initialize attackedBy[] for king and pawns
-    attackedBy[Us][KING] = attacks_bb<KING>(ksq);
-    attackedBy[Us][PAWN] = pe->pawn_attacks(Us);
-    attackedBy[Us][ALL_PIECES] = attackedBy[Us][KING] | attackedBy[Us][PAWN];
-    attackedBy2[Us] = dblAttackByPawn | (attackedBy[Us][KING] & attackedBy[Us][PAWN]);
 
-    // Init our king safety tables
-    Square s = make_square(std::clamp(file_of(ksq), FILE_B, FILE_G),
-                           std::clamp(rank_of(ksq), RANK_2, RANK_7));
-    kingRing[Us] = attacks_bb<KING>(s) | s;
+void evalInit(Color Us) {
 
-    kingAttackersCount[Them] = popcount(kingRing[Us] & pe->pawn_attacks(Them));
-    kingAttacksCount[Them] = kingAttackersWeight[Them] = 0;
+    Color     Them = ~Us;
+    Direction Up   = pawn_push(Us);
+    Direction Down = pawn_push(Them);
+    Bitboard LowRanks = (Us == WHITE ? Rank2BB | Rank3BB : Rank7BB | Rank6BB);
 
-    // Remove from kingRing[] the squares defended by two pawns
-    kingRing[Us] &= ~dblAttackByPawn;
-    */
+    Bitboard b = KING_BB[Us];
+    Square ksq = pop_lsb(b);
+
+    //Bitboard dblAttackByPawn = pawn_double_attacks_bb<Us>(pos.pieces(Us, PAWN));
+
+    //// Find our pawns that are blocked or on the first two ranks
+    //Bitboard b = pos.pieces(Us, PAWN) & (shift<Down>(pos.pieces()) | LowRanks);
+    b = pieces(Us, PAWN) & (shift(Down, pieces()) | LowRanks);
+
+    //// Squares occupied by those pawns, by our king or queen, by blockers to attacks on our king
+    //// or controlled by enemy pawns are excluded from the mobility area.
+    //mobilityArea[Us] = ~(b | pos.pieces(Us, KING, QUEEN) | pos.blockers_for_king(Us) | pe->pawn_attacks(Them));
+    mobilityArea[Us] = ~(b | pieces(Us, KING, QUEEN) | pawn_attacks(Them, PAWN_BB[Them]));
+
+    //// Initialize attackedBy[] for king and pawns
+    //attackedBy[Us][KING] = attacks_bb<KING>(ksq);
+    //attackedBy[Us][PAWN] = pe->pawn_attacks(Us);
+    //attackedBy[Us][ALL_PIECES] = attackedBy[Us][KING] | attackedBy[Us][PAWN];
+    //attackedBy2[Us] = dblAttackByPawn | (attackedBy[Us][KING] & attackedBy[Us][PAWN]);
+
+    //// Init our king safety tables
+    //Square s = make_square(std::clamp(file_of(ksq), FILE_B, FILE_G),
+                           //std::clamp(rank_of(ksq), RANK_2, RANK_7));
+    //kingRing[Us] = attacks_bb<KING>(s) | s;
+
+    //kingAttackersCount[Them] = popcount(kingRing[Us] & pe->pawn_attacks(Them));
+    //kingAttacksCount[Them] = kingAttackersWeight[Them] = 0;
+
+    //// Remove from kingRing[] the squares defended by two pawns
+    //kingRing[Us] &= ~dblAttackByPawn;
 }
 
 int evaluate() {
     int score = 0;
-    for (Color c = WHITE; c != BLACK; c = ~c) {
+    std::cout << "cpp evaluate()\n";
+    for (Color c : { WHITE, BLACK }) {
         Color Us   = c;
         Color Them = ~c;
+
+        std::cout << "eval for " << Us << ":" << Them << "\n";
 
         Bitboard OutpostRanks =
             (Us == WHITE ? Rank4BB | Rank5BB | Rank6BB
                          : Rank5BB | Rank4BB | Rank3BB);
         Bitboard b1;
         //------------------- pieces
-        b1 = PIECES_BB[Us];
+        b1 = byColorBB[Us];
 
         while (b1)
         {
             Square s = pop_lsb(b1);
             PieceType Pt = type_of(piece_on(s));
+            std::cout << "piece type: " << piece_on(s) << " type: " << Pt << "\n";
         }
 
         score += evaluateThreats(c);
     }
-
 
     return score;
 }
@@ -988,31 +1251,37 @@ void setBBs(
     pawns   = bb_pawns;
     PAWN_BB[WHITE] = bb_pawns & bb_white;
     PAWN_BB[BLACK] = bb_pawns & bb_black;
+    byTypeBB[PAWN] = bb_pawns;
 
     knights = bb_knights;
     KNIGHT_BB[WHITE] = bb_knights & bb_white;
     KNIGHT_BB[BLACK] = bb_knights & bb_black;
+    byTypeBB[KNIGHT] = bb_knights;
 
     bishops = bb_bishops;
     BISHOP_BB[WHITE] = bb_bishops & bb_white;
     BISHOP_BB[BLACK] = bb_bishops & bb_black;
+    byTypeBB[BISHOP] = bb_bishops;
 
     rooks   = bb_rooks;
     ROOK_BB[WHITE] = bb_rooks & bb_white;
     ROOK_BB[BLACK] = bb_rooks & bb_black;
+    byTypeBB[ROOK] = bb_rooks;
 
     queens  = bb_queens;
     QUEEN_BB[WHITE] = bb_queens & bb_white;
     QUEEN_BB[BLACK] = bb_queens & bb_black;
+    byTypeBB[QUEEN] = bb_queens;
 
     kings   = bb_kings;
     KING_BB[WHITE] = bb_kings & bb_white;
     KING_BB[BLACK] = bb_kings & bb_black;
+    byTypeBB[KING] = bb_kings;
 
     white   = bb_white;
     black   = bb_black;
-    PIECES_BB[WHITE] = bb_white;
-    PIECES_BB[BLACK] = bb_black;
+    byColorBB[WHITE] = bb_white;
+    byColorBB[BLACK] = bb_black;
 
     frozen  = bb_frozen;
     moving  = bb_moving;

@@ -1253,6 +1253,10 @@ sub getDefaultPieceSpeed {
 sub createGame {
     my ($type, $speed, $rated, $white, $black, $red, $green, $options) = @_;
     #app->log->debug("creating game with $type, $speed, $rated, $white, $black, $red, $green\n");
+    
+    if ($white == $black) {
+        $rated = 0;
+    }
 
     $options = $options // {};
 
@@ -2143,7 +2147,14 @@ sub getGameHistory {
         $gameType,
     );
     my $count = $countRow->[0];
-    my $gameLog = app()->db->selectall_arrayref('SELECT game_log.*, p.screenname, op.rating_before as them_before, op.rating_after as them_after from game_log LEFT JOIN players p ON p.player_id = game_log.opponent_id LEFT JOIN game_log op ON game_log.game_id = op.game_id AND game_log.opponent_id = op.player_id WHERE game_log.player_id = ? AND game_log.game_speed = ? and game_log.game_type = ? ORDER BY game_log_id DESC LIMIT ? OFFSET ?', { 'Slice' => {}},
+    my $gameLog = app()->db->selectall_arrayref(
+        'SELECT distinct(game_log.game_id), game_log.game_log_id, game_log.time_ended, game_log.rating_before, game_log.result, p.screenname, (SELECT rating_before FROM game_log op_gl WHERE op_gl.game_id = game_log.game_id AND op_gl.player_id = game_log.opponent_id LIMIT 1) as them_before, op.rating_after as them_after
+        FROM game_log
+            LEFT JOIN players p ON p.player_id = game_log.opponent_id
+            LEFT JOIN game_log op ON game_log.game_id = op.game_id AND game_log.opponent_id = op.player_id
+            WHERE game_log.player_id = ?
+            AND game_log.game_speed = ? and game_log.game_type = ? ORDER BY game_log_id DESC LIMIT ? OFFSET ?
+        ', { 'Slice' => {}},
         $player->{player_id},
         $gameSpeed,
         $gameType,

@@ -21,7 +21,7 @@
            <small>
            <a href="#" class='link-dark'>
            <% if ($showChallenge) { %>
-           <img src="/challenge25_25.png" class="challengePlayer" data-screenname="<%= $player->{screenname} %>"> </a>
+           <img src="/challenge25_25.png" class="challengePlayer" id="challenge_<%= $player->{screenname} %>" data-screenname="<%= $player->{screenname} %>"> </a>
            <% } %>
            <a href=/profile/<%= $player->{screenname} %> class='link-dark'><%= $player->{screenname} %></a>
            </small>

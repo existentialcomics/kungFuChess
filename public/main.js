@@ -138,7 +138,12 @@ function getPlayers(originalThread = false) {
             url  : '/activePlayers?ratingType=' + ratingToggle,
             dataType : 'html',
             success : function(data){
+                //var $s = $(data).not('#challenge_' . screenname);
+                var $s = $(data).not('#challenge_thebalrog');
+                $(data).find('#challenge_thebalrog').remove();
                 $('#playersContent').html(data);
+                console.log('#challenge_' + screenname);
+                $('#challenge_' + screenname).remove();
                 if (setInterval) {
                     intervalPlayer = setTimeout(
                         function() {

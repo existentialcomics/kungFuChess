@@ -2,5 +2,7 @@ kungFuChess.cnf
 .sass-cache
 scss/bootstrap
 *.swp
+*.swo
 .env
 hypnotoad.pid
+_Inline
