@@ -2148,7 +2148,7 @@ sub getGameHistory {
     );
     my $count = $countRow->[0];
     my $gameLog = app()->db->selectall_arrayref(
-        'SELECT distinct(game_log.game_id), game_log.game_log_id, game_log.time_ended, game_log.rating_before, game_log.result, p.screenname, (SELECT rating_before FROM game_log op_gl WHERE op_gl.game_id = game_log.game_id AND op_gl.player_id = game_log.opponent_id LIMIT 1) as them_before, op.rating_after as them_after
+        'SELECT distinct(game_log.game_id), game_log.game_log_id, game_log.time_ended, game_log.rating_before, game_log.result, game_log.rated, game_log.game_speed, game_log.game_type, p.screenname, (SELECT rating_before FROM game_log op_gl WHERE op_gl.game_id = game_log.game_id AND op_gl.player_id = game_log.opponent_id LIMIT 1) as them_before, op.rating_after as them_after
         FROM game_log
             LEFT JOIN players p ON p.player_id = game_log.opponent_id
             LEFT JOIN game_log op ON game_log.game_id = op.game_id AND game_log.opponent_id = op.player_id
