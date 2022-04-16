@@ -29,6 +29,9 @@ print KungFuChess::Bitboards::setPosXS();
 print KungFuChess::Bitboards::pretty_ai();
 print "XS evaluate:\n";
 print KungFuChess::Bitboards::evaluateXS();
+print "\nmoves:\n";
+my @moves = KungFuChess::Bitboards::getMovesXS();
+print Dumper @moves;
 print "\n\n";
 #print KungFuChess::Bitboards::debug();
 #print KungFuChess::Bitboards::debug2();
@@ -82,6 +85,11 @@ while ($go) {
         print KungFuChess::Bitboards::pretty_ai();
         my ($eval, $moves, $material, $attacks) = KungFuChess::Bitboards::evaluate(1);
         print "eval: $eval\n";
+        print KungFuChess::Bitboards::setPosXS();
+        print "\n";
+        print "XS evaluate: ";
+        print KungFuChess::Bitboards::evaluateXS();
+        print "\n";
     } elsif ($input =~ m/^(white|black)$/) {
         my $cIn = $1;
         my $color = ($cIn =~ 'white' ? 1 : 2);

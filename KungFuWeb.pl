@@ -380,13 +380,39 @@ post '/ajax/createChallenge' => sub {
         }
     } elsif ($gameMode eq 'ai-easy') {
         $options->{ai_difficulty} = 1;
-        $gameId = createGame($gameType, $gameSpeed, 0, ($user ? $user->{player_id} : ANON_USER), AI_USER_EASY, undef, undef, $options);
+        $gameId = createGame(
+            $gameType,
+            $gameSpeed,
+            0,
+            ($user ? $user->{player_id} : ANON_USER),
+            AI_USER_EASY,
+            $gameType eq '4way' ? AI_USER_EASY : undef,
+            $gameType eq '4way' ? AI_USER_EASY : undef,
+            $options
+        );
     } elsif ($gameMode eq 'ai-medium') {
         $options->{ai_difficulty} = 2;
-        $gameId = createGame($gameType, $gameSpeed, 0, ($user ? $user->{player_id} : ANON_USER), AI_USER_MEDIUM, undef, undef, $options);
+        $gameId = createGame(
+            $gameType,
+            $gameSpeed,
+            0,
+            ($user ? $user->{player_id} : ANON_USER),
+            AI_USER_MEDIUM,
+            $gameType eq '4way' ? AI_USER_MEDIUM : undef,
+            $gameType eq '4way' ? AI_USER_MEDIUM : undef,
+            $options);
     } elsif ($gameMode eq 'ai-hard') {
         $options->{ai_difficulty} = 3;
-        $gameId = createGame($gameType, $gameSpeed, 0, ($user ? $user->{player_id} : ANON_USER), AI_USER_HARD, undef, undef, $options);
+        $gameId = createGame(
+            $gameType,
+            $gameSpeed,
+            0,
+            ($user ? $user->{player_id} : ANON_USER),
+            AI_USER_HARD,
+            $gameType eq '4way' ? AI_USER_HARD : undef,
+            $gameType eq '4way' ? AI_USER_HARD : undef,
+            $options
+        );
     } else {
         $uid = createChallenge(($user ? $user->{player_id} : ANON_USER), $gameSpeed, $gameType, ($open ? 1 : 0), $rated, $challengeId, $options);
     }
@@ -1274,8 +1300,8 @@ sub createGame {
     my $redUid   = undef;
     my $greenUid = undef;
     if ($type eq '4way') {
-        $redUid   = ($white == ANON_USER ? $options->{redUuid}   // create_uuid_as_string() : undef);
-        $greenUid = ($black == ANON_USER ? $options->{greenUuid} // create_uuid_as_string() : undef);
+        $redUid   = ($white == ANON_USER || isAiUser($black) ? $options->{redUuid}   // create_uuid_as_string() : undef);
+        $greenUid = ($black == ANON_USER || isAiUser($black) ? $options->{greenUuid} // create_uuid_as_string() : undef);
     }
 
     my $auth = create_uuid_as_string();
@@ -1289,7 +1315,7 @@ sub createGame {
 
     my $gameId = $sth->{mysql_insertid};
 
-    my $isAiGame = isAiUser($black);
+    my $isAiGame = isAiUser($black) || isAiUser($red) || isAiUser($white) || isAiUser($green) ;
     if ($isAiGame) {
         my $lines = `ps aux | grep kungFuChessGame2wayAi.pl | grep -v grep | wc -l`;
         if ($lines) {
@@ -1319,7 +1345,7 @@ sub createGame {
         print "WARNING: failed command: $cmd\n";
     }
 
-    if ($isAiGame) {
+    if (isAiUser($black)) {
         my $aiUser = new KungFuChess::Player(
             { 'ai' => 1, 'auth_token' => $blackUid }
         );
@@ -1333,8 +1359,48 @@ sub createGame {
             $options->{ai_difficulty} // getAiLevel($black),
             2, # BLACK
             'ws://localhost:3001/ws',
-            '/var/log/kungfuchess/' . $gameId . '-game-ai.log',
-            '/var/log/kungfuchess/' . $gameId . '-error-ai.log'
+            '/var/log/kungfuchess/' . $gameId . '-game-black-ai.log',
+            '/var/log/kungfuchess/' . $gameId . '-error-black-ai.log'
+        );
+        app->log->debug($cmdAi);
+        system($cmdAi);
+    }
+    if (isAiUser($red)) {
+        my $aiUser = new KungFuChess::Player(
+            { 'ai' => 1, 'auth_token' => $redUid }
+        );
+        my $cmdAi = sprintf('/usr/bin/perl ./kungFuChessGame%sAi.pl %s %s %s %s %s %s %s %s 1>%s 2>%s &',
+            $type,
+            $gameId,
+            $redUid,
+            $pieceSpeed,
+            $pieceRecharge,
+            $speedAdvantage // "1:1:1:1",
+            $options->{ai_difficulty} // getAiLevel($red),
+            3, # RED
+            'ws://localhost:3001/ws',
+            '/var/log/kungfuchess/' . $gameId . '-game-red-ai.log',
+            '/var/log/kungfuchess/' . $gameId . '-error-red-ai.log'
+        );
+        app->log->debug($cmdAi);
+        system($cmdAi);
+    }
+    if (isAiUser($green)) {
+        my $aiUser = new KungFuChess::Player(
+            { 'ai' => 1, 'auth_token' => $greenUid }
+        );
+        my $cmdAi = sprintf('/usr/bin/perl ./kungFuChessGame%sAi.pl %s %s %s %s %s %s %s %s 1>%s 2>%s &',
+            $type,
+            $gameId,
+            $greenUid,
+            $pieceSpeed,
+            $pieceRecharge,
+            $speedAdvantage // "1:1:1:1",
+            $options->{ai_difficulty} // getAiLevel($green),
+            4, # green
+            'ws://localhost:3001/ws',
+            '/var/log/kungfuchess/' . $gameId . '-game-green-ai.log',
+            '/var/log/kungfuchess/' . $gameId . '-error-green-ai.log'
         );
         app->log->debug($cmdAi);
         system($cmdAi);
@@ -2888,8 +2954,8 @@ sub getOpenGames {
         LEFT JOIN players py3 ON p.matched_player_3_id = py3.player_id
             WHERE last_ping > NOW() - INTERVAL 4 SECOND
             AND open_to_public = 1
-            AND (in_matching_pool = 0 OR game_type = "2way")
         ',
+            #AND (in_matching_pool = 0 OR game_type = "2way")
         { 'Slice' => {} }
     );
 

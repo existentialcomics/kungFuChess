@@ -385,7 +385,6 @@ sub _init {
             if ($msgJSON->{c}) {
 
             }
-            print "handling message time: " . time() . "\n";
 			$self->handleMessage($msgJSON, $connection);
 		});
 
@@ -471,6 +470,8 @@ sub setFrozen {
     my $self = shift;
     my $to_bb = shift;
 
+    print "set frozen\n";
+
     my $time = time();
     $self->{timeoutSquares}->{$to_bb}->{'time'} = $time;
     KungFuChess::Bitboards::addFrozen($to_bb);
@@ -497,9 +498,13 @@ sub handleMessage {
 
 	if ($msg->{c} eq 'move'){
         ### + 0 to insure int
+        print "moving\n";
         KungFuChess::Bitboards::move($msg->{fr_bb} + 0, $msg->{to_bb} + 0);
+        print "set moving\n";
         KungFuChess::Bitboards::setMoving($msg->{to_bb} + 0);
-        KungFuChess::Bitboards::resetAiBoards(1);
+        print "reset boards\n";
+        KungFuChess::Bitboards::resetAiBoards($self->{color});
+        print "done\n";
         $self->setFrozen($msg->{to_bb} + 0);
 	} elsif ($msg->{c} eq 'stop'){
         KungFuChess::Bitboards::unsetMoving($msg->{fr_bb} + 0);
@@ -522,7 +527,7 @@ sub handleMessage {
         );
         $self->setFrozen($msg->{to_bb} + 0);
         delete $self->{suspendedPieces}->{$msg->{to_bb}};
-        KungFuChess::Bitboards::resetAiBoards(1);
+        KungFuChess::Bitboards::resetAiBoards($self->{color});
     } elsif ($msg->{c} eq 'promote'){
         my $p = KungFuChess::Bitboards::_getPieceBB($msg->{bb} + 0);
         if ($p == 101) {
@@ -539,12 +544,12 @@ sub handleMessage {
             $p + 0,
             $msg->{bb} + 0
         );
-        KungFuChess::Bitboards::resetAiBoards(1);
+        KungFuChess::Bitboards::resetAiBoards($self->{color});
         print KungFuChess::Bitboards::pretty_ai();
     } elsif ($msg->{c} eq 'kill'){
         delete $self->{frozen}->{$msg->{bb}};
         KungFuChess::Bitboards::_removePiece($msg->{bb} + 0);
-        KungFuChess::Bitboards::resetAiBoards(1);
+        KungFuChess::Bitboards::resetAiBoards($self->{color});
 	} elsif ($msg->{c} eq 'playerlost' || $msg->{c} eq 'resign' || $msg->{c} eq 'gameOver' || $msg->{c} eq 'abort'){
         $self->endGame();
 	} elsif ($msg->{c} eq 'gameBegins'){
@@ -630,12 +635,18 @@ sub aiTick {
     my $self = shift;
     my $aiStartTime = time();
 
+    print "aiTick\n";
+    if ($self->{color} > 2) {
+        print "disabled color for now\n";
+        return;
+    }
     my $handle = $self->{conn}->{handle};
-    $handle->push_read( 'line' => sub {
-    });
+        $handle->push_read( 'line' => sub {}
+    );
     while (my $q = pop(@{$handle->{_queue}})) {
         &$q();
     }
+    print "done manually reading queue\n";
 
     ### auto resign after 10 minutes to prevent stale games
     if (time() - $self->{startTime} > (60 * 10)) {
@@ -645,13 +656,13 @@ sub aiTick {
         $self->send($msg);
         $self->endGame();
     }
-    my $debug = 0;
+    my $debug = 1;
     if ($#{$self->{movesQueue}} > -1) {
         foreach my $move (@{$self->{movesQueue}}) {
             my ($fr_bb, $to_bb, $fr_rank, $fr_file, $to_rank, $to_file) = KungFuChess::Bitboards::parseMove($move);
             my $msg = {
-                'fr_bb' => $fr_bb,
-                'to_bb' => $to_bb,
+                'fr_bb' => "$fr_bb",
+                'to_bb' => "$to_bb",
                 'c'     => 'move'
             };
             $self->send($msg);
@@ -670,14 +681,17 @@ sub aiTick {
             KungFuChess::BBHash::displayMoves($moves, $self->{color}, 0, undef, undef, undef);
         }
 
-        my $suggestedMoves = KungFuChess::Bitboards::aiRecommendMoves($self->{color}, $self->{ai_simul_moves});
+        my $suggestedMoves = KungFuChess::Bitboards::aiRecommendMoves(
+            $self->{mode} eq '4way' ? 1 : $self->{color}, # 4way is always white
+            $self->{ai_simul_moves}
+        );
 
         my $fr_moves = {};
         my $to_moves = {};
         if ($debug) {
             print KungFuChess::Bitboards::pretty_ai();
             #print KungFuChess::Bitboards::prettyFrozen();
-            print KungFuChess::Bitboards::getFENstring();
+            #print KungFuChess::Bitboards::getFENstring();
         }
 
         ### this is for testing, there is no reason to resign lost positions for the real AI

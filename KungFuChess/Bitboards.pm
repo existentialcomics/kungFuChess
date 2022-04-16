@@ -59,7 +59,7 @@ use constant ({
     MOVE_DOUBLE_PAWN => 8,
     
     ### matches Stockfish
-    ALL_PIECES  => 000,
+    ALL_PIECES => 000,
     PAWN   => 001,
     KNIGHT => 002,
     BISHOP => 003,
@@ -376,10 +376,6 @@ my $SQ_BONUS = [
 
 our @EXPORT_OK = qw(MOVE_NONE MOVE_NORMAL MOVE_PROMOTE MOVE_EN_PASSANT MOVE_CASTLE_OO MOVE_CASTLE_OOO MOVE_KNIGHT WHITE_PAWN WHITE_KNIGHT WHITE_ROOK WHITE_BISHOP WHITE_KING WHITE_QUEEN BLACK_PAWN BLACK_KNIGHT BLACK_ROOK BLACK_BISHOP BLACK_KING BLACK_QUEEN);
 
-### similar to stockfish we have multiple bitboards that we intersect
-### to determine the position of things and state of things.
-### init all bitboards to zero
-
 ### these should be perfect hashes of all bitboard squares
 my %whiteMoves = ();
 my %blackMoves = ();
@@ -393,6 +389,10 @@ sub setCurrentMoves {
 }
 
 #xs::initialise_all_databases();
+
+### similar to stockfish we have multiple bitboards that we intersect
+### to determine the position of things and state of things.
+### init all bitboards to zero
 
 ### ALL bitboards used to track position
 my $pawns    = 0x0000000000000000;
@@ -615,7 +615,6 @@ sub setupInitialPosition {
     }
 
     #### black ####
-    
     if (! $color || $color eq 'black') {
     ### pawns
     $occupied |= RANKS_H->{7};
@@ -669,6 +668,7 @@ sub setupInitialPosition {
 ### copied from shift function in Stockfish
 sub shift_BB {
     #my ($bb, $direction) = @_;
+
     return  $_[1] == NORTH      ?  $_[0]                << 8 : $_[1] == SOUTH      ?  $_[0]                >> 8
           : $_[1] == NORTH+NORTH?  $_[0]                <<16 : $_[1] == SOUTH+SOUTH?  $_[0]                >>16
           : $_[1] == EAST       ? ($_[0] & ~FILES->[7]) << 1 : $_[1] == WEST       ? ($_[0] & ~FILES->[0]) >> 1
@@ -1522,11 +1522,23 @@ sub setPosXS {
         $frozenBB ,
         $movingBB
     );
+    print "done setBBs()\n";
 }
 
 sub evaluateXS {
+    print "evalusateXS\n";
+    xs::initialise_bitboard();
     xs::setAllMoves();
+    print "setAllMoves()\n";
     return xs::evaluate();
+}
+
+sub getMovesXS {
+    my @moves;
+    while(my $move = xs::getNextMove()) {
+        push @moves, $move;
+    }
+    return @moves;
 }
 
 ### evaluate a single board position staticly, returns the score and moves
@@ -1695,10 +1707,10 @@ sub evaluate {
                         $attackedBy2[$color] |= ($to & $attackedBy[$color]->[ALL_PIECES]);
                         if ($frozen) {
                             $attackedByFrozen[$color]->[$pieceType] |= $to;
-                            $attackedByFrozen[$color]->[ALL_PIECES]      |= $to;
+                            $attackedByFrozen[$color]->[ALL_PIECES] |= $to;
                         } else {
                             $attackedByUnFrozen[$color]->[$pieceType] |= $to;
-                            $attackedByUnFrozen[$color]->[ALL_PIECES]      |= $to;
+                            $attackedByUnFrozen[$color]->[ALL_PIECES] |= $to;
                         }
                         if ($to & $us){ # we ran into ourselves
                             $inXray = 1;

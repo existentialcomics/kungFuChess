@@ -928,27 +928,37 @@ Bitboard byTypeBB[PIECE_TYPE_NB];
 
 //#define moveSet int[6];
 
-
-
 const int MOVE_FR       = 0;
 const int MOVE_TO       = 1;
 const int MOVE_SCORE    = 2;
 const int MOVE_DISTANCE = 3;
 
+// technically you can have more than 195 legal moves but whatever
 typedef int (*MoveList)[195][5] ;
+
 Piece board[65];
+int moveSpot = 0;
+std::vector<Move> moveArray(195);
 
 Piece piece_on(Square sq) {
     return board[sq];
 }
 
+Move getNextMove() {
+    std::cout << "getNextMove\n";
+    if (moveSpot >= moveArray.size()) {
+        return 0;
+    } else {
+        moveSpot++;
+        return moveArray[moveSpot];
+    }
+
+}
+
 // similar to Evaluation::pieces() in stockfish
 void setAllMoves() {
-    // technically you can have more than 195 legal moves but whatever
-    //MoveList movesAry;
-    std::vector<int> moveArray(200);
-    int movePos = 0;
 
+    moveSpot = 0;
     std::cout << "getAllMoves()";
     std::cout << "\n";
     for (Color c : { WHITE, BLACK }) {
@@ -961,61 +971,79 @@ void setAllMoves() {
 
         //*********************** pawns
         b = PAWN_BB[c];
+        std::cout << "pawn bb: " << b << "\n";
         while (Square sq = pop_lsb(b)) {
+            std::cout << "  pawn sq: " << sq << "\n";
             Bitboard myMoves = pawn_attacks(Us, sq);
             Piece piece = make_piece(c, PAWN);
             // TODO how does this work? attacks only?
             PAWN_ATTACKERS[Us] |= myMoves;
             board[sq] = piece;
-            while (Square sq_to = pop_lsb(b)) {
+            while (Square sq_to = pop_lsb(myMoves)) {
                 Move m = make_move(sq, sq_to, QUIET);
+                moveArray.push_back(m);
             }
         }
         
         //*********************** kings
         b = KING_BB[c];
+        std::cout << "king bb: " << b << "\n";
         while (Square sq = pop_lsb(b)) {
+            std::cout << "  king sq: " << sq << "\n";
             Bitboard myMoves = king_attacks(sq);
             Piece piece = make_piece(c, KING);
             board[sq] = piece;
-            while (Square sq_to = pop_lsb(b)) {
+            while (Square sq_to = pop_lsb(myMoves)) {
                 Move m = make_move(sq, sq_to, QUIET);
+                moveArray.push_back(m);
             }
         }
         
         //*********************** bishops
         b = BISHOP_BB[c];
+        std::cout << "bish bb: " << b << "\n";
         while (Square sq = pop_lsb(b)) {
+            std::cout << "  bish sq: " << sq << "\n";
             Bitboard att_bb = get_bishop_attacks(sq, white & black);
             PIECE_ATTACKERS[Us] |= att_bb;
+            std::cout << "bish att: " << att_bb << "\n";
             Piece piece = make_piece(c, BISHOP);
             board[sq] = piece;
-            while (Square sq_to = pop_lsb(b)) {
+            while (Square sq_to = pop_lsb(att_bb)) {
                 Move m = make_move(sq, sq_to, QUIET);
+                moveArray.push_back(m);
             }
         }
         
         //*********************** rooks
         b = ROOK_BB[c];
+        std::cout << "rook bb: " << b << "\n";
         while (Square sq = pop_lsb(b)) {
+            std::cout << "  rook sq: " << sq << "\n";
             Bitboard att_bb = get_rook_attacks(sq, white & black);
+            std::cout << "rook att: " << att_bb << "\n";
             ROOK_ATTACKERS[Us] |= att_bb;
             Piece piece = make_piece(c, ROOK);
             board[sq] = piece;
-            while (Square sq_to = pop_lsb(b)) {
+            while (Square sq_to = pop_lsb(att_bb)) {
                 Move m = make_move(sq, sq_to, QUIET);
+                moveArray.push_back(m);
             }
         }
     
         //*********************** queens
+        std::cout << "queen bb: " << b << "\n";
         b = QUEEN_BB[c];
         while (Square sq = pop_lsb(b)) {
+            std::cout << "queen sq: " << b << "\n";
             Bitboard att_bb = get_rook_attacks(sq, white & black) | get_bishop_attacks(sq, white & black);
+            std::cout << "queen att: " << att_bb << "\n";
             QUEEN_ATTACKERS[Us] |= att_bb;
             Piece piece = make_piece(c, QUEEN);
             board[sq] = piece;
-            while (Square sq_to = pop_lsb(b)) {
+            while (Square sq_to = pop_lsb(att_bb)) {
                 Move m = make_move(sq, sq_to, QUIET);
+                moveArray.push_back(m);
             }
         }
     }
@@ -1213,7 +1241,7 @@ int evaluate() {
         Color Us   = c;
         Color Them = ~c;
 
-        std::cout << "eval for " << Us << ":" << Them << "\n";
+        //std::cout << "eval for " << Us << ":" << Them << "\n";
 
         Bitboard OutpostRanks =
             (Us == WHITE ? Rank4BB | Rank5BB | Rank6BB
@@ -1226,7 +1254,7 @@ int evaluate() {
         {
             Square s = pop_lsb(b1);
             PieceType Pt = type_of(piece_on(s));
-            std::cout << "piece type: " << piece_on(s) << " type: " << Pt << "\n";
+            //std::cout << "piece type: " << piece_on(s) << " type: " << Pt << "\n";
         }
 
         score += evaluateThreats(c);
@@ -1285,4 +1313,27 @@ void setBBs(
 
     frozen  = bb_frozen;
     moving  = bb_moving;
+}
+
+constexpr Square make_square(File f, Rank r) {
+  return Square((r << 3) + f);
+}
+
+/// Bitboards::pretty() returns an ASCII representation of a bitboard suitable
+/// to be printed to standard output. Useful for debugging.
+
+std::string pretty(Bitboard b) {
+
+  std::string s = "+---+---+---+---+---+---+---+---+\n";
+
+  for (Rank r = RANK_8; r >= RANK_1; r = r - 1)
+  {
+      for (File f = AFILE; f <= HFILE; f = f + 1)
+          s += b & make_square(f, r) ? "| X " : "|   ";
+
+      s += "| " + std::to_string(1 + r) + "\n+---+---+---+---+---+---+---+---+\n";
+  }
+  s += "  a   b   c   d   e   f   g   h\n";
+
+  return s;
 }

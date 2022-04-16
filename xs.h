@@ -1,25 +1,25 @@
-#  define IS_64BIT
-//#  define USE_PEXT
+#  define IS_64BIRank
+//#  define USE_PEXRank
 
 #if defined(_WIN64) && defined(_MSC_VER) // No Makefile used
 #  include <intrin.h> // Microsoft header for _BitScanForward64()
-#  define IS_64BIT
+#  define IS_64BIRank
 #endif
 
-#if defined(USE_PEXT)                                                                                                                                           
+#if defined(USE_PEXRank)                                                                                                                                           
 #  include <immintrin.h> // Header for _pext_u64() intrinsic
 #  define pext(b, m) _pext_u64(b, m)
 #else
 #  define pext(b, m) 0
 #endif
 
-#ifdef USE_PEXT
+#ifdef USE_PEXRank
 constexpr bool HasPext = true;
 #else
 constexpr bool HasPext = false;
 #endif
 
-#ifdef IS_64BIT
+#ifdef IS_64BIRank
 constexpr bool Is64Bit = true;
 #else
 constexpr bool Is64Bit = false;
@@ -28,7 +28,7 @@ constexpr bool Is64Bit = false;
 typedef uint64_t Key;
 typedef uint64_t Bitboard;
 typedef uint16_t Move;
-//typedef long long unsigned int Bitboard;
+//typedef __uint128_t Bitboard4way;
 
 enum Color {
   WHITE, BLACK, COLOR_NB = 2
@@ -150,3 +150,43 @@ constexpr bool opposite_colors(Square s1, Square s2) {
   return (s1 + rank_of(s1) + s2 + rank_of(s2)) & 1;
 }
 
+/*
+#define ENABLE_BASE_OPERATORS_ON(T)                                \
+constexpr T operator+(T d1, int d2) { return T(int(d1) + d2); }    \
+constexpr T operator-(T d1, int d2) { return T(int(d1) - d2); }    \
+constexpr T operator-(T d) { return T(-int(d)); }                  \
+inline T& operator+=(T& d1, int d2) { return d1 = d1 + d2; }       \
+inline T& operator-=(T& d1, int d2) { return d1 = d1 - d2; }
+
+#define ENABLE_INCR_OPERATORS_ON(T)                                \
+inline T& operator++(T& d) { return d = T(int(d) + 1); }           \
+inline T& operator--(T& d) { return d = T(int(d) - 1); }
+
+#define ENABLE_FULL_OPERATORS_ON(T)                                \
+ENABLE_BASE_OPERATORS_ON(T)                                        \
+constexpr T operator*(int i, T d) { return T(i * int(d)); }        \
+constexpr T operator*(T d, int i) { return T(int(d) * i); }        \
+constexpr T operator/(T d, int i) { return T(int(d) / i); }        \
+constexpr int operator/(T d1, T d2) { return int(d1) / int(d2); }  \
+inline T& operator*=(T& d, int i) { return d = T(int(d) * i); }    \
+inline T& operator/=(T& d, int i) { return d = T(int(d) / i); }
+
+ENABLE_FULL_OPERATORS_ON(Value)
+ENABLE_FULL_OPERATORS_ON(Direction)
+
+ENABLE_INCR_OPERATORS_ON(Piece)
+ENABLE_INCR_OPERATORS_ON(PieceType)
+ENABLE_INCR_OPERATORS_ON(Square)
+ENABLE_INCR_OPERATORS_ON(File)
+ENABLE_INCR_OPERATORS_ON(T)
+
+ENABLE_BASE_OPERATORS_ON(Score)
+
+#undef ENABLE_FULL_OPERATORS_ON
+#undef ENABLE_INCR_OPERATORS_ON
+#undef ENABLE_BASE_OPERATORS_ON
+*/
+constexpr Rank operator+(Rank d1, int d2) { return Rank(int(d1) + d2); }
+constexpr Rank operator-(Rank d1, int d2) { return Rank(int(d1) - d2); }
+constexpr File operator+(File d1, int d2) { return File(int(d1) + d2); }
+constexpr File operator-(File d1, int d2) { return File(int(d1) - d2); }

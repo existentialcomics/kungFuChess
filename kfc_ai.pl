@@ -19,6 +19,7 @@ my $domain = shift;
 my $level = shift;
 my $speed = shift;
 my $register = shift;
+my $way = shift // '2way';
 
 if (! $speed) {
     print "usage: perl kfc_ai.pl <user> <password> <domain> <level> <speed> <register?>
@@ -99,8 +100,10 @@ my $aiInterval = AnyEvent->timer(
     cb => sub {
         if ($mode eq 'searchForGame') {
             #$mech->get('/activePlayers?ratingType=standard');
+            my $url = '/ajax/pool/' . $speed . '/' . $way;
+            print "$url\n";
             if (! $uid) {
-                $mech->get('/ajax/pool/' . $speed . '/2way');
+                $mech->get($url);
                 if ($mech->content() =~ m/"uid":"(.+?)"/) {
                     $uid = $1;
                 }
@@ -129,7 +132,7 @@ my $aiInterval = AnyEvent->timer(
                     }
                 }
                 my $cmdAi = sprintf('/usr/bin/perl ./kungFuChessGame%sAi.pl %s %s %s %s %s %s %s %s >%s 2>%s',
-                    '2way',
+                    $way,
                     $gameId,
                     $authToken,
                     ($speed eq 'standard' ? 10 : 1),
