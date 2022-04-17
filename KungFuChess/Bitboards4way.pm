@@ -5,7 +5,6 @@ use strict;
 
 ### same package name as Bitboards so the server doesn't have to know which it is using
 package KungFuChess::Bitboards;
-use Math::BigInt;
 use Math::Int128  qw(uint128 string_to_uint128);
 use Data::Dumper;
 use base 'Exporter';

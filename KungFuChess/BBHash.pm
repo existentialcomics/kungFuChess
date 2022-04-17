@@ -4,7 +4,11 @@ use strict; use warnings;
 package KungFuChess::BBHash;
 use Data::Dumper;
 
-my $way = '4way';
+my $way = '2way';
+
+sub setWay {
+    $way = $_[0];
+}
 
 our %bitboardToSquare4way = (
     '128' => 'c12',
