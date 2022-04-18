@@ -240,6 +240,33 @@ sub setCurrentMoves {
     $currentMoves = $_;
 }
 
+### 4way only, can't capture initial pawn setup
+### to test simply & together fr and to and this
+my $illegalPawnCaptures =
+    FILES_H->{'c'} & RANKS_H->{'2'}  |
+    FILES_H->{'b'} & RANKS_H->{'3'}  |
+
+    FILES_H->{'j'} & RANKS_H->{'2'}  |
+    FILES_H->{'k'} & RANKS_H->{'3'}  |
+
+    FILES_H->{'c'} & RANKS_H->{'11'} |
+    FILES_H->{'b'} & RANKS_H->{'10'} |
+
+    FILES_H->{'j'} & RANKS_H->{'11'} |
+    FILES_H->{'k'} & RANKS_H->{'10'} |
+
+    FILES_H->{'k'} & RANKS_H->{'3'}  |
+    FILES_H->{'j'} & RANKS_H->{'2'}  |
+
+    FILES_H->{'k'} & RANKS_H->{'10'} |
+    FILES_H->{'j'} & RANKS_H->{'11'} |
+
+    FILES_H->{'b'} & RANKS_H->{'3'}  |
+    FILES_H->{'c'} & RANKS_H->{'2'}  |
+
+    FILES_H->{'b'} & RANKS_H->{'10'} |
+    FILES_H->{'c'} & RANKS_H->{'11'} ;
+
 ### similar to stockfish we have multiple bitboards that we intersect
 ### to determine the position of things and state of things.
 ### init all bitboards to zero
@@ -351,11 +378,9 @@ sub resetAiBoards {
 
     if ($color) {
         if ($color == WHITE) {
-            print "WHITE RESET\n";
             $ai_white    = $white;
             $ai_black    = $black | $red | $green;
         } elsif ($color == BLACK) {
-            print "BLACK reset\n";
             $ai_white    = $black;
             $ai_black    = $white | $red | $green;
         } elsif ($color == RED) {
@@ -826,7 +851,6 @@ sub _removePiece {
 
 sub _removeColorByName {
     my $colorName = shift;
-    print "remove by name $colorName\n";
     if ($colorName eq 'white') {
         _removePiece($white);
     } elsif($colorName eq 'black') {
@@ -880,10 +904,7 @@ sub blockers {
     my ($blockingBB, $dirBB, $fromBB, $toBB, $depth) = @_;
 
     while ($fromBB != $toBB) {
-        print "\n\n\n----------------------\n";
-        print prettyBoard($fromBB);
         $fromBB = shift_BB($fromBB, $dirBB);
-        print prettyBoard($fromBB);
         if (! ($fromBB & $movingBB) ){
             if ($fromBB == 0)           { return 0; } ### of the board
             #if ($fromBB >  MAX_BITBOARD){ return 0; } ### of the board
@@ -1023,7 +1044,6 @@ sub clearEnPassant {
 sub isLegalMove {
     my ($fr_bb, $to_bb, $fr_rank, $fr_file, $to_rank, $to_file) = @_;
 
-    print "my ($fr_bb, $to_bb, $fr_rank, $fr_file, $to_rank, $to_file)\n";
     ### TODO can probably figure a faster way to do this
     if (! defined($fr_rank)) {
         for (0 .. 11) {
@@ -1190,47 +1210,9 @@ sub isLegalMove {
             }
         }
         if ($to_bb & (_piecesThem($color) | $enPassant) ){
-            if (($fr_bb & (FILES_H->{'c'} & RANKS_H->{'2'}))
-                && $to_bb & (FILES_H->{'b'} & RANKS_H->{'3'}) 
-            ) {
-                return @noMove;
-            }
-            if (($fr_bb & (FILES_H->{'j'} & RANKS_H->{'2'}))
-                && $to_bb & (FILES_H->{'k'} & RANKS_H->{'3'}) 
-            ) {
-                return @noMove;
-            }
 
-            if (($fr_bb & (FILES_H->{'c'} & RANKS_H->{'11'}))
-                && $to_bb & (FILES_H->{'b'} & RANKS_H->{'10'}) 
-            ) {
-                return @noMove;
-            }
-            if (($fr_bb & (FILES_H->{'j'} & RANKS_H->{'11'}))
-                && $to_bb & (FILES_H->{'k'} & RANKS_H->{'10'}) 
-            ) {
-                return @noMove;
-            }
-
-            if (($fr_bb & (FILES_H->{'k'} & RANKS_H->{'3'}))
-                && $to_bb & (FILES_H->{'j'} & RANKS_H->{'2'}) 
-            ) {
-                return @noMove;
-            }
-            if (($fr_bb & (FILES_H->{'k'} & RANKS_H->{'10'}))
-                && $to_bb & (FILES_H->{'j'} & RANKS_H->{'11'}) 
-            ) {
-                return @noMove;
-            }
-
-            if (($fr_bb & (FILES_H->{'b'} & RANKS_H->{'3'}))
-                && $to_bb & (FILES_H->{'c'} & RANKS_H->{'2'}) 
-            ) {
-                return @noMove;
-            }
-            if (($fr_bb & (FILES_H->{'b'} & RANKS_H->{'10'}))
-                && $to_bb & (FILES_H->{'c'} & RANKS_H->{'11'}) 
-            ) {
+            ### 4way only, corners cant capture on init setup
+            if (($fr_bb & $illegalPawnCaptures) && ($to_bb & $illegalPawnCaptures)) {
                 return @noMove;
             }
             
@@ -1275,9 +1257,6 @@ sub isLegalMove {
         return _legalRooks($fr_rank, $fr_file, $to_rank, $to_file, $fr_bb, $to_bb, $color);
     }
     if ($fr_bb & $bishops) {
-        print "moving bishop to:\n";
-        print prettyBoard($fr_bb);
-        print prettyBoard($to_bb);
         return _legalBishops($fr_rank, $fr_file, $to_rank, $to_file, $fr_bb, $to_bb, $color);
     }
     if ($fr_bb & $queens) {
@@ -1336,7 +1315,6 @@ sub _legalRooks {
 
 sub _legalBishops {
     my ($fr_rank, $fr_file, $to_rank, $to_file, $fr_bb, $to_bb, $color) = @_;
-    print " ($fr_rank, $fr_file, $to_rank, $to_file, $fr_bb, $to_bb, $color)\n";
 
     if ($fr_rank == $to_rank || $fr_file == $to_file) {
         return (NO_COLOR, MOVE_NONE, DIR_NONE, $fr_bb, $to_bb);
@@ -1366,7 +1344,6 @@ sub _piecesUs {
     return 0;
 }
 sub _piecesThem {
-    print "inside pieces them: $_[0]: \n";
     if ($_[0] == WHITE) { return $black | $green | $red; }
     if ($_[0] == BLACK) { return $white | $green | $red; }
     if ($_[0] == RED)   { return $white | $black | $green; }
@@ -1503,6 +1480,9 @@ sub moveStep {
 ### returns 1 for normal, 0 for killed
 sub move {
     my ($fr_bb, $to_bb) = @_;
+
+    strToInt($fr_bb);
+    strToInt($to_bb);
 
     if (! ($fr_bb & $occupied)) {
         return 0;
@@ -1935,6 +1915,22 @@ sub evaluate {
             ### TODO rotate for red/green
             my $sq_f = $f;
             my $sq_r = $color == WHITE ? $r : 11 - $r;
+            my $sq_f;
+            my $sq_r;
+
+            if ($color == WHITE) {
+                $sq_f = $f;
+                $sq_r = $r;
+            } elsif ($color == BLACK) {
+                $sq_f = $f;
+                $sq_r = 11 - $r;
+            } elsif ($color == RED) {
+                $sq_f = 11 - $r;
+                $sq_r = 11 - $f;
+            } elsif ($color == GREEN) {
+                $sq_f = $r;
+                $sq_r = $f;
+            }
 
             $squareBonus[$color] += S($SQ_BONUS->[$pieceType]->[$sq_r]->[$sq_f]);
 
@@ -2078,16 +2074,22 @@ sub evaluate {
                         undef, # attackedBy
                     ];
                 }
-                $to = shift_BB($fr, $pawnDir + WEST);
+                $to = shift_BB($fr, $pawnDir + ($pawnDir == NORTH || $pawnDir == SOUTH ? WEST : NORTH));
+                ### 4way only, corners cant capture on init setup
+                ### ! $to shows up on corner cases sometimes too
+                if ((($fr & $illegalPawnCaptures) && ($to & $illegalPawnCaptures)) || ! $to) {
+                    next;
+                }
+
                 $attackedBy[$color]->[$pieceType] |= $to;
-                $attackedBy[$color]->[ALL_PIECES]      |= $to;
+                $attackedBy[$color]->[ALL_PIECES] |= $to;
                 $attackedBy2[$color] |= ($to & $attackedBy[$color]->[ALL_PIECES]);
                 if ($frozen) {
                     $attackedByFrozen[$color]->[$pieceType] |= $to;
-                    $attackedByFrozen[$color]->[ALL_PIECES]      |= $to;
+                    $attackedByFrozen[$color]->[ALL_PIECES] |= $to;
                 } else {
                     $attackedByUnFrozen[$color]->[$pieceType] |= $to;
-                    $attackedByUnFrozen[$color]->[ALL_PIECES]      |= $to;
+                    $attackedByUnFrozen[$color]->[ALL_PIECES] |= $to;
                 }
                 if (($to & $them) && ! $frozen) {
                     push @{$moves[$color]}, [
@@ -2099,7 +2101,10 @@ sub evaluate {
                         undef, # attackedBy
                     ];
                 }
-                $to = shift_BB($fr, $pawnDir + EAST);
+                $to = shift_BB($fr, $pawnDir + ($pawnDir == NORTH || $pawnDir == SOUTH ? EAST : SOUTH));
+                if ((($fr & $illegalPawnCaptures) && ($to & $illegalPawnCaptures)) || ! $to) {
+                    next;
+                }
                 $attackedBy[$color]->[$pieceType] |= $to;
                 $attackedBy[$color]->[ALL_PIECES]      |= $to;
                 $attackedBy2[$color] |= ($to & $attackedBy[$color]->[ALL_PIECES]);
@@ -2281,9 +2286,7 @@ sub aiThink {
 
     $aiDebugEvalCount = 0;
     if (! $currentMoves) {
-        #print "doing eval\n";
         ($aiScore, $currentMoves, $totalMaterial, $attackedBy) = evaluate();
-        #print "eval score: $aiScore\n";
     }
 
     my $currentDepth = $depth;
@@ -2309,26 +2312,37 @@ sub aiThink {
 
 sub aiRecommendMoves {
     my $color = shift;
-    my $maxMoves = shift // 1;
+    my $maxMovesBreadth  = shift // 1;
+    my $maxMovesDepth    = shift // 1;
     my $randomSkipChance = shift // 0; ### to sometimes select worse moves
 
-    #print "colr: $color, $maxMoves\n";
     if (! $currentMoves) { return undef; }
 
     my @myMoves = ();
 
-    my $move = $currentMoves->[$color][0];
-    push @myMoves, [ $move->[MOVE_FR], $move->[MOVE_TO], 0, 0, $move->[MOVE_SCORE] ];
+    foreach my $breadth (0 .. $maxMovesBreadth) {
+        if (rand() < $randomSkipChance) { $maxMovesBreadth++; next; }
 
-    foreach my $depth (0 .. $maxMoves) {
-        if (rand() < $randomSkipChance) { next; }
-        #print " --- $depth * $maxMoves\n";
-        if (! defined($move->[MOVE_NEXT_MOVES])){ last; }
-        $move = $move->[MOVE_NEXT_MOVES]->[$color]->[0];
-        if (defined($move->[MOVE_SCORE])) {
+        my $move = $currentMoves->[$color][$breadth];
+        if (! defined($move)) { last; }
+        if (! defined($move->[MOVE_SCORE])) { next; }
+        push @myMoves, [ $move->[MOVE_FR], $move->[MOVE_TO], 0, 0, $move->[MOVE_SCORE] ];
+
+        foreach my $depth (0 .. $maxMovesDepth) {
+            my $moveSelect = 0;
+            while (rand() < $randomSkipChance && $moveSelect < 5) {
+                $moveSelect++;
+            }
+            if (! defined($move->[MOVE_NEXT_MOVES])){ last; }
+            $move = $move->[MOVE_NEXT_MOVES]->[$color]->[$moveSelect];
+
+            if (! defined($move)) { last; }
+            if (! defined($move->[MOVE_SCORE])) { last; }
+
             push @myMoves, [ $move->[MOVE_FR], $move->[MOVE_TO], 0, 0, $move->[MOVE_SCORE] ];
         }
     }
+
     return \@myMoves;
 }
 
@@ -2343,7 +2357,7 @@ sub recommendMoveForBB {
 
     my $distancePenalty = 5;
 
-    my $occupiedColor = occupiedColor($bb + 0);
+    my $occupiedColor = occupiedColor(strToInt($bb));
     ### dodge
     if ($color == $occupiedColor) {
         my $bestScore = ($color == $aiColor ? AI_NEG_INFINITY : AI_INFINITY);
@@ -2783,7 +2797,7 @@ sub _putPiece_ai {
     my $p  = shift;
     my $BB = shift;
 
-    $BB = $BB + 0;
+    strToInt($BB);
 
     $ai_occupied |= $BB;
     if ($p == BLACK_PAWN) {
@@ -2863,6 +2877,12 @@ sub printBBSquares {
             }
         }
     }
+}
+
+### ensures messages passed in are ints
+#
+sub strToInt {
+    $_[0] = uint128($_[0]);
 }
 
 1;

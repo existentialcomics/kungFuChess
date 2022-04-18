@@ -18,6 +18,7 @@
                 <div class="btn-group d-flex" role="group" aria-label="Piece Speed">
                     <input type="range" class="form-range" min="1" max="10" id="pieceSpeedRange" value="10" name="pieceSpeed" disabled>
                 </div>
+
                 <label for="gameType" class="col col-form-label col-form-label-lg">Number of Players</label>
                 <div class="btn-group d-flex" role="group" aria-label="Board type">
                     <input type="radio" class="btn-check" name="gameType" id="2wayRadio" autocomplete="off" value="2way" checked>
@@ -25,6 +26,7 @@
                     <input type="radio" class="btn-check" name="gameType" id="4wayRadio" autocomplete="off" value="4way">
                     <label class="btn btn-outline-primary" for="4wayRadio">4way</label>
                 </div>
+
                 <label for="Rated" class="col col-form-label col-form-label-lg">Rated</label>
                 <div class="btn-group d-flex" role="group" aria-label="Rated">
                     <input type="radio" class="btn-check" name="gameMode" id="ratedRadio" autocomplete="off" value="rated"

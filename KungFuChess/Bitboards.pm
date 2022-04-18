@@ -293,7 +293,7 @@ my $human_to_bb = {
 };
 
 sub getBBfromSquare {
-    return $human_to_bb->{$_[0]} + 0;
+    return strToInt($human_to_bb->{$_[0]});
 }
 
 my $isEndgame = 0;
@@ -1150,7 +1150,7 @@ sub _putPiece_ai {
     my $p  = shift;
     my $BB = shift;
 
-    $BB = $BB + 0;
+    strToInt($BB);
 
     $ai_occupied |= $BB;
     if ($p == BLACK_PAWN) {
@@ -2065,26 +2065,37 @@ sub aiThink {
 
 sub aiRecommendMoves {
     my $color = shift;
-    my $maxMoves = shift // 1;
+    my $maxMovesBreadth  = shift // 1;
+    my $maxMovesDepth    = shift // 1;
     my $randomSkipChance = shift // 0; ### to sometimes select worse moves
 
-    #print "colr: $color, $maxMoves\n";
     if (! $currentMoves) { return undef; }
 
     my @myMoves = ();
 
-    my $move = $currentMoves->[$color][0];
-    push @myMoves, [ $move->[MOVE_FR], $move->[MOVE_TO], 0, 0, $move->[MOVE_SCORE] ];
+    foreach my $breadth (0 .. $maxMovesBreadth) {
+        if (rand() < $randomSkipChance) { $maxMovesBreadth++; next; }
 
-    foreach my $depth (0 .. $maxMoves) {
-        if (rand() < $randomSkipChance) { next; }
-        #print " --- $depth * $maxMoves\n";
-        if (! defined($move->[MOVE_NEXT_MOVES])){ last; }
-        $move = $move->[MOVE_NEXT_MOVES]->[$color]->[0];
-        if (defined($move->[MOVE_SCORE])) {
+        my $move = $currentMoves->[$color][$breadth];
+        if (! defined($move)) { last; }
+        if (! defined($move->[MOVE_SCORE])) { next; }
+        push @myMoves, [ $move->[MOVE_FR], $move->[MOVE_TO], 0, 0, $move->[MOVE_SCORE] ];
+
+        foreach my $depth (0 .. $maxMovesDepth) {
+            my $moveSelect = 0;
+            while (rand() < $randomSkipChance && $moveSelect < 5) {
+                $moveSelect++;
+            }
+            if (! defined($move->[MOVE_NEXT_MOVES])){ last; }
+            $move = $move->[MOVE_NEXT_MOVES]->[$color]->[$moveSelect];
+
+            if (! defined($move)) { last; }
+            if (! defined($move->[MOVE_SCORE])) { last; }
+
             push @myMoves, [ $move->[MOVE_FR], $move->[MOVE_TO], 0, 0, $move->[MOVE_SCORE] ];
         }
     }
+
     return \@myMoves;
 }
 
@@ -2099,7 +2110,7 @@ sub recommendMoveForBB {
 
     my $distancePenalty = 5;
 
-    my $occupiedColor = occupiedColor($bb + 0);
+    my $occupiedColor = occupiedColor(strToInt($bb));
     ### dodge
     if ($color == $occupiedColor) {
         my $bestScore = ($color == $aiColor ? AI_NEG_INFINITY : AI_INFINITY);
@@ -2467,6 +2478,12 @@ sub pop_lsb {
     $_[0] &= $_[0] - 1;
     $s &= ~$_[0];
     return $s;
+}
+
+### ensures messages passed in are ints
+#
+sub strToInt {
+    $_[0] += 0;
 }
 
 

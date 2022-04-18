@@ -12,7 +12,8 @@
                     <input type="radio" class="btn-check" name="gameSpeed" id="aiLightningRadio" autocomplete="off" value="lightning">
                     <label class="btn btn-outline-primary" for="aiLightningRadio">Lightning</label>
                 </div>
-                <label for="gameType" class="col col-form-label col-form-label-lg">AI Difficulty</label>
+
+                <label for="gameMode" class="col col-form-label col-form-label-lg">AI Difficulty</label>
                 <div class="btn-group d-flex" role="group" aria-label="AI Difficulty">
                     <input type="radio" class="btn-check text-light" name="gameMode" id="ai-easy" autocomplete="off" value="ai-easy">
                     <label class="btn btn-outline-primary" for="ai-easy">Easy</label>
@@ -21,8 +22,15 @@
                     <input type="radio" class="btn-check text-light" name="gameMode" id="ai-hard" autocomplete="off" value="ai-hard">
                     <label class="btn btn-outline-primary" for="ai-hard">Hard</label>
                 </div>
+
+                <label for="gameType" class="col col-form-label col-form-label-lg">Number of Players</label>
+                <div class="btn-group d-flex" role="group" aria-label="Board type">
+                    <input type="radio" class="btn-check" name="gameType" id="ai-2wayRadio" autocomplete="off" value="2way" checked>
+                    <label class="btn btn-outline-primary" for="ai-2wayRadio">2way</label>
+                    <input type="radio" class="btn-check" name="gameType" id="ai-4wayRadio" autocomplete="off" value="4way">
+                    <label class="btn btn-outline-primary" for="ai-4wayRadio">4way</label>
+                </div>
             </div>
-            <input type="hidden" name="gameType" value="2way">
             <input type="hidden" name="open" value="1">
             <div class="d-grid gap-2 pt-3">
                 <button type="submit" class="btn btn-primary text-light" id='createAiGameSubmit'>Create Game</button>

@@ -10,6 +10,7 @@ use Data::Dumper;
 
 use KungFuChess::Bitboards4way;
 use KungFuChess::BBHash;
+KungFuChess::BBHash::setWay('4way');
 
 my $fen = shift;
 my $frozenIn = shift;
@@ -95,7 +96,7 @@ while ($go) {
     } elsif ($input =~ m/^(white|black)$/) {
         my $cIn = $1;
         my $color = ($cIn =~ 'white' ? 1 : 2);
-        my $suggestedMoves = KungFuChess::Bitboards::aiRecommendMoves($color, 999);
+        my $suggestedMoves = KungFuChess::Bitboards::aiRecommendMoves($color, 2, 2, 0.5);
         foreach my $move (@$suggestedMoves) {
             print "moving...";
             print KungFuChess::BBHash::getSquareFromBB($move->[0]);
@@ -113,8 +114,8 @@ while ($go) {
         print KungFuChess::Bitboards::pretty_ai();
         my ($score, $moves, $totalMaterial, $attackedBy) =
             KungFuChess::Bitboards::aiThink($depth, $time, 1);
-        my $suggestedMoves = KungFuChess::Bitboards::aiRecommendMoves(1, 999);
-        print Dumper($suggestedMoves);
+        my $color = 1;
+        my $suggestedMoves = KungFuChess::Bitboards::aiRecommendMoves($color, 2, 2, 0.5);
 
         print "---- white ----\n";
         KungFuChess::BBHash::displayMoves($moves, 1, $score, undef, undef, undef);

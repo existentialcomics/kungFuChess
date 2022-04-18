@@ -12,6 +12,7 @@ use IPC::Open2;
 use Config::Simple;
 use Time::HiRes qw(time);
 use Data::Dumper;
+use KungFuChess::BBHash;
 
 ### taken from Chess::Rep
 ### can't use the whole lib because of chess specific rules like check
@@ -237,6 +238,16 @@ sub handleMessage {
     my $self = shift;
     my ($msg, $conn) = @_;
 
+    if ($msg->{fr_bb}) {
+        KungFuChess::Bitboards::strToInt($msg->{fr_bb});
+    }
+    if ($msg->{to_bb}) {
+        KungFuChess::Bitboards::strToInt($msg->{to_bb});
+    }
+    if ($msg->{bb}) {
+        KungFuChess::Bitboards::strToInt($msg->{bb});
+    }
+
     if ($msg->{c} eq 'join'){
         $self->sendAllGamePieces($msg->{connId});
     } elsif ($msg->{c} eq 'cancelPremove'){
@@ -367,7 +378,7 @@ sub send {
     ### this ensures bitboards are sent as strings
     #   some BB are too big for javascript and will
     #   get rounded off by floating point storage!
-    if ($msg->{'bb'})    { $msg->{'bb'} = "$msg->{'bb'}";       }
+    if ($msg->{'bb'})    { $msg->{'bb'}    = "$msg->{'bb'}";       }
     if ($msg->{'fr_bb'}) { $msg->{'fr_bb'} = "$msg->{'fr_bb'}"; }
     if ($msg->{'to_bb'}) { $msg->{'to_bb'} = "$msg->{'to_bb'}"; }
 
@@ -483,6 +494,7 @@ sub moveIfLegal {
         return 0;
     }
 
+    print "c vs cb: $color vs $colorbit\n";
     if ($color ne 'both') {
         if ($color eq 'white' && $colorbit != 1) {
             return 0;
@@ -512,7 +524,6 @@ sub moveIfLegal {
             $self->send($msg);
         }
         my $next_fr_bb = 0;
-        #print KungFuChess::Bitboards::pretty();
 
         # something else has deleted our active move marker, probably because the piece was killed.
         # so we cannot proceed or strange things will happen!
@@ -559,6 +570,7 @@ sub moveIfLegal {
                 $moving_to_bb = KungFuChess::Bitboards::shift_BB($fr_bb, $dir);
             }
 
+
             ### TODO replace this with a perfect hash of all 64 bb destinations
             ### only check this if the moving bitboard is occupied.
             ### if the piece is ours, stop here.
@@ -583,7 +595,6 @@ sub moveIfLegal {
                     } else {
                         $self->killPieceBB($moving_to_bb, $colorbit, 1);
 
-                        KungFuChess::Bitboards::move($fr_bb, $moving_to_bb);
                         my $msgStep = {
                             'c' => 'authmovestep',
                             'color'  => $colorbit,
@@ -755,22 +766,13 @@ sub moveIfLegal {
 
             my $rook_moving_to = 0;
             if ($colorbit == KungFuChess::Bitboards::WHITE || $colorbit == KungFuChess::Bitboards::BLACK) {
-                ### 4way bitboards are messed up and EAST and WEST are switched. Actually seems to effect nothing else.
-                if ($self->{gameType} eq '4way') {
-                    $rook_moving_to = KungFuChess::Bitboards::shift_BB($fr_bb, KungFuChess::Bitboards::WEST);
-                } else {
-                    $rook_moving_to = KungFuChess::Bitboards::shift_BB($fr_bb, KungFuChess::Bitboards::EAST);
-                }
+                $rook_moving_to = KungFuChess::Bitboards::shift_BB($fr_bb, KungFuChess::Bitboards::EAST);
             } else {
                 $rook_moving_to = KungFuChess::Bitboards::shift_BB($fr_bb, KungFuChess::Bitboards::SOUTH);
             }
             my $king_moving_to = 0;
             if ($colorbit == KungFuChess::Bitboards::WHITE || $colorbit == KungFuChess::Bitboards::BLACK) {
-                if ($self->{gameType} eq '4way') {
-                    $king_moving_to = KungFuChess::Bitboards::shift_BB($to_bb, KungFuChess::Bitboards::EAST);
-                } else {
-                    $king_moving_to = KungFuChess::Bitboards::shift_BB($to_bb, KungFuChess::Bitboards::WEST);
-                }
+                $king_moving_to = KungFuChess::Bitboards::shift_BB($to_bb, KungFuChess::Bitboards::WEST);
             } else {
                 $king_moving_to = KungFuChess::Bitboards::shift_BB($to_bb, KungFuChess::Bitboards::NORTH);
             }
@@ -787,13 +789,13 @@ sub moveIfLegal {
             };
             $self->send($msgSus2);
             $timer = AnyEvent->timer(
-                after => $self->{$colorbit}->{pieceSpeed} * 2,
+                after => $self->{$colorbit}->{pieceSpeed},
                 cb => sub {
                     $func->($self, $func, $fr_bb, $king_moving_to, $dir, $startTime, $moveType, $piece, $colorbit, $restartAnimation);
                 }
             );
             $timer2 = AnyEvent->timer(
-                after => $self->{$colorbit}->{pieceSpeed} * 2,
+                after => $self->{$colorbit}->{pieceSpeed},
                 cb => sub {
                     $func->($self, $func, $fr_bb, $rook_moving_to, $dir, $startTime, $moveType, $pieceTo, $colorbit, $restartAnimation);
                 }
@@ -808,27 +810,15 @@ sub moveIfLegal {
 
             my $rook_moving_to = 0;
             if ($colorbit == KungFuChess::Bitboards::WHITE || $colorbit == KungFuChess::Bitboards::BLACK) {
-                ### 4way bitboards are messed up and EAST and WEST are switched. Actually seems to effect nothing else.
-                if ($self->{gameType} eq '4way') {
-                    $rook_moving_to = KungFuChess::Bitboards::shift_BB($fr_bb, KungFuChess::Bitboards::EAST);
-                } else {
-                    $rook_moving_to = KungFuChess::Bitboards::shift_BB($fr_bb, KungFuChess::Bitboards::WEST);
-                }
+                $rook_moving_to = KungFuChess::Bitboards::shift_BB($fr_bb, KungFuChess::Bitboards::WEST);
             } else {
                 $rook_moving_to = KungFuChess::Bitboards::shift_BB($fr_bb, KungFuChess::Bitboards::NORTH);
             }
             my $king_moving_to = 0;
             if ($colorbit == KungFuChess::Bitboards::WHITE || $colorbit == KungFuChess::Bitboards::BLACK) {
-                ### 4way bitboards are messed up and EAST and WEST are switched. Actually seems to effect nothing else.
-                if ($self->{gameType} eq '4way') {
-                    $king_moving_to = KungFuChess::Bitboards::shift_BB(
-                        KungFuChess::Bitboards::shift_BB($to_bb, KungFuChess::Bitboards::WEST),
-                        KungFuChess::Bitboards::WEST);
-                } else {
-                    $king_moving_to = KungFuChess::Bitboards::shift_BB(
-                        KungFuChess::Bitboards::shift_BB($to_bb, KungFuChess::Bitboards::EAST),
-                        KungFuChess::Bitboards::EAST);
-                }
+                $king_moving_to = KungFuChess::Bitboards::shift_BB(
+                    KungFuChess::Bitboards::shift_BB($to_bb, KungFuChess::Bitboards::EAST),
+                    KungFuChess::Bitboards::EAST);
             } else {
                 $king_moving_to = KungFuChess::Bitboards::shift_BB(
                     KungFuChess::Bitboards::shift_BB($to_bb, KungFuChess::Bitboards::SOUTH),
@@ -847,13 +837,13 @@ sub moveIfLegal {
             };
             $self->send($msgSus2);
             $timer = AnyEvent->timer(
-                after => $self->{$colorbit}->{pieceSpeed} * 2,
+                after => $self->{$colorbit}->{pieceSpeed},
                 cb => sub {
                     $func->($self, $func, $fr_bb, $king_moving_to, $dir, $startTime, $moveType, $piece, $colorbit, $restartAnimation);
                 }
             );
             $timer2 = AnyEvent->timer(
-                after => $self->{$colorbit}->{pieceSpeed} * 2,
+                after => $self->{$colorbit}->{pieceSpeed},
                 cb => sub {
                     $func->($self, $func, $fr_bb, $rook_moving_to, $dir, $startTime, $moveType, $pieceTo, $colorbit, $restartAnimation);
                 }
