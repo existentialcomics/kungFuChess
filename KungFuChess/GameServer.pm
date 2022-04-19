@@ -595,6 +595,7 @@ sub moveIfLegal {
                     } else {
                         $self->killPieceBB($moving_to_bb, $colorbit, 1);
 
+                        KungFuChess::Bitboards::move($fr_bb, $moving_to_bb);
                         my $msgStep = {
                             'c' => 'authmovestep',
                             'color'  => $colorbit,
@@ -622,7 +623,6 @@ sub moveIfLegal {
                     ### double pawn moves always stop if they hit something, even enemy
                     ### AND we don't move!
                     if ($moveType == KungFuChess::Bitboards::MOVE_DOUBLE_PAWN) {
-                        print "move double pawn should stop hit enemey\n";
                         $shouldStop = 2; ### 2 means stop now...
                     } else {
                         # 2nd arg is for isSweep, technically if we don't stop here it's a sweep
