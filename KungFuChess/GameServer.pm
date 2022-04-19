@@ -194,7 +194,6 @@ sub _init {
         my $msg = {
            'c' => 'authjoin',
         };
-        print "sending authjoin...\n";
         $self->send($msg);
 
         $self->setupInitialBoard();
@@ -494,7 +493,6 @@ sub moveIfLegal {
         return 0;
     }
 
-    print "c vs cb: $color vs $colorbit\n";
     if ($color ne 'both') {
         if ($color eq 'white' && $colorbit != 1) {
             return 0;
@@ -537,7 +535,7 @@ sub moveIfLegal {
             &&
             (! defined($self->{activeMoves}->{$fr_bb}) || $self->{activeMoves}->{$fr_bb}->{to_bb} != $to_bb)
         ) {
-            print "undefined activeMove someone killed us\n";
+            warn "undefined activeMove someone killed us\n";
             return undef;
         }
         # remove the active move from the old space
@@ -576,7 +574,7 @@ sub moveIfLegal {
             ### if the piece is ours, stop here.
             my $usColor   = KungFuChess::Bitboards::occupiedColor($fr_bb);
             if ($usColor == 0) {
-                print "trying to move a piece that doesn't exist!\n";
+                warn "trying to move a piece that doesn't exist!\n";
                 return 0;
             }
             my $themColor = KungFuChess::Bitboards::occupiedColor($moving_to_bb);
@@ -886,7 +884,7 @@ sub moveIfLegal {
                             );
                         }
                     } else {
-                        print " new piece?\n";
+                        warn " new piece?\n";
                     }
                 }
             );
