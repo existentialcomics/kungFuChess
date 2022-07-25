@@ -190,3 +190,93 @@ constexpr Rank operator+(Rank d1, int d2) { return Rank(int(d1) + d2); }
 constexpr Rank operator-(Rank d1, int d2) { return Rank(int(d1) - d2); }
 constexpr File operator+(File d1, int d2) { return File(int(d1) + d2); }
 constexpr File operator-(File d1, int d2) { return File(int(d1) - d2); }
+
+
+//***************************************************************
+// Eval constants
+
+const int E_PAWN_VALUE = 1;
+const int E_KNIGHT_VALUE = 3;
+const int E_BISHOP_VALUE = 3;
+const int E_ROOK_VALUE = 5;
+const int E_QUEEN_VALUE = 7;
+const int E_KING_VALUE = 999;
+
+constexpr Square make_square(File f, Rank r) {
+  return Square((r << 3) + f);
+}
+
+constexpr Square from_sq(Move m) {
+  return Square((m >> 6) & 0x3F);
+}
+
+constexpr Square to_sq(Move m) {
+  return Square(m & 0x3F);
+}
+
+constexpr int from_to(Move m) {
+ return m & 0xFFF;
+}
+
+constexpr bool is_ok(Square s) {
+  return s >= SQ_A1 && s <= SQ_H8;
+}
+//constexpr bool is_ok(Move m) {
+  //return from_sq(m) != to_sq(m); // Catch MOVE_NULL and MOVE_NONE
+//}
+
+std::string pretty(Bitboard b) {
+
+  std::string s = "+---+---+---+---+---+---+---+---+\n";
+
+  for (Rank r = RANK_8; r >= RANK_1; r = r - 1)
+  {
+      for (File f = AFILE; f <= HFILE; f = f + 1)
+          s += b & make_square(f, r) ? "| X " : "|   ";
+
+      s += "| " + std::to_string(1 + r) + "\n+---+---+---+---+---+---+---+---+\n";
+  }
+  s += "  a   b   c   d   e   f   g   h\n";
+
+  return s;
+}
+
+std::string pretty() {
+
+  std::string s = "+---+---+---+---+---+---+---+---+\n";
+
+  for (Rank r = RANK_8; r >= RANK_1; r = r - 1)
+  {
+      for (File f = AFILE; f <= HFILE; f = f + 1) {
+          Square sq = make_square(f, r);
+          //if (sq & byTypeBB[PAWN]) {
+              //s += "| p ";
+          //} else if (sq & byTypeBB[ROOK]) {
+              //s += "| r ";
+          //} else if (sq & byTypeBB[QUEEN]) {
+              //s += "| q ";
+          //} else if (sq & byTypeBB[KING]) {
+              //s += "| k ";
+          //} else if (sq & byTypeBB[BISHOP]) {
+              //s += "| b ";
+          //} else if (sq & byTypeBB[KNIGHT]) {
+              //s += "| n ";
+          //} else {
+              s += "|   ";
+          //}
+      }
+
+      s += "| " + std::to_string(1 + r) + "\n+---+---+---+---+---+---+---+---+\n";
+  }
+  s += "  a   b   c   d   e   f   g   h\n";
+
+  return s;
+}
+
+std::string pretty(Square s) {
+    return pretty(square_bb(s));
+}
+
+std::string pretty(Move m) {
+    return pretty(from_sq(m) | to_sq(m));
+}

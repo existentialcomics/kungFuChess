@@ -11,8 +11,10 @@
 #include "xs.h"
 //#include <pre/json/to_json.hpp>
 
-namespace chess_xs {
+bool debug = false;
+int totalEvals = 0;
 
+namespace chess_xs {
 
 //Inverts the color (WHITE -> BLACK) and (BLACK -> WHITE)
 constexpr Color operator~(Color c) {
@@ -275,6 +277,10 @@ constexpr PieceType type_of(Piece pc) {
   return PieceType(pc & 7);
 }
 
+inline Color color_of(Piece pc) {
+  return Color(pc >> 3);
+}
+
 Bitboard PAWN_ATTACKS[COLOR_NB][NSQUARES];
 Bitboard PSEUDO_LEGAL_ATTACKS[PIECE_TYPE_NB][NSQUARES];
 
@@ -322,7 +328,6 @@ Bitboard MAGIC_BSF = 0x03f79d71b4cb0a89;
  * @return index (0..63) of least significant one bit
  */
 int bitScanForward(Bitboard bb) {
-   assert (bb != 0);
    return index64[((bb & -bb) * MAGIC_BSF) >> 58];
 }
 
@@ -583,25 +588,6 @@ int distanceFile(Square x, Square y) { return std::abs(file_of(x) - file_of(y));
 int distanceRank(Square x, Square y) { return std::abs(rank_of(x) - rank_of(y)); }
 int distanceSquare(Square x, Square y) { return SquareDistance[x][y]; }
 
-//constexpr Square from_sq(Move m) {
-  //return Square((m >> 6) & 0x3F);
-//}
-
-//constexpr Square to_sq(Move m) {
-  //return Square(m & 0x3F);
-//}
-
-//constexpr int from_to(Move m) {
- //return m & 0xFFF;
-//}
-
-constexpr bool is_ok(Square s) {
-  return s >= SQ_A1 && s <= SQ_H8;
-}
-//constexpr bool is_ok(Move m) {
-  //return from_sq(m) != to_sq(m); // Catch MOVE_NULL and MOVE_NONE
-//}
-
 inline int edge_distance(File f) { return std::min(f, File(HFILE - f)); }
 inline int edge_distance(Rank r) { return std::min(r, Rank(RANK_8 - r)); }
 
@@ -683,12 +669,17 @@ Bitboard pawn_attacks(Color C, Bitboard p) {
 }
 
 //Bitboard pawn_attacks(Color C) {
-    //return pawn_attacks(C, PAWN_BB[C]);
+    //return pawn_attacks(C, pieces(C));
 //}
 
 //Returns a bitboard containing pawn attacks from the pawn on the given square
 Bitboard pawn_attacks(Color C, Square s) {
     return PAWN_ATTACKS[C][s];
+}
+
+//Returns a bitboard containing pawn attacks from the pawn on the given square
+Bitboard knight_attacks(Square s) {
+    return KNIGHT_ATTACKS[s];
 }
 
 //Returns a bitboard containing pawn attacks from the pawn on the given square
@@ -849,15 +840,7 @@ void initialise_all_databases() {
 	initialise_line();
 	initialise_pseudo_legal();
 }
-Bitboard pawns   = 0x0;
-Bitboard knights = 0x0;
-Bitboard bishops = 0x0;
-Bitboard rooks   = 0x0;
-Bitboard queens  = 0x0;
-Bitboard kings   = 0x0;
 
-Bitboard white  = 0x0;
-Bitboard black  = 0x0;
 Bitboard frozen = 0x0;
 Bitboard moving = 0x0;
 
@@ -936,116 +919,21 @@ const int MOVE_DISTANCE = 3;
 // technically you can have more than 195 legal moves but whatever
 typedef int (*MoveList)[195][5] ;
 
+
 Piece board[65];
 int moveSpot = 0;
-std::vector<Move> moveArray(195);
+std::vector<Move> moveArray(0);
 
 Piece piece_on(Square sq) {
     return board[sq];
 }
 
 Move getNextMove() {
-    std::cout << "getNextMove\n";
     if (moveSpot >= moveArray.size()) {
         return 0;
     } else {
         moveSpot++;
         return moveArray[moveSpot];
-    }
-
-}
-
-// similar to Evaluation::pieces() in stockfish
-void setAllMoves() {
-
-    moveSpot = 0;
-    std::cout << "getAllMoves()";
-    std::cout << "\n";
-    for (Color c : { WHITE, BLACK }) {
-        std::cout << "color: " << c << "\n";
-
-        Bitboard b = 0x0;
-
-        Color Us   =  c;
-        Color Them = ~c;
-
-        //*********************** pawns
-        b = PAWN_BB[c];
-        std::cout << "pawn bb: " << b << "\n";
-        while (Square sq = pop_lsb(b)) {
-            std::cout << "  pawn sq: " << sq << "\n";
-            Bitboard myMoves = pawn_attacks(Us, sq);
-            Piece piece = make_piece(c, PAWN);
-            // TODO how does this work? attacks only?
-            PAWN_ATTACKERS[Us] |= myMoves;
-            board[sq] = piece;
-            while (Square sq_to = pop_lsb(myMoves)) {
-                Move m = make_move(sq, sq_to, QUIET);
-                moveArray.push_back(m);
-            }
-        }
-        
-        //*********************** kings
-        b = KING_BB[c];
-        std::cout << "king bb: " << b << "\n";
-        while (Square sq = pop_lsb(b)) {
-            std::cout << "  king sq: " << sq << "\n";
-            Bitboard myMoves = king_attacks(sq);
-            Piece piece = make_piece(c, KING);
-            board[sq] = piece;
-            while (Square sq_to = pop_lsb(myMoves)) {
-                Move m = make_move(sq, sq_to, QUIET);
-                moveArray.push_back(m);
-            }
-        }
-        
-        //*********************** bishops
-        b = BISHOP_BB[c];
-        std::cout << "bish bb: " << b << "\n";
-        while (Square sq = pop_lsb(b)) {
-            std::cout << "  bish sq: " << sq << "\n";
-            Bitboard att_bb = get_bishop_attacks(sq, white & black);
-            PIECE_ATTACKERS[Us] |= att_bb;
-            std::cout << "bish att: " << att_bb << "\n";
-            Piece piece = make_piece(c, BISHOP);
-            board[sq] = piece;
-            while (Square sq_to = pop_lsb(att_bb)) {
-                Move m = make_move(sq, sq_to, QUIET);
-                moveArray.push_back(m);
-            }
-        }
-        
-        //*********************** rooks
-        b = ROOK_BB[c];
-        std::cout << "rook bb: " << b << "\n";
-        while (Square sq = pop_lsb(b)) {
-            std::cout << "  rook sq: " << sq << "\n";
-            Bitboard att_bb = get_rook_attacks(sq, white & black);
-            std::cout << "rook att: " << att_bb << "\n";
-            ROOK_ATTACKERS[Us] |= att_bb;
-            Piece piece = make_piece(c, ROOK);
-            board[sq] = piece;
-            while (Square sq_to = pop_lsb(att_bb)) {
-                Move m = make_move(sq, sq_to, QUIET);
-                moveArray.push_back(m);
-            }
-        }
-    
-        //*********************** queens
-        std::cout << "queen bb: " << b << "\n";
-        b = QUEEN_BB[c];
-        while (Square sq = pop_lsb(b)) {
-            std::cout << "queen sq: " << b << "\n";
-            Bitboard att_bb = get_rook_attacks(sq, white & black) | get_bishop_attacks(sq, white & black);
-            std::cout << "queen att: " << att_bb << "\n";
-            QUEEN_ATTACKERS[Us] |= att_bb;
-            Piece piece = make_piece(c, QUEEN);
-            board[sq] = piece;
-            while (Square sq_to = pop_lsb(att_bb)) {
-                Move m = make_move(sq, sq_to, QUIET);
-                moveArray.push_back(m);
-            }
-        }
     }
 }
 
@@ -1155,7 +1043,9 @@ int evaluateThreats(Color Us) {
     b = PAWN_ATTACKERS[Us] & nonPawnEnemies;
     score += ThreatBySafePawn * popcount(b);
 
-    std::cout << "eval threats for " << Us << ": " << score << "\n";
+    if (debug) {
+        std::cout << "eval threats for " << Us << ": " << score << "\n";
+    }
     return score;
 }
 
@@ -1195,6 +1085,7 @@ Bitboard pieces(Color c, PieceType pt1, PieceType pt2) {
 }
 
 
+// call setAllMoves() first
 void evalInit(Color Us) {
 
     Color     Them = ~Us;
@@ -1214,10 +1105,11 @@ void evalInit(Color Us) {
     //// Squares occupied by those pawns, by our king or queen, by blockers to attacks on our king
     //// or controlled by enemy pawns are excluded from the mobility area.
     //mobilityArea[Us] = ~(b | pos.pieces(Us, KING, QUEEN) | pos.blockers_for_king(Us) | pe->pawn_attacks(Them));
-    mobilityArea[Us] = ~(b | pieces(Us, KING, QUEEN) | pawn_attacks(Them, PAWN_BB[Them]));
+    mobilityArea[Us] = ~(b | pieces(Us, KING, QUEEN) | pawn_attacks(Them, pieces(Them)));
 
+    // ------------- done in getAllMoves();
     //// Initialize attackedBy[] for king and pawns
-    //attackedBy[Us][KING] = attacks_bb<KING>(ksq);
+    //attackedBy[Us][KING] = attacks_bb(KING, ksq, 0);
     //attackedBy[Us][PAWN] = pe->pawn_attacks(Us);
     //attackedBy[Us][ALL_PIECES] = attackedBy[Us][KING] | attackedBy[Us][PAWN];
     //attackedBy2[Us] = dblAttackByPawn | (attackedBy[Us][KING] & attackedBy[Us][PAWN]);
@@ -1235,9 +1127,12 @@ void evalInit(Color Us) {
 }
 
 int evaluate() {
-    int score = 0;
-    std::cout << "cpp evaluate()\n";
+    totalEvals++;
+    int totalScore = 0;
     for (Color c : { WHITE, BLACK }) {
+        int score = 0;
+        score += evaluateThreats(c);
+
         Color Us   = c;
         Color Them = ~c;
 
@@ -1246,23 +1141,241 @@ int evaluate() {
         Bitboard OutpostRanks =
             (Us == WHITE ? Rank4BB | Rank5BB | Rank6BB
                          : Rank5BB | Rank4BB | Rank3BB);
-        Bitboard b1;
-        //------------------- pieces
-        b1 = byColorBB[Us];
 
-        while (b1)
-        {
-            Square s = pop_lsb(b1);
-            PieceType Pt = type_of(piece_on(s));
-            //std::cout << "piece type: " << piece_on(s) << " type: " << Pt << "\n";
+        Bitboard b;
+        //*********************** pawns
+        b = pieces(c, PAWN);
+
+        while (Square sq = pop_lsb(b)) {
+            score += E_PAWN_VALUE;
         }
-
-        score += evaluateThreats(c);
+        
+        //*********************** kings
+        b = pieces(c, KING);
+        while (Square sq = pop_lsb(b)) {
+            score += E_KING_VALUE;
+        }
+        
+        //*********************** bishops
+        b = pieces(c, BISHOP);
+        while (Square sq = pop_lsb(b)) {
+            score += E_BISHOP_VALUE;
+        }
+        
+        //*********************** rooks
+        b = pieces(c, ROOK);
+        while (Square sq = pop_lsb(b)) {
+            score += E_ROOK_VALUE;
+        }
+    
+        //*********************** queens
+        b = pieces(c, QUEEN);
+        while (Square sq = pop_lsb(b)) {
+            score += E_QUEEN_VALUE;
+        }
+        totalScore += (c == WHITE ? score : -score);
     }
 
-    return score;
+    if (debug) {
+        std::cout << "score: " << totalScore << "\n";
+    }
+    return totalScore;
 }
 
+// similar to Evaluation::pieces() in stockfish
+// sets moves
+// sets board (by sq)
+// sets attackedBy, etc
+std::vector<Move> getAllMoves(Color c) {
+    // TODO remove square moving onto ourselves.
+    // possible only use bb for frozen to find magics.
+    std::vector<Move> moveArrayTmp(0);
+
+    moveSpot = 0;
+    for (Color c : { WHITE, BLACK }) {
+
+        Bitboard b = 0x0;
+
+        Color Us   =  c;
+        Color Them = ~c;
+
+        Bitboard occupied     = byTypeBB[ALL_PIECES];
+        Bitboard occupiedMe   = byColorBB[Us];
+        Bitboard occupiedThem = byColorBB[Them];
+
+        Direction Up   = pawn_push(Us);
+        Direction Down = pawn_push(Them);
+
+        if (debug) {
+            std::cout << "\n\n------------ ME -----------------\n\n";
+            std::cout << pretty();
+            //std::cout << pretty(occupiedMe);
+        }
+
+        //*********************** pawns
+        b = pieces(c, PAWN);
+        while (Square sq = pop_lsb(b)) {
+            // this seems to be done ahead of time
+            Bitboard att_bb = pawn_attacks(Us, sq);
+
+            Piece piece = make_piece(c, PAWN);
+            attackedBy[Us][PAWN] |= att_bb;
+            board[sq] = piece;
+
+            Bitboard p_move = (shift<NORTH>(square_bb(sq)) & (~occupied));
+            att_bb &= occupiedThem;
+            att_bb |= p_move;
+            while (Square sq_to = pop_lsb(att_bb)) {
+                //Move m = make_move(sq, sq_to, QUIET);
+                //if (c == Us) { moveArrayTmp.push_back(m); }
+            }
+        }
+        
+        //*********************** kings
+        b = pieces(c, KING);
+        while (Square sq = pop_lsb(b)) {
+            Bitboard att_bb = king_attacks(sq);
+            attackedBy[Us][KING] |= att_bb;
+
+            Piece piece = make_piece(c, KING);
+            board[sq] = piece;
+
+            att_bb &= (~occupiedMe);
+            while (Square sq_to = pop_lsb(att_bb)) {
+                Move m = make_move(sq, sq_to, QUIET);
+                if (c == Us) { moveArrayTmp.push_back(m); }
+            }
+        }
+
+        //*********************** knights
+        b = pieces(c, KNIGHT);
+        while (Square sq = pop_lsb(b)) {
+            Bitboard att_bb = knight_attacks(sq);
+            attackedBy[Us][KING] |= att_bb;
+
+            Piece piece = make_piece(c, KNIGHT);
+            board[sq] = piece;
+
+            //att_bb &= (~occupiedMe);
+            while (Square sq_to = pop_lsb(att_bb)) {
+                Move m = make_move(sq, sq_to, QUIET);
+                if (c == Us) { moveArrayTmp.push_back(m); }
+            }
+        }
+        
+        //*********************** bishops
+        b = pieces(c, BISHOP);
+        while (Square sq = pop_lsb(b)) {
+            Bitboard att_bb = get_bishop_attacks(sq, occupied);
+            attackedBy[Us][BISHOP] |= att_bb;
+
+            Piece piece = make_piece(c, BISHOP);
+            board[sq] = piece;
+
+            att_bb &= (~occupiedMe);
+            while (Square sq_to = pop_lsb(att_bb)) {
+                Move m = make_move(sq, sq_to, QUIET);
+                if (c == Us) { moveArrayTmp.push_back(m); }
+            }
+        }
+        
+        //*********************** rooks
+        b = pieces(c, ROOK);
+        while (Square sq = pop_lsb(b)) {
+            Bitboard att_bb = get_rook_attacks(sq, occupied);
+            attackedBy[Us][ROOK] |= att_bb;
+
+            ROOK_ATTACKERS[Us] |= att_bb;
+            Piece piece = make_piece(c, ROOK);
+            board[sq] = piece;
+
+            att_bb &= (~occupiedMe);
+            while (Square sq_to = pop_lsb(att_bb)) {
+                Move m = make_move(sq, sq_to, QUIET);
+                if (c == Us) { moveArrayTmp.push_back(m); }
+            }
+        }
+    
+        //*********************** queens
+        b = pieces(c, QUEEN);
+        while (Square sq = pop_lsb(b)) {
+            Bitboard att_bb = get_rook_attacks(sq, occupied) | get_bishop_attacks(sq, occupied);
+            attackedBy[Us][QUEEN] |= att_bb;
+
+            Piece piece = make_piece(c, QUEEN);
+            board[sq] = piece;
+
+            att_bb &= (~occupiedMe);
+            while (Square sq_to = pop_lsb(att_bb)) {
+                Move m = make_move(sq, sq_to, QUIET);
+                if (c == Us) { moveArrayTmp.push_back(m); }
+            }
+        }
+        attackedBy[Us][ALL_PIECES] = attackedBy[Us][PAWN] | 
+                                     attackedBy[Us][BISHOP] |
+                                     attackedBy[Us][KNIGHT] |
+                                     attackedBy[Us][ROOK] |
+                                     attackedBy[Us][QUEEN] |
+                                     attackedBy[Us][KING];
+    }
+    return moveArrayTmp;
+}
+
+inline void put_piece(Piece pc, Square s) {
+    board[s] = pc;
+    byTypeBB[ALL_PIECES] |= s;
+    byTypeBB[type_of(pc)] |= s;
+    byColorBB[color_of(pc)] |= s;
+}
+
+void remove_piece(Square s) {
+    Piece pc = board[s];
+    byTypeBB[ALL_PIECES] ^= s;
+    byTypeBB[type_of(pc)] ^= s;
+    byColorBB[color_of(pc)] ^= s;
+    board[s] = NO_PIECE;
+}
+
+inline void move_piece(Square from, Square to) {
+    Piece pc = board[from];
+    Bitboard fromTo = from | to;
+    byTypeBB[ALL_PIECES] ^= fromTo;
+    byTypeBB[type_of(pc)] ^= fromTo;
+    byColorBB[color_of(pc)] ^= fromTo;
+    board[from] = NO_PIECE;
+    board[to] = pc;
+}
+
+Piece do_move(Move m) {
+    Square sq_fr = from_sq(m);
+    Square sq_to = to_sq(m);
+
+    Piece p_to = piece_on(sq_to);
+
+    move_piece(sq_fr, sq_to);
+
+    return p_to;
+}
+
+void undo_move(Move m, Piece p) {
+    Square sq_fr = from_sq(m);
+    Square sq_to = to_sq(m);
+
+    move_piece(sq_to, sq_fr);
+    put_piece(p, sq_fr);
+}
+
+typedef struct Node Node;
+
+struct Node
+{
+  int score;
+  Move move;
+  Node *next;
+  Node *prev;
+};
+
+Node bestNodeFound;
 
 void setBBs(
     Bitboard bb_pawns,
@@ -1276,38 +1389,15 @@ void setBBs(
     Bitboard bb_frozen,
     Bitboard bb_moving
         ){
-    pawns   = bb_pawns;
-    PAWN_BB[WHITE] = bb_pawns & bb_white;
-    PAWN_BB[BLACK] = bb_pawns & bb_black;
+
     byTypeBB[PAWN] = bb_pawns;
-
-    knights = bb_knights;
-    KNIGHT_BB[WHITE] = bb_knights & bb_white;
-    KNIGHT_BB[BLACK] = bb_knights & bb_black;
     byTypeBB[KNIGHT] = bb_knights;
-
-    bishops = bb_bishops;
-    BISHOP_BB[WHITE] = bb_bishops & bb_white;
-    BISHOP_BB[BLACK] = bb_bishops & bb_black;
     byTypeBB[BISHOP] = bb_bishops;
-
-    rooks   = bb_rooks;
-    ROOK_BB[WHITE] = bb_rooks & bb_white;
-    ROOK_BB[BLACK] = bb_rooks & bb_black;
     byTypeBB[ROOK] = bb_rooks;
-
-    queens  = bb_queens;
-    QUEEN_BB[WHITE] = bb_queens & bb_white;
-    QUEEN_BB[BLACK] = bb_queens & bb_black;
     byTypeBB[QUEEN] = bb_queens;
-
-    kings   = bb_kings;
-    KING_BB[WHITE] = bb_kings & bb_white;
-    KING_BB[BLACK] = bb_kings & bb_black;
     byTypeBB[KING] = bb_kings;
+    byTypeBB[ALL_PIECES] = bb_white | bb_black;
 
-    white   = bb_white;
-    black   = bb_black;
     byColorBB[WHITE] = bb_white;
     byColorBB[BLACK] = bb_black;
 
@@ -1315,25 +1405,80 @@ void setBBs(
     moving  = bb_moving;
 }
 
-constexpr Square make_square(File f, Rank r) {
-  return Square((r << 3) + f);
+
+Node searchTree(Move move, int depth, int ply, int& alpha, int& beta, bool isMaximizingPlayer, Color c) {
+
+    Node highNode;
+    Node lowNode;
+    std::vector<Move> moves(0);
+    moves = getAllMoves(c);
+
+    //evalInit(c);
+    int score = evaluate();
+    int moveSpot = 0;
+
+    if (debug) {
+        std::cout << "ply:" << ply << " depth:" << depth << "\n";
+        std::cout << "moves: " << moves.size() << "\n";
+    }
+    if (ply > depth) {
+        highNode.score = score;
+        return highNode;
+    }
+
+    int highScore = -999999;
+    int lowScore  =  999999;
+    if (debug)
+        std::cout << "begin move search\n";
+
+    while (moveSpot < moves.size()) {
+        if (debug)
+            std::cout << "movespot: " << moveSpot << "\n";
+        Move m = moves[moveSpot];
+        Piece p = do_move(m);
+        if (debug && ply == 0) {
+            std::cout << "\n ++++++++++++++++ move +++++++++++++++\n" << pretty(m) << "\n";
+        }
+        ply++;
+
+        Node newNode = searchTree(m, depth, ply, alpha, beta, isMaximizingPlayer, c);
+        int newScore = newNode.score;
+        if (debug) {
+            for (int i = 0; i <= ply; i++) {
+                std::cout << "...";
+            }
+            std::cout << "newscore: " << newScore << "\n";
+        }
+        if (newScore > highScore) {
+            highScore = newScore;
+            highNode = newNode;
+        }
+        if (newScore < lowScore) {
+            lowScore = newScore;
+            lowNode = newNode;
+        }
+
+        ply--;
+        undo_move(m, p);
+
+        moveSpot++;
+    }
+    if (isMaximizingPlayer) {
+        highNode.score = highScore;
+        return highNode;
+    } else {
+        lowNode.score = lowScore;
+        return lowNode;
+    }
 }
 
-/// Bitboards::pretty() returns an ASCII representation of a bitboard suitable
-/// to be printed to standard output. Useful for debugging.
-
-std::string pretty(Bitboard b) {
-
-  std::string s = "+---+---+---+---+---+---+---+---+\n";
-
-  for (Rank r = RANK_8; r >= RANK_1; r = r - 1)
-  {
-      for (File f = AFILE; f <= HFILE; f = f + 1)
-          s += b & make_square(f, r) ? "| X " : "|   ";
-
-      s += "| " + std::to_string(1 + r) + "\n+---+---+---+---+---+---+---+---+\n";
-  }
-  s += "  a   b   c   d   e   f   g   h\n";
-
-  return s;
+int beginSearch(int depth) {
+    int alpha = -9999;
+    int beta  = 9999;
+    totalEvals = 0;
+    std::cout << "begin search: " << totalEvals << "\n";
+    Color c = WHITE;
+    Node baseNode = searchTree(0, depth, 0, alpha, beta, true, c);
+    std::cout << "total evals: " << totalEvals << "\n";
+    return baseNode.score;
 }

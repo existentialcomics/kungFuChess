@@ -21,7 +21,7 @@ xs::setBBs(
     0x0
 );
 print "done setBBs()\n";
-print "evalusateXS\n";
-xs::setAllMoves();
 print "setAllMoves()\n";
+xs::setAllMoves();
+print "evalusateXS\n";
 return xs::evaluate();

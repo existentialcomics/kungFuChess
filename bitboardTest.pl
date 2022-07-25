@@ -11,6 +11,7 @@ use Data::Dumper;
 use KungFuChess::Bitboards;
 use KungFuChess::BBHash;
 
+print "PID: $$\n";
 my $fen = shift;
 my $frozenIn = shift;
 if ($fen) {
@@ -42,9 +43,7 @@ $| = 1;
 
 my $go = 1;
 while ($go) {
-    print "enter move or white/black (for ai)\n";
-    my $input = <STDIN>;
-    chomp($input);
+    my $input = 'eval';
 
     if ($input =~ m/^[a-z][0-9][a-z][0-9]$/) {
         my ($fr_bb, $to_bb, $fr_rank, $fr_file, $to_rank, $to_file) = KungFuChess::Bitboards::parseMove($input);
@@ -84,11 +83,18 @@ while ($go) {
         print KungFuChess::Bitboards::pretty_ai();
         my ($eval, $moves, $material, $attacks) = KungFuChess::Bitboards::evaluate(1);
         print "eval: $eval\n";
-        #print KungFuChess::Bitboards::setPosXS();
+        print KungFuChess::Bitboards::setPosXS();
         print "\n";
         print "XS evaluate: ";
-        #print KungFuChess::Bitboards::evaluateXS();
+        print KungFuChess::Bitboards::evaluateXS();
         print "\n";
+        my $xsScore = xs::beginSearch(0);
+        print "moves:\n";
+        while (my $m = xs::getNextMove()) {
+            print "move: $m\n";
+        }
+        print "donemoves\n";
+        exit;
     } elsif ($input =~ m/^(white|black)$/) {
         my $cIn = $1;
         my $color = ($cIn =~ 'white' ? 1 : 2);
@@ -209,6 +215,9 @@ while ($go) {
         print "  white|black (make moves off recommendMoves)\n";
 
     }
+    print "enter move or white/black (for ai)\n";
+    $input = <STDIN>;
+    chomp($input);
     if ($input eq 'q') {
         $go = 0;
     }

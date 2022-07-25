@@ -1,6 +1,7 @@
 TYPEMAP
 Bitboard T_U_LONG_LONG
 Move T_U_LONG_LONG
+int T_U_LONG_LONG
 uint64_t T_U_LONG_LONG              # equivalent to typedef unsigned long long uint64_t;
 
 INPUT

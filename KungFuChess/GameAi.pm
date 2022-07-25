@@ -75,11 +75,6 @@ use constant ({
     FEN_STANDARD => 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
 });
 
-my @MOVES_N = (31, 33, 14, 18, -18, -14, -33, -31);
-my @MOVES_B = (15, 17, -15, -17);
-my @MOVES_R = (1, 16, -16, -1);
-my @MOVES_K = (@MOVES_B, @MOVES_R);
-
 $| = 1;
 
 sub new {
@@ -318,7 +313,7 @@ sub _init {
             $self->{ai_skip_best} = 0.0;
         } else {
             $self->{ai_thinkTime} = 1.0;
-            $self->{ai_depth} = 1;
+            $self->{ai_depth} = 3;
             $self->{ai_simul_moves} = 2;
             $self->{ai_simul_depth} = 2;
             $self->{ai_delay} = 1_000_000; 
@@ -788,13 +783,14 @@ sub checkForForceDraw {
 sub endGame {
     my $self = shift;
 
-    if ($self->{is_human}) {
+    if ($self->{ai_human}) {
         sleep(rand(5));
         my $dataPost = {
             'uid' => $self->{anonKey},
             'gameId' => $self->{gameId},
             'c' => 'rematch',
         };
+        $self->send($dataPost);
     } else {
         if ($self->{stockfishPid}) { system("kill $self->{stockfishPid}"); }
         exit;
