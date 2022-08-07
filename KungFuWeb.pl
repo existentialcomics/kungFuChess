@@ -1605,14 +1605,21 @@ get '/login' => sub {
 
 post '/login' => sub {
     my $c = shift;
+    my $ip_address = $c->req->headers->header('X-Forwarded-For') // $c->tx->remote_address;
 
-    my ($u, $p) = ($c->req->param('username'), $c->req->param('password'));
-    if ($c->authenticate($u, encryptPassword($p))){
-        my $user = $c->current_user();
-        $c->stash('user' => $user);
-        $c->redirect_to("/");
+    my @row = $c->db()->selectrow_array('SELECT count(*) from player_log WHERE ip_address = ? AND time_created > DATE_SUB(NOW(), INTERVAL 10 MINUTE) AND action = "login attempt"', {}, $ip_address);
+    if ($row[0] > 10) {
+        $c->stash('error' => 'Too many attempts. A true kung fu master remembers their password in the first ten attempts. Come on. Wait a few minutes.');
+    } else {
+        $c->db()->do('INSERT INTO player_log (ip_address, action) VALUES (?, "login attempt")', {}, $ip_address);
+        my ($u, $p) = ($c->req->param('username'), $c->req->param('password'));
+        if ($c->authenticate($u, encryptPassword($p))){
+            my $user = $c->current_user();
+            $c->stash('user' => $user);
+            $c->redirect_to("/");
+        }
+        $c->stash('error' => 'Invalid username or password');
     }
-    $c->stash('error' => 'Invalid username or password');
     my $user = $c->current_user();
     $c->stash('user' => $user);
     $c->render('template' => 'login', format => 'html', handler => 'ep');
@@ -1676,6 +1683,14 @@ websocket '/ws' => sub {
                     { 'Slice' => {} },
                     $msg->{userAuthToken}
                 );
+                my @gameRow = app->db()->selectrow_array('SELECT game_id FROM games WHERE (white_player = ? OR black_player = ? OR red_player = ? OR green_player = ?) AND (status = "active" OR status = "waiting to begin")', {}, $playerRow->{player_id}, $playerRow->{player_id}, $playerRow->{player_id}, $playerRow->{player_id});
+                if (@gameRow) {
+                    my $gameReturn = {
+                        'c' => 'activeGame',
+                        'gameId' => $gameRow[0],
+                    };
+                    connectionBroadcast($self, $gameReturn);
+                }
                 if ($playerRow) {
                     app->db()->do('UPDATE players SET last_seen = NOW(), ip_address = ? WHERE player_id = ?', {}, $ip, $playerRow->{player_id});
                 }
@@ -1820,7 +1835,106 @@ websocket '/ws' => sub {
             if ($msg->{'message'} =~ m/^\/(\S+)(?:\s(.*))?/) {
                 my $command = $1;
                 my $args    = $2;
-                if ($command eq 'berserk') {
+                #$args =~ s/\S//g;
+                if ($command eq 'ai') {
+                    if ($args !~ m/^red|green|white|black$/) {
+                        my $return = {
+                            'c' => 'gamechat',
+                            'author' => 'SYSTEM',
+                            'color' => 'red',
+                            'message' => "Specify a color, such as: /ai red",
+                            'text_color' => '#666666',
+                        };
+                        connectionBroadcast($self, $return);
+                        return 0;
+                    }
+                    print $args . 'Ready' . ": " . $game->{$args . 'Ready'} . "\n";
+                    if ($game->{$args . 'Ready'} > 0) {
+                        my $return = {
+                            'c' => 'gamechat',
+                            'author' => 'SYSTEM',
+                            'color' => 'red',
+                            'message' => "Cannot set a player to ai if they have pressed ready.",
+                            'text_color' => '#666666',
+                        };
+                        connectionBroadcast($self, $return);
+                        return 0;
+                    }
+                    print time() . " vs " . $game->{gameStartTime} . " diff: " . (time() - $game->{gameStartTime}) . "\n\n";
+                    if (time() - $game->{gameStartTime} < 20) {
+                        my $return = {
+                            'c' => 'gamechat',
+                            'author' => 'SYSTEM',
+                            'color' => 'red',
+                            'message' => "Cannot set a player to ai until 20 seconds have passed.",
+                            'text_color' => '#666666',
+                        };
+                        connectionBroadcast($self, $return);
+                        return 0;
+                    }
+                    my ($color, $gameRow, $successAuth) = authGameColor($msg->{auth}, $msg->{uid}, $msg->{gameId});
+                    my $uid = $gameRow->{game_id} . '_ai_takeover';
+                    $game->addPlayer($uid, $args);
+                    if ($gameRow->{status} ne 'waiting to begin') {
+                        my $return = {
+                            'c' => 'gamechat',
+                            'author' => 'SYSTEM',
+                            'color' => 'red',
+                            'message' => "Cannot set as ai on active games.",
+                            'text_color' => '#666666',
+                        };
+                        connectionBroadcast($self, $return);
+                        return 0;
+                    }
+                    if ($gameRow->{status} ne 'waiting to begin') {
+                        my $return = {
+                            'c' => 'gamechat',
+                            'author' => 'SYSTEM',
+                            'color' => 'red',
+                            'message' => "Cannot berserk on active games.",
+                            'text_color' => '#666666',
+                        };
+                        connectionBroadcast($self, $return);
+                        return 0;
+                    }
+                    my $aiUser = new KungFuChess::Player(
+                        { 'ai' => 1, 'auth_token' => $uid }
+                    );
+
+                    my $cmdAi = sprintf('/usr/bin/perl ./kungFuChessGame%sAi.pl %s %s %s %s %s %s %s %s 1>%s 2>%s &',
+                        $gameRow->{game_type},
+                        $gameRow->{game_id},
+                        $uid,
+                        $gameRow->{piece_speed},
+                        $gameRow->{piece_recharge},
+                        $gameRow->{piece_advantage} // "1:1:1:1",
+                        getAiLevel(AI_USER_MEDIUM),
+                        2, # BLACK
+                        'ws://localhost:3001/ws',
+                        '/var/log/kungfuchess/' . $gameRow->{game_id} . '-game-black-ai.log',
+                        '/var/log/kungfuchess/' . $gameRow->{game_id} . '-error-black-ai.log'
+                    );
+                    my $gameMsg = {
+                        'c' => 'ai_takeover',
+                        'color' => $color,
+                    };
+                    $game->serverBroadcast($gameMsg);
+
+                    app()->db->do("UPDATE games SET " . $args . "_player = ?, " . $args . "_anon_key = ?, rated = 0 WHERE game_id = ? limit 1", {},
+                        AI_USER_MEDIUM,
+                        $uid,
+                        $gameRow->{game_id},
+                        $game->{id}
+                    );
+                    app->log->debug($cmdAi);
+                    system($cmdAi);
+                    systemMessage("$args is now ai!", $msg->{gameId});
+
+                    my $commandMsg = {
+                        'c' => 'refresh'
+                    };
+                    $game->playerBroadcast($commandMsg);
+                } elsif ($command eq 'berserk') {
                     my ($color, $gameRow, $successAuth) = authGameColor($msg->{auth}, $msg->{uid}, $msg->{gameId});
                     my $berserkColor = $args;
 

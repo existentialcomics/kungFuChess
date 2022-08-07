@@ -12,7 +12,7 @@
         var wsDomainMain = '<%= $wsDomainMain %>';
         var wsProtocol   = '<%= $wsProtocol %>';
     </script>
-    <script src="/main.js?cache=2022-01-21"></script>
+    <script src="/main.js?cache=2022-08-07"></script>
     <% if ($user){ %>
     <link rel="stylesheet" type="text/css" href="/css/<%= $user->getBelt() %>.css?cache=2022-01-20">
     <% } else { %>
@@ -61,6 +61,8 @@
         <%== stash('error') %>
     </div>
     <% } %>
+</div>
+<div id="active-game">
 </div>
 
 <script>

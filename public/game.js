@@ -539,6 +539,22 @@ resign = function(){
     sendMsg(msg);
 }
 
+remindAiTakeover = function() {
+    if (gameType == '4way') {
+        if ($('#gameStatus').html() == 'waiting to begin') {
+            var dt = new Date();
+            addGameMessage(
+                "SYSTEM",
+                "If a player isn't starting, you can have the AI take them over with this command: /ai color",
+                "red",
+                'black',
+                dt,
+                'system'
+            );
+        }
+    }
+}
+
 // TODO have the logic flip on confirmation not send
 var drawRequested = false;
 requestDraw = function() {
@@ -756,6 +772,7 @@ var handleMessage = function(msg) {
         console.debug(msg);
 		resetGamePieces();
 		pieceLayer.draw();
+        setTimeout(remindAiTakeover, 20000)
     } else if (msg.c == 'suspend'){
         // knights and castles are removed from the board entirely 
         // when they move, until they land.

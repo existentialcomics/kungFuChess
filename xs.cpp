@@ -1405,11 +1405,14 @@ void setBBs(
     moving  = bb_moving;
 }
 
-
-Node searchTree(Move move, int depth, int ply, int& alpha, int& beta, bool isMaximizingPlayer, Color c) {
+Node searchTree(Move currentMove, int depth, int ply, int& alpha, int& beta, bool isMaximizingPlayer, Color c) {
 
     Node highNode;
     Node lowNode;
+
+    Node currentNode;
+    currentNode.move = currentMove;
+
     std::vector<Move> moves(0);
     moves = getAllMoves(c);
 
@@ -1441,8 +1444,9 @@ Node searchTree(Move move, int depth, int ply, int& alpha, int& beta, bool isMax
         }
         ply++;
 
-        Node newNode = searchTree(m, depth, ply, alpha, beta, isMaximizingPlayer, c);
-        int newScore = newNode.score;
+        Node nextBestMove = searchTree(m, depth, ply, alpha, beta, isMaximizingPlayer, c);
+        currentNode.score = nextBestMove.score;
+        int newScore = currentNode.score;
         if (debug) {
             for (int i = 0; i <= ply; i++) {
                 std::cout << "...";
@@ -1451,11 +1455,11 @@ Node searchTree(Move move, int depth, int ply, int& alpha, int& beta, bool isMax
         }
         if (newScore > highScore) {
             highScore = newScore;
-            highNode = newNode;
+            highNode = currentNode;
         }
         if (newScore < lowScore) {
             lowScore = newScore;
-            lowNode = newNode;
+            lowNode = currentNode;
         }
 
         ply--;
@@ -1464,21 +1468,36 @@ Node searchTree(Move move, int depth, int ply, int& alpha, int& beta, bool isMax
         moveSpot++;
     }
     if (isMaximizingPlayer) {
-        highNode.score = highScore;
-        return highNode;
+        highNode.score   = highScore;
+        highNode.prev    = &currentNode;
+        currentNode.next = &highNode;
     } else {
-        lowNode.score = lowScore;
-        return lowNode;
+        lowNode.score    = lowScore;
+        highNode.prev    = &currentNode;
+        currentNode.next = &lowNode;
     }
+    return currentNode;
 }
 
+Node bestMoveNode;
 int beginSearch(int depth) {
     int alpha = -9999;
     int beta  = 9999;
     totalEvals = 0;
     std::cout << "begin search: " << totalEvals << "\n";
     Color c = WHITE;
-    Node baseNode = searchTree(0, depth, 0, alpha, beta, true, c);
+    Node baseNode;
+    Node bestMoveN = searchTree(0, depth, 0, alpha, beta, true, c);
     std::cout << "total evals: " << totalEvals << "\n";
+    std::cout << "best move int: " << baseNode.move << "\n";
+    bestMoveNode = bestMoveN;
     return baseNode.score;
+}
+
+Move getBestMove() {
+    return bestMoveNode.move;
+}
+
+Move getBestMoveCont() {
+    return bestMoveNode.move;
 }

@@ -4,8 +4,8 @@ use strict;
 #use warnings;
 
 package XS;
-use Inline CPP => config => typemaps => '/home/corey/kungFuChess/typemap';
-use Inline CPP => '/home/corey/kungFuChess/xs.cpp' => namespace => 'xs';
+#use Inline CPP => config => typemaps => '/home/corey/kungFuChess/typemap';
+#use Inline CPP => '/home/corey/kungFuChess/xs.cpp' => namespace => 'xs';
 
 package KungFuChess::Bitboards;
 use Math::BigInt;
@@ -388,7 +388,7 @@ sub setCurrentMoves {
     $currentMoves = $_;
 }
 
-xs::initialise_all_databases();
+#xs::initialise_all_databases();
 
 ### similar to stockfish we have multiple bitboards that we intersect
 ### to determine the position of things and state of things.

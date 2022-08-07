@@ -142,7 +142,6 @@ function getPlayers(originalThread = false) {
                 var $s = $(data).not('#challenge_thebalrog');
                 $(data).find('#challenge_thebalrog').remove();
                 $('#playersContent').html(data);
-                console.log('#challenge_' + screenname);
                 $('#challenge_' + screenname).remove();
                 if (setInterval) {
                     intervalPlayer = setTimeout(
@@ -630,7 +629,9 @@ var bindEvents = function(ws_conn) {
                 heartbeat_msg = {
                     "c" : "main_ping"
                 };
-                sendGlobalMsg(heartbeat_msg);
+                if (userAuthToken) {
+                    sendGlobalMsg(heartbeat_msg);
+                }
             } 
         }, 3000); 
     }
@@ -646,6 +647,15 @@ var bindEvents = function(ws_conn) {
                 'black',
                 dt
             );
+        } else if (msg.c == 'activeGame'){
+            if(document.getElementById("gameStatus") == null)
+            {
+                var gameUrl = '/game/' + msg.gameId;
+                var buttonHtml = '<a href="' + gameUrl + '"><button type="button" class="btn btn-danger">You have an active game! Click here to go to your game.</button></a>'
+                $('#active-game').html(buttonHtml);
+                console.log(buttonHtml);
+                //window.location.replace('/game/' + msg.gameId);
+            }
         } else if (msg.c == 'challenge'){
             $('#challengesContent').html(msg.challenges);
         } else if (msg.c == 'privatechat'){

@@ -287,11 +287,11 @@ sub _init {
         } elsif ($difficulty eq '2') {
             $self->{ai_thinkTime} = 1.0;
             $self->{ai_depth} = 2;
-            $self->{ai_simul_moves} = 2;
-            $self->{ai_simul_depth} = 2;
+            $self->{ai_simul_moves} = 1;
+            $self->{ai_simul_depth} = 1;
             $self->{ai_delay} = 1_000_000; 
             $self->{ai_min_delay} = 500_000;
-            $self->{ai_interval} = 500_000;
+            $self->{ai_interval} = 750_000;
             $self->{ai_skip_best} = 0.4;
         } elsif ($difficulty eq '3') {
             $self->{ai_thinkTime} = 1.0;
@@ -299,7 +299,7 @@ sub _init {
             $self->{ai_simul_moves} = 2;
             $self->{ai_simul_depth} = 2;
             $self->{ai_delay} = 200_000; 
-            $self->{ai_min_delay} = 100_000;
+            $self->{ai_min_delay} = 150_000;
             $self->{ai_interval} = 250_000;
             $self->{ai_skip_best} = 0.0;
         } elsif ($difficulty eq 'human_a') {
@@ -461,7 +461,6 @@ sub setFrozen {
                 delete $self->{timeoutSquares}->{$to_bb};
                 delete $self->{timeoutCBs}->{$to_bb};
             } else {
-
                 print "time doesn't match\n";
             }
         }
@@ -515,15 +514,21 @@ sub handleMessage {
             $p = 106;
         } elsif( $p == 201) {
             $p = 206;
+        } elsif( $p == 301) {
+            $p = 306;
+        } elsif( $p == 301) {
+            $p = 306;
+        } elsif( $p == 401) {
+            $p = 406;
         } else {
             print KungFuChess::Bitboards::pretty_ai();
             print "promote none pawn? *$p*\n";
         }
 
-        KungFuChess::Bitboards::_removePiece($msg->{bb});
+        KungFuChess::Bitboards::_removePiece($msg->{bb} + 0);
         KungFuChess::Bitboards::_putPiece(
             $p + 0,
-            $msg->{bb}
+            $msg->{bb} + 0
         );
         KungFuChess::Bitboards::resetAiBoards($self->{color});
     } elsif ($msg->{c} eq 'kill'){
@@ -564,13 +569,15 @@ sub handleMessage {
             }
         }
 
-        $self->{movesQueue} = \@moves;
+        if ($self->{mode} ne '4way') {
+            $self->{movesQueue} = \@moves;
+        }
 
         my $w2; 
         # Start a timer that, at most once every 0.5 seconds, sleeps
         # for 1 second, and then prints "timer":
         my $w1; $w1 = deferred_interval(
-            after => 3.2,
+            after => 3.1,
             reference => \$w2,  
             interval => 0.5,
             cb => sub {

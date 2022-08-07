@@ -89,10 +89,8 @@ while ($go) {
         print KungFuChess::Bitboards::evaluateXS();
         print "\n";
         my $xsScore = xs::beginSearch(0);
-        print "moves:\n";
-        while (my $m = xs::getNextMove()) {
-            print "move: $m\n";
-        }
+        my $bestMove = xs::getBestMove();
+        print "best: $bestMove\n";
         print "donemoves\n";
         exit;
     } elsif ($input =~ m/^(white|black)$/) {
