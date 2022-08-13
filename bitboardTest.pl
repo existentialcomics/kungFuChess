@@ -42,8 +42,8 @@ my ($score, $bestMoves, $moves) = (0.0, [], []);
 $| = 1;
 
 my $go = 1;
+my $input = 'eval';
 while ($go) {
-    my $input = 'eval';
 
     if ($input =~ m/^[a-z][0-9][a-z][0-9]$/) {
         my ($fr_bb, $to_bb, $fr_rank, $fr_file, $to_rank, $to_file) = KungFuChess::Bitboards::parseMove($input);
@@ -88,11 +88,11 @@ while ($go) {
         print "XS evaluate: ";
         print KungFuChess::Bitboards::evaluateXS();
         print "\n";
-        my $xsScore = xs::beginSearch(0);
-        my $bestMove = xs::getBestMove();
-        print "best: $bestMove\n";
-        print "donemoves\n";
-        exit;
+        #my $xsScore = xs::beginSearch(0);
+        #my $bestMove = xs::getBestMove();
+        #print "best: $bestMove\n";
+        #print "donemoves\n";
+        #exit;
     } elsif ($input =~ m/^(white|black)$/) {
         my $cIn = $1;
         my $color = ($cIn =~ 'white' ? 1 : 2);
@@ -116,6 +116,7 @@ while ($go) {
             KungFuChess::Bitboards::aiThink($depth, $time, 2);
         my $suggestedMoves = KungFuChess::Bitboards::aiRecommendMoves(2, 999);
 
+        print "moves\n";
         print "---- white ----\n";
         KungFuChess::BBHash::displayMoves($moves, 1, $score, undef, undef, undef);
         print "---- black ----\n";

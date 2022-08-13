@@ -313,7 +313,7 @@ sub _init {
             $self->{ai_skip_best} = 0.0;
         } else {
             $self->{ai_thinkTime} = 1.0;
-            $self->{ai_depth} = 3;
+            $self->{ai_depth} = 2;
             $self->{ai_simul_moves} = 2;
             $self->{ai_simul_depth} = 2;
             $self->{ai_delay} = 1_000_000; 
@@ -324,6 +324,15 @@ sub _init {
     } else {
         warn "unknown game speed $speed\n";
     }
+
+    ### reduce CPU load of 4way AI
+    if ($self->{mode} ne '4way') {
+        #$self->{ai_depth} = $self->{ai_depth} < 3 ? $self->{ai_depth} : 2;
+        #$self->{ai_delay} *= 2; 
+        #$self->{ai_min_delay} *= 2;
+        #$self->{ai_interval} *= 2;
+    }
+
 
 	$self->{board} = {};
     $self->{boardMap} = [
@@ -494,6 +503,13 @@ sub handleMessage {
         if ($msg->{color} != $self->{color}) {
             push @{$self->{inducedMoves}}, $msg->{to_bb};
         }
+	} elsif ($msg->{c} eq 'aiOnly'){
+        sleep(rand() * 5);
+        my $msg = {
+            'c'     => 'resign'
+        };
+        $self->send($msg);
+        $self->endGame();
 	} elsif ($msg->{c} eq 'suspend'){
         $self->{suspendedPieces}->{$msg->{to_bb}} =
             KungFuChess::Bitboards::_getPieceBB($msg->{fr_bb});

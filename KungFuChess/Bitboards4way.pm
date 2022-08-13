@@ -1856,6 +1856,7 @@ sub evaluate {
         #print "bb: $bb\n";
 
     #}
+    my $pieceCount = 0;
     foreach my $r ( 0 .. 15 ) {
         foreach my $f ( 0 .. 15 ) {
             my $fr = RANKS->[$r] & FILES->[$f];
@@ -1863,6 +1864,7 @@ sub evaluate {
             my $piece = _getPieceBB_ai($fr);
             next if (! defined($piece));
 
+            $pieceCount++;
             my $frozen = ($fr & $ai_frozenBB);
 
             ### begin evaluating a piece
@@ -2127,6 +2129,10 @@ sub evaluate {
                 }
             }
         }
+    }
+
+    if ($pieceCount < 17) {
+        setIsEndgame(1);
     }
 
     #********************** position is now set up and we begin the evaulation ********

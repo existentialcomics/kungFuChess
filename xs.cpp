@@ -11,7 +11,7 @@
 #include "xs.h"
 //#include <pre/json/to_json.hpp>
 
-bool debug = false;
+bool debug = true;
 int totalEvals = 0;
 
 namespace chess_xs {

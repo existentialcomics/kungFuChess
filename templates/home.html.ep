@@ -129,10 +129,6 @@
                 <div id="global-chat-log" disabled="true" style="overflow-wrap: break-word;" class="text-break"></div>
                 <input type="text" id="global-chat-input" class="form-inline text-wrap"></input>
                 <div id = "connectionStatus" style='float:right;'></div>
-                <br />
-                <a class='link-dark' href="https://twitter.com/KungFuChessOrg">twitter</a>
-                &nbsp;&nbsp;<a class='link-dark' href="https://discord.gg/kGAcDwsWmX">discord</a>
-                &nbsp;&nbsp;<a class='link-dark' href="https://github.com/existentialcomics/kungFuChess">source code</a>
             </div>
         </div>
     </div>

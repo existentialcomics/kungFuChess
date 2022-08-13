@@ -4,8 +4,8 @@ use strict;
 #use warnings;
 
 package XS;
-#use Inline CPP => config => typemaps => '/home/corey/kungFuChess/typemap';
-#use Inline CPP => '/home/corey/kungFuChess/xs.cpp' => namespace => 'xs';
+use Inline CPP => config => typemaps => './typemap';
+use Inline CPP => './xs.cpp' => namespace => 'xs';
 
 package KungFuChess::Bitboards;
 use Math::BigInt;
@@ -443,49 +443,6 @@ my $ai_frozenBB = 0x0000000000000000;
 my $ai_movingBB = 0x0000000000000000;
 
 my $currentAiMoveTree = undef;
-
-my $boardWidth = 7;
-my $squareNB   = 64;
-my %source_hash = ();
-
-
-my $squareNB = 64;
-my @distanceToSq = ();
-foreach (0 .. $squareNB) {
-
-}
-
-my $sq = 0;
-foreach my $r (0 .. $boardWidth) {
-    foreach my $f (0 .. $boardWidth) {
-        $sq ++;
-        my $fr = RANKS->[$r] & FILES->[$f];
-        $source_hash{$fr} = $sq;
-
-        my $innerSq = 0;
-        foreach my $r_to (0 .. $boardWidth) {
-            foreach my $f_to (0 .. $boardWidth) {
-                my $distance = abs($r_to - $r) + abs($f_to - $f);
-                $innerSq ++;
-            }
-        }
-    }
-}
-
-#use Algorithm::MinPerfHashTwoLevel;
-#my $distanceTo = Algorithm::MinPerfHashTwoLevel->new();
-#$distanceTo->compute(\%source_hash);
-
-#print Dumper($distanceTo);
-#my $time = time();
-
-#for (1 .. 10000000) {
-    #my $f = $source_hash{64};
-    ##my $f = $distanceTo{64};
-#}
-#print time - $time;
-#print "\n";
-#exit;
 
 sub movingOppositeDirs {
     my ($a, $b) = @_;
@@ -1568,9 +1525,12 @@ sub setPosXS {
     print "done setBBs()\n";
 }
 
-sub evaluateXS {
-    print "evalusateXS\n";
+sub initXS {
     xs::initialise_bitboard();
+}
+
+sub evaluateXS {
+    return xs::evaluate();
 }
 
 sub getMovesXS {
@@ -1658,11 +1618,6 @@ sub evaluate {
         0,
         0
     );
-    my @kingSq = (
-        0,
-        0,
-        0
-    );
     my @pieces = (
         undef,
         [ [], [], [], [], [], [], [] ],  # white pieces
@@ -1671,312 +1626,217 @@ sub evaluate {
 
     ### TODO reset all eval vars here
     ### TODO build an array of all squares at the start
-    foreach my $color (1 .. 2) {
-        my $us   = ($color == WHITE ? $white : $black);
-        my $them = ($color == WHITE ? $black : $white);
-        my $pawnDir  = $color == WHITE ? NORTH  : SOUTH ;
+    foreach my $r ( 0 .. 7 ) {
+        foreach my $f ( 0 .. 7 ) {
+            my $fr = RANKS->[$r] & FILES->[$f];
+            #if ($fr & $ai_frozenBB) { print "$r$f next;\n"; next; }
+            my $piece = _getPieceBB_ai($fr);
+            next if (! defined($piece));
 
-
-        ### begin evaluating a piece
-        my $pieceAttackingBB     = 0x0;
-        my $pieceAttackingXrayBB = 0x0;
-
-        ### tracks all the pieces for calulating bonuses
-        #push @{$pieces[$color]->[$pieceType]}, $fr;
-
-        ### for square bonuses
-        #my $sq_f = $f;
-        #my $sq_r = $color == WHITE ? $r : 7 - $r;
-        #$squareBonus[$color] += S($SQ_BONUS->[$pieceType]->[$sq_r]->[$sq_f]);
-
-        my $bb = ($color == WHITE ? $ai_white & $ai_kings : $ai_black & $ai_kings);
-        while (my $fr = pop_lsb($bb)) {
             my $frozen = ($fr & $ai_frozenBB);
-            $material[$color] += 10000;
 
-            foreach my $shift (@MOVES_Q) {
-                my $to = $fr;
-                $to = shift_BB($to, $shift);
-                $kingRing[$color] |= $to;
-                if ($to != 0 && !($to & $us) && !($to & $ai_movingBB) ){
-                    if (! $frozen) {
-                        push @{$moves[$color]}, [
-                            $fr,
-                            $to,
-                            undef, # score
-                            1,
-                            undef, # children moves
-                            undef, # attackedBy
-                        ];
-                    }
-                    $attackedBy[$color]->[KING] |= $to;
-                    $attackedBy[$color]->[ALL_PIECES] |= $to;
-                    $attackedBy2[$color] |= ($to & $attackedBy[$color]->[ALL_PIECES]);
-                    if ($frozen) {
-                        $attackedByFrozen[$color]->[KING] |= $to;
-                        $attackedByFrozen[$color]->[ALL_PIECES] |= $to;
-                    } else {
-                        $attackedByUnFrozen[$color]->[KING] |= $to;
-                        $attackedByUnFrozen[$color]->[ALL_PIECES] |= $to;
-                    }
-                }
-            }
-        }
+            ### begin evaluating a piece
+            my $pieceType = $piece % 100;
+            my $color = $piece > 200 ? BLACK : WHITE;
+            ### bitboard of us and them
+            my $us       = $color == WHITE ? $ai_white : $ai_black;
+            my $them     = $color == BLACK ? $ai_white : $ai_black;
+            my $pawnDir  = $color == WHITE ? NORTH  : SOUTH ;
+            my $pieceAttackingBB     = 0x0;
+            my $pieceAttackingXrayBB = 0x0;
 
-        ############# BISHOP
-        $bb = ($color == WHITE ? $ai_white & $ai_bishops : $ai_black & $ai_bishops);
-        while (my $fr = pop_lsb($bb)) {
-            my $frozen = ($fr & $ai_frozenBB);
-            $material[$color] += 300;
-            foreach my $shift (@MOVES_B) {
-                my $inXray = 0;
-                my $to = $fr;
-                $to = shift_BB($to, $shift);
-                my $distance = 0;
-                while ($to != 0) {
-                    $distance++;
-                    $attackedBy[$color]->[BISHOP] |= $to;
-                    $attackedBy[$color]->[ALL_PIECES] |= $to;
-                    $attackedBy2[$color] |= ($to & $attackedBy[$color]->[ALL_PIECES]);
-                    if ($frozen) {
-                        $attackedByFrozen[$color]->[BISHOP] |= $to;
-                        $attackedByFrozen[$color]->[ALL_PIECES] |= $to;
-                    } else {
-                        $attackedByUnFrozen[$color]->[BISHOP] |= $to;
-                        $attackedByUnFrozen[$color]->[ALL_PIECES] |= $to;
-                    }
-                    if ($to & $us){ # we ran into ourselves
-                        $inXray = 1;
-                        # no xrays with frozen pieces
-                        if ($to & $ai_frozenBB) {
-                            $to = 0;
-                            next;
-                        }
-                    }
-                    if ($inXray == 0) {
-                        $mobilityBonus[$color] += 5;
+            ### tracks all the pieces for calulating bonuses
+            push @{$pieces[$color]->[$pieceType]}, $fr;
+
+            ### for square bonuses
+            my $sq_f = $f;
+            my $sq_r = $color == WHITE ? $r : 7 - $r;
+            $squareBonus[$color] += S($SQ_BONUS->[$pieceType]->[$sq_r]->[$sq_f]);
+
+            if ($pieceType == KING) {
+                $material[$color] += 10000;
+                foreach my $shift (@MOVES_Q) {
+                    my $to = $fr;
+                    $to = shift_BB($to, $shift);
+                    $kingRing[$color] |= $to;
+                    if ($to != 0 && !($to & $us) && !($to & $ai_movingBB) ){
                         if (! $frozen) {
                             push @{$moves[$color]}, [
                                 $fr,
                                 $to,
                                 undef, # score
-                                $distance,
+                                1,
                                 undef, # children moves
                                 undef, # attackedBy
                             ];
                         }
+                        $attackedBy[$color]->[$pieceType] |= $to;
+                        $attackedBy[$color]->[ALL_PIECES]      |= $to;
+                        $attackedBy2[$color] |= ($to & $attackedBy[$color]->[ALL_PIECES]);
+                        if ($frozen) {
+                            $attackedByFrozen[$color]->[$pieceType] |= $to;
+                            $attackedByFrozen[$color]->[ALL_PIECES]      |= $to;
+                        } else {
+                            $attackedByUnFrozen[$color]->[$pieceType] |= $to;
+                            $attackedByUnFrozen[$color]->[ALL_PIECES]      |= $to;
+                        }
                     }
-                    ### we still want this move so we can capture
-                    if ($to & $them){
-                        $to = 0;
-                        next;
-                    }
-                    $to = shift_BB($to, $shift);
                 }
-            }
-        }
+            } elsif ($pieceType == BISHOP || $pieceType == ROOK || $pieceType == QUEEN) {
+                my @pmoves;
+                if ($pieceType == BISHOP) {
+                    $material[$color] += 300;
 
-        ############# ROOK
-        $bb = ($color == WHITE ? $ai_white & $ai_rooks : $ai_black & $ai_rooks);
-        while (my $fr = pop_lsb($bb)) {
-            my $frozen = ($fr & $ai_frozenBB);
-            $material[$color] += 300;
-            foreach my $shift (@MOVES_R) {
-                my $inXray = 0;
-                my $to = $fr;
-                $to = shift_BB($to, $shift);
-                my $distance = 0;
-                while ($to != 0) {
-                    $distance++;
-                    $attackedBy[$color]->[ROOK] |= $to;
-                    $attackedBy[$color]->[ALL_PIECES] |= $to;
-                    $attackedBy2[$color] |= ($to & $attackedBy[$color]->[ALL_PIECES]);
-                    if ($frozen) {
-                        $attackedByFrozen[$color]->[ROOK] |= $to;
-                        $attackedByFrozen[$color]->[ALL_PIECES] |= $to;
-                    } else {
-                        $attackedByUnFrozen[$color]->[ROOK] |= $to;
-                        $attackedByUnFrozen[$color]->[ALL_PIECES] |= $to;
-                    }
-                    if ($to & $us){ # we ran into ourselves
-                        $inXray = 1;
-                        # no xrays with frozen pieces
-                        if ($to & $ai_frozenBB) {
+                    @pmoves = @MOVES_B;
+                } elsif ($pieceType == ROOK) {
+                    $material[$color] += 500;
+                    @pmoves = @MOVES_R;
+                } elsif ($pieceType == QUEEN) {
+                    $material[$color] += 900;
+                    @pmoves = @MOVES_Q;
+                }
+                foreach my $shift (@pmoves) {
+                    my $inXray = 0;
+                    my $to = $fr;
+                    $to = shift_BB($to, $shift);
+                    my $distance = 0;
+                    while ($to != 0) {
+                        $distance++;
+                        $attackedBy[$color]->[$pieceType] |= $to;
+                        $attackedBy[$color]->[ALL_PIECES]      |= $to;
+                        $attackedBy2[$color] |= ($to & $attackedBy[$color]->[ALL_PIECES]);
+                        if ($frozen) {
+                            $attackedByFrozen[$color]->[$pieceType] |= $to;
+                            $attackedByFrozen[$color]->[ALL_PIECES] |= $to;
+                        } else {
+                            $attackedByUnFrozen[$color]->[$pieceType] |= $to;
+                            $attackedByUnFrozen[$color]->[ALL_PIECES] |= $to;
+                        }
+                        if ($to & $us){ # we ran into ourselves
+                            $inXray = 1;
+                            # no xrays with frozen pieces
+                            if ($to & $ai_frozenBB) {
+                                $to = 0;
+                                next;
+                            }
+                        }
+                        ### we ran into a currently moving piece, best to forget it
+                        #if ($to & $ai_movingBB) {
+                            #$to = 0;
+                            #next;
+                        #}
+                        if ($inXray == 0) {
+                            $mobilityBonus[$color] += 5;
+                            if (! $frozen) {
+                                push @{$moves[$color]}, [
+                                    $fr,
+                                    $to,
+                                    undef, # score
+                                    $distance,
+                                    undef, # children moves
+                                    undef, # attackedBy
+                                ];
+                            }
+                        }
+                        ### we still want this move so we can capture
+                        if ($to & $them){
                             $to = 0;
                             next;
                         }
+                        $to = shift_BB($to, $shift);
                     }
-                    if ($inXray == 0) {
-                        $mobilityBonus[$color] += 5;
-                        if (! $frozen) {
+                }
+            } elsif ($pieceType == KNIGHT) {
+                $material[$color] += 300;
+                foreach my $to (
+                   shift_BB(shift_BB($fr, NORTH), NORTH_EAST),
+                   shift_BB(shift_BB($fr, NORTH), NORTH_WEST),
+                   shift_BB(shift_BB($fr, SOUTH), SOUTH_EAST),
+                   shift_BB(shift_BB($fr, SOUTH), SOUTH_WEST),
+                   shift_BB(shift_BB($fr, EAST) , NORTH_EAST),
+                   shift_BB(shift_BB($fr, EAST) , SOUTH_EAST),
+                   shift_BB(shift_BB($fr, WEST) , NORTH_WEST),
+                   shift_BB(shift_BB($fr, WEST) , SOUTH_WEST),
+                ) {
+                    if (($to != 0) && !($to & $ai_movingBB) ) {
+                        $attackedBy[$color]->[$pieceType] |= $to;
+                        $attackedBy[$color]->[ALL_PIECES]      |= $to;
+                        $attackedBy2[$color] |= ($to & $attackedBy[$color]->[ALL_PIECES]);
+                        if ($frozen) {
+                            $attackedByFrozen[$color]->[$pieceType] |= $to;
+                            $attackedByFrozen[$color]->[ALL_PIECES] |= $to;
+                        } else {
+                            $attackedByUnFrozen[$color]->[$pieceType] |= $to;
+                            $attackedByUnFrozen[$color]->[ALL_PIECES] |= $to;
+                        }
+                        $mobilityBonus[$color] += 15;
+                        if (! ($to & $us) && ! $frozen) {
                             push @{$moves[$color]}, [
                                 $fr,
                                 $to,
                                 undef, # score
-                                $distance,
+                                2.5,
                                 undef, # children moves
                                 undef, # attackedBy
                             ];
                         }
                     }
-                    ### we still want this move so we can capture
-                    if ($to & $them){
-                        $to = 0;
-                        next;
-                    }
-                    $to = shift_BB($to, $shift);
                 }
-            }
-        }
-
-        ############# QUEEN
-        $bb = ($color == WHITE ? $ai_white & $ai_queens : $ai_black & $ai_queens);
-        while (my $fr = pop_lsb($bb)) {
-            my $frozen = ($fr & $ai_frozenBB);
-            $material[$color] += 300;
-            foreach my $shift (@MOVES_Q) {
-                my $inXray = 0;
-                my $to = $fr;
-                $to = shift_BB($to, $shift);
-                my $distance = 0;
-                while ($to != 0) {
-                    $distance++;
-                    $attackedBy[$color]->[QUEEN] |= $to;
-                    $attackedBy[$color]->[ALL_PIECES] |= $to;
-                    $attackedBy2[$color] |= ($to & $attackedBy[$color]->[ALL_PIECES]);
-                    if ($frozen) {
-                        $attackedByFrozen[$color]->[QUEEN] |= $to;
-                        $attackedByFrozen[$color]->[ALL_PIECES] |= $to;
-                    } else {
-                        $attackedByUnFrozen[$color]->[QUEEN] |= $to;
-                        $attackedByUnFrozen[$color]->[ALL_PIECES] |= $to;
-                    }
-                    if ($to & $us){ # we ran into ourselves
-                        $inXray = 1;
-                        # no xrays with frozen pieces
-                        if ($to & $ai_frozenBB) {
-                            $to = 0;
-                            next;
-                        }
-                    }
-                    if ($inXray == 0) {
-                        $mobilityBonus[$color] += 5;
-                        if (! $frozen) {
-                            push @{$moves[$color]}, [
-                                $fr,
-                                $to,
-                                undef, # score
-                                $distance,
-                                undef, # children moves
-                                undef, # attackedBy
-                            ];
-                        }
-                    }
-                    ### we still want this move so we can capture
-                    if ($to & $them){
-                        $to = 0;
-                        next;
-                    }
-                    $to = shift_BB($to, $shift);
+            } elsif ($pieceType == PAWN) {
+                $material[$color] += 100;
+                my $to = (shift_BB($fr, $pawnDir));
+                if (! ($to & $us) && ! ($to & $them) && ! $frozen) {
+                    push @{$moves[$color]}, [
+                        $fr,
+                        $to,
+                        undef, # score
+                        1,
+                        undef, # children moves
+                        undef, # attackedBy
+                    ];
                 }
-            }
-        }
-
-        $bb = ($color == WHITE ? $ai_white & $ai_knights : $ai_black & $ai_knights);
-        while (my $fr = pop_lsb($bb)) {
-            my $frozen = ($fr & $ai_frozenBB);
-            $material[$color] += 300;
-            foreach my $to (
-               shift_BB(shift_BB($fr, NORTH), NORTH_EAST),
-               shift_BB(shift_BB($fr, NORTH), NORTH_WEST),
-               shift_BB(shift_BB($fr, SOUTH), SOUTH_EAST),
-               shift_BB(shift_BB($fr, SOUTH), SOUTH_WEST),
-               shift_BB(shift_BB($fr, EAST) , NORTH_EAST),
-               shift_BB(shift_BB($fr, EAST) , SOUTH_EAST),
-               shift_BB(shift_BB($fr, WEST) , NORTH_WEST),
-               shift_BB(shift_BB($fr, WEST) , SOUTH_WEST),
-            ) {
-                if (($to != 0) && !($to & $ai_movingBB) ) {
-                    $attackedBy[$color]->[KNIGHT] |= $to;
-                    $attackedBy[$color]->[ALL_PIECES] |= $to;
-                    $attackedBy2[$color] |= ($to & $attackedBy[$color]->[ALL_PIECES]);
-                    if ($frozen) {
-                        $attackedByFrozen[$color]->[KNIGHT] |= $to;
-                        $attackedByFrozen[$color]->[ALL_PIECES] |= $to;
-                    } else {
-                        $attackedByUnFrozen[$color]->[KNIGHT] |= $to;
-                        $attackedByUnFrozen[$color]->[ALL_PIECES] |= $to;
-                    }
-                    $mobilityBonus[$color] += 15;
-                    if (! ($to & $us) && ! $frozen) {
-                        push @{$moves[$color]}, [
-                            $fr,
-                            $to,
-                            undef, # score
-                            2.5,
-                            undef, # children moves
-                            undef, # attackedBy
-                        ];
-                    }
+                $to = shift_BB($fr, $pawnDir + WEST);
+                $attackedBy[$color]->[$pieceType] |= $to;
+                $attackedBy[$color]->[ALL_PIECES]      |= $to;
+                $attackedBy2[$color] |= ($to & $attackedBy[$color]->[ALL_PIECES]);
+                if ($frozen) {
+                    $attackedByFrozen[$color]->[$pieceType] |= $to;
+                    $attackedByFrozen[$color]->[ALL_PIECES]      |= $to;
+                } else {
+                    $attackedByUnFrozen[$color]->[$pieceType] |= $to;
+                    $attackedByUnFrozen[$color]->[ALL_PIECES]      |= $to;
                 }
-            }
-        }
-        $bb = ($color == WHITE ? $ai_white & $ai_pawns : $ai_black & $ai_pawns);
-        while (my $fr = pop_lsb($bb)) {
-            my $frozen = ($fr & $ai_frozenBB);
-            $material[$color] += 100;
-            my $to = (shift_BB($fr, $pawnDir));
-            if (! ($to & $us) && ! ($to & $them) && ! $frozen) {
-                push @{$moves[$color]}, [
-                    $fr,
-                    $to,
-                    undef, # score
-                    1,
-                    undef, # children moves
-                    undef, # attackedBy
-                ];
-            }
-            $to = shift_BB($fr, $pawnDir + WEST);
-            $attackedBy[$color]->[PAWN] |= $to;
-            $attackedBy[$color]->[ALL_PIECES] |= $to;
-            $attackedBy2[$color] |= ($to & $attackedBy[$color]->[ALL_PIECES]);
-            if ($frozen) {
-                $attackedByFrozen[$color]->[PAWN] |= $to;
-                $attackedByFrozen[$color]->[ALL_PIECES] |= $to;
-            } else {
-                $attackedByUnFrozen[$color]->[PAWN] |= $to;
-                $attackedByUnFrozen[$color]->[ALL_PIECES] |= $to;
-            }
-            if (($to & $them) && ! $frozen) {
-                push @{$moves[$color]}, [
-                    $fr,
-                    $to,
-                    undef, # score
-                    1,
-                    undef, # children moves
-                    undef, # attackedBy
-                ];
-            }
-            $to = shift_BB($fr, $pawnDir + EAST);
-            $attackedBy[$color]->[PAWN] |= $to;
-            $attackedBy[$color]->[ALL_PIECES] |= $to;
-            $attackedBy2[$color] |= ($to & $attackedBy[$color]->[ALL_PIECES]);
-            if ($frozen) {
-                $attackedByFrozen[$color]->[PAWN] |= $to;
-                $attackedByFrozen[$color]->[ALL_PIECES] |= $to;
-            } else {
-                $attackedByUnFrozen[$color]->[PAWN] |= $to;
-                $attackedByUnFrozen[$color]->[ALL_PIECES] |= $to;
-            }
-            if (($to & $them) && ! $frozen && !($to & $ai_movingBB) ) {
-                push @{$moves[$color]}, [
-                    $fr,
-                    $to,
-                    undef, # score
-                    1,
-                    undef, # children moves
-                    undef, # attackedBy
-                ];
+                if (($to & $them) && ! $frozen) {
+                    push @{$moves[$color]}, [
+                        $fr,
+                        $to,
+                        undef, # score
+                        1,
+                        undef, # children moves
+                        undef, # attackedBy
+                    ];
+                }
+                $to = shift_BB($fr, $pawnDir + EAST);
+                $attackedBy[$color]->[$pieceType] |= $to;
+                $attackedBy[$color]->[ALL_PIECES]      |= $to;
+                $attackedBy2[$color] |= ($to & $attackedBy[$color]->[ALL_PIECES]);
+                if ($frozen) {
+                    $attackedByFrozen[$color]->[$pieceType] |= $to;
+                    $attackedByFrozen[$color]->[ALL_PIECES]      |= $to;
+                } else {
+                    $attackedByUnFrozen[$color]->[$pieceType] |= $to;
+                    $attackedByUnFrozen[$color]->[ALL_PIECES]      |= $to;
+                }
+                if (($to & $them) && ! $frozen && !($to & $ai_movingBB) ) {
+                    push @{$moves[$color]}, [
+                        $fr,
+                        $to,
+                        undef, # score
+                        1,
+                        undef, # children moves
+                        undef, # attackedBy
+                    ];
+                }
             }
         }
     }
@@ -2045,78 +1905,78 @@ sub evaluate {
 
 
         ### **************** now bonuses for individual pieces
-        my $occ = $ai_occupied;
-        while (my $bb = pop_lsb($occ)) {
-            $pcount++;
-            my $meFrozen = $bb & $ai_frozenBB;
-            my $safe = ($safeBB & $bb);
-            my $color = ($bb & $white ? WHITE : BLACK);
-            if ($bb & $pawns) {
-                ### chaining pawns is good yo
-                if ($attackedBy[$us][PAWN] & $bb) {
-                    $additionalBonus[$color] += 20;
-                }
-                if ($safe) {
-                    $additionalBonus[$color] += 20;
-                }
-            } elsif ($bb & ($knights | $bishops)) {
-                if ($safe) {
-                    $additionalBonus[$color] += 40;
-                }
-                if ($attackedByUnFrozen[$them][PAWN] & $bb) {
-                    $threats[$color] += ($meFrozen ? 200 : 100);
-                }
-            ### knight and rook "safe" checks all knights all rooks
-            } elsif ($bb & $rooks) {
-                if ($safe) {
-                    $additionalBonus[$color] += 40;
-                }
-                if ($attackedByUnFrozen[$them][PAWN] & $bb) {
-                    $threats[$color] += ($meFrozen ? 400 : 120);
-                }
-            } elsif ($bb & $queens) {
-                if ($safe) {
-                    $additionalBonus[$color] += 20;
-                }
-                if ($attackedByUnFrozen[$them][PAWN] & $bb) {
-                    $threats[$color] += ($meFrozen ? 600 : 250);
-                }
-                if (($attackedByUnFrozen[$them][QUEEN] & $bb)) {
-                    if ($safe) {
-                        $queenDangerPenalty[$us] += 200;
-                    } else {
-                        $queenDangerPenalty[$us] += ($meFrozen ? 400 : 130);
+        foreach my $pType (1 .. 7) {
+            foreach my $bb (@{$pieces[$color]->[$pType]}) {
+                $pcount++;
+                my $meFrozen = $bb & $ai_frozenBB;
+                my $safe = ($safeBB & $bb);
+                if ($pType == PAWN) {
+                    ### chaining pawns is good yo
+                    if ($attackedBy[$us][PAWN] & $bb) {
+                        $additionalBonus[$color] += 20;
                     }
-                }
-                if (($attackedByUnFrozen[$them][ROOK] & $bb)) {
                     if ($safe) {
-                        $queenDangerPenalty[$us] += 400;
-                    } else {
-                        $queenDangerPenalty[$us] += ($meFrozen ? 500 : 110);
+                        $additionalBonus[$color] += 20;
                     }
-                }
-                if (
-                    ($attackedByUnFrozen[$them][KNIGHT] & $bb) ||
-                    ($attackedByUnFrozen[$them][BISHOP] & $bb)
-                ) {
+                } elsif ($pType == BISHOP || $pType == KNIGHT) {
                     if ($safe) {
-                        $queenDangerPenalty[$us] += 500;
-                    } else {
-                        $queenDangerPenalty[$us] += ($meFrozen ? 500 : 110);
+                        $additionalBonus[$color] += 40;
                     }
-                }
-            } elsif ($bb & $kings) {
-                if ($attackedByUnFrozen[$them][ALL_PIECES] & $bb) {
-                    $kingDangerPenalty[$color] += ($meFrozen ? 1500 : 500);
-                }
-                if ($attackedByFrozen[$them][ALL_PIECES] & $bb) {
-                    $kingDangerPenalty[$color] += ($meFrozen ? 200 : 50);
-                }
-                if ($attackedByUnFrozen[$them][ALL_PIECES] & $kingRing[$us]) {
-                    $kingDangerPenalty[$color] += ($meFrozen ? 100 : 50);
-                }
-                if ($attackedByFrozen[$them][ALL_PIECES] & $kingRing[$us]) {
-                    $kingDangerPenalty[$color] += ($meFrozen ? 20 : 10);
+                    if ($attackedByUnFrozen[$them][PAWN] & $bb) {
+                        $threats[$color] += ($meFrozen ? 200 : 100);
+                    }
+                ### knight and rook "safe" checks all knights all rooks
+                } elsif ($pType == ROOK) {
+                    if ($safe) {
+                        $additionalBonus[$color] += 40;
+                    }
+                    if ($attackedByUnFrozen[$them][PAWN] & $bb) {
+                        $threats[$color] += ($meFrozen ? 400 : 120);
+                    }
+                } elsif ($pType == QUEEN) {
+                    if ($safe) {
+                        $additionalBonus[$color] += 20;
+                    }
+                    if ($attackedByUnFrozen[$them][PAWN] & $bb) {
+                        $threats[$color] += ($meFrozen ? 600 : 250);
+                    }
+                    if (($attackedByUnFrozen[$them][QUEEN] & $bb)) {
+                        if ($safe) {
+                            $queenDangerPenalty[$us] += 200;
+                        } else {
+                            $queenDangerPenalty[$us] += ($meFrozen ? 400 : 130);
+                        }
+                    }
+                    if (($attackedByUnFrozen[$them][ROOK] & $bb)) {
+                        if ($safe) {
+                            $queenDangerPenalty[$us] += 400;
+                        } else {
+                            $queenDangerPenalty[$us] += ($meFrozen ? 500 : 110);
+                        }
+                    }
+                    if (
+                        ($attackedByUnFrozen[$them][KNIGHT] & $bb) ||
+                        ($attackedByUnFrozen[$them][BISHOP] & $bb)
+                    ) {
+                        if ($safe) {
+                            $queenDangerPenalty[$us] += 500;
+                        } else {
+                            $queenDangerPenalty[$us] += ($meFrozen ? 500 : 110);
+                        }
+                    }
+                } elsif ($pType == KING) {
+                    if ($attackedByUnFrozen[$them][ALL_PIECES] & $bb) {
+                        $kingDangerPenalty[$color] += ($meFrozen ? 1500 : 500);
+                    }
+                    if ($attackedByFrozen[$them][ALL_PIECES] & $bb) {
+                        $kingDangerPenalty[$color] += ($meFrozen ? 200 : 50);
+                    }
+                    if ($attackedByUnFrozen[$them][ALL_PIECES] & $kingRing[$us]) {
+                        $kingDangerPenalty[$color] += ($meFrozen ? 100 : 50);
+                    }
+                    if ($attackedByFrozen[$them][ALL_PIECES] & $kingRing[$us]) {
+                        $kingDangerPenalty[$color] += ($meFrozen ? 20 : 10);
+                    }
                 }
             }
         }
@@ -2340,8 +2200,7 @@ sub evaluateTree {
             print "  " x (5 - $depth);
             if ($aiDebug > 1) {
                 print pretty_ai();
-                print prettyBoard($move->[MOVE_FR] | $move->[MOVE_TO]);
-                #print prettyBoard($ai_frozenBB);
+                print prettyBoard($ai_frozenBB);
             }
         }
         ### because we are frozen in this line we don't consider future moves
@@ -2516,9 +2375,10 @@ sub debug {
 }
 
 sub debug2 {
-    while (my $sq = pop_lsb($ai_bishops)) {
-        print prettyBoard($ai_bishops) . prettyBoard($sq);
-    }
+    my $sq = pop_lsb($ai_bishops);
+    #return _getPiece('a', '1');
+    #print prettyBoard($occupied);
+    return prettyBoard($ai_bishops) . prettyBoard($sq);
 }
 
 ### https://en.wikipedia.org/wiki/Forsyth%E2%80%93Edwards_Notation

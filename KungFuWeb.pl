@@ -2296,6 +2296,10 @@ websocket '/ws' => sub {
             $game->playerBroadcast($msg);
 
             my $score = $game->killPlayer($msg->{color});
+            if ($game->{game_type} eq '4way' && $game->onlyAiLeft) {
+                $msg->{'c'} = 'aiOnly';
+                $game->playerBroadcast($msg);
+            }
             if ($score) {
                 endGame($msg->{gameId}, 'king killed', $score);
             }
@@ -2922,6 +2926,7 @@ sub getTopPlayers {
     my $playerRows = app->db()->selectall_arrayref("
         SELECT *
         FROM players WHERE $countColumn > 9
+        AND last_seen > DATE_SUB(NOW(), INTERVAL 6 MONTH)
         ORDER BY $ratingsColumn DESC LIMIT $number",
         { 'Slice' => {} }
     );

@@ -59,6 +59,11 @@ sub _init {
     $self->{red}->{draw}   = 0;
     $self->{green}->{draw} = 0;
 
+    $self->{white}->{isAi} = $row->{white_player} < 0;
+    $self->{black}->{isAi} = $row->{black_player} < 0;
+    $self->{red}->{isAi}   = $row->{red_player} < 0;
+    $self->{green}->{isAi} = $row->{green_player} < 0;
+
     $self->{gameLog} = [];
     $self->{chatLog} = [];
     $self->{gameStartTime} = time();
@@ -80,6 +85,17 @@ sub setTeams {
     my $teams = shift;
 
     $self->{teams} = $teams;
+}
+
+# returns true if no human players remain
+sub onlyAiLeft {
+    my $self = shift;
+    return ( 
+        ($self->{white}->{alive} == 0 || $self->{white}->{isAi} == 1) &&
+        ($self->{black}->{alive} == 0 || $self->{black}->{isAi} == 1) &&
+        ($self->{red}->{alive} == 0 || $self->{red}->{isAi} == 1) &&
+        ($self->{green}->{alive} == 0 || $self->{green}->{isAi} == 1)
+    );
 }
 
 ### returns false for game is still active

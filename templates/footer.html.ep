@@ -1,2 +1,9 @@
-</body>
+  <footer class="footer mt-auto bg-light">
+    <div class="container">
+      <span class="text-light"><a href="https://discord.gg/kGAcDwsWmX"><img src="Discord_Logo_full.png" alt="Join Discord""></a></span>
+       &nbsp;&nbsp;<a class='link-dark' href="https://twitter.com/KungFuChessOrg">twitter</a>
+      &nbsp;&nbsp;<a class='link-dark' href="https://github.com/existentialcomics/kungFuChess">source code</a>
+    </div>
+  </footer>
 </html>
+

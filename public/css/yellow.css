@@ -22,6 +22,15 @@ body {
   overflow: scroll;
   background-color: #F0F0F0; }
 
+.footer {
+  position: absolute;
+  bottom: 0;
+  width: 100%;
+  height: 65px;
+  padding: 5px;
+  z-index: -9999;
+  background-color: #f5f5f5; }
+
 ul {
   list-style-type: none;
   margin: 0;
