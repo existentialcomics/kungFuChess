@@ -12,7 +12,7 @@
         var wsDomainMain = '<%= $wsDomainMain %>';
         var wsProtocol   = '<%= $wsProtocol %>';
     </script>
-    <script src="/main.js?cache=2022-08-07"></script>
+    <script src="/main.js?cache=2022-08-22"></script>
     <% if ($user){ %>
     <link rel="stylesheet" type="text/css" href="/css/<%= $user->getBelt() %>.css?cache=2022-07-20">
     <% } else { %>
@@ -29,13 +29,13 @@
     <a href="/"><img src='/kfcBanner.png' height=50 alt="Home"><img></a>
     </li>
     <li>
-    <% if ($user){ %>
+    <% if ($user && $user->{player_id} != -1){ %>
         %= include 'logout'
     <% } else { %>
         <a href="/login">Login</a>
     <% } %>
     </li>
-    <% if ($user && $user->{screenname} ne 'anonymous'){ %>
+    <% if ($user && $user->{player_id} != -1){ %>
     <li>
     <a href="/profile/<%= $user->{screenname} %>">Welcome, <%= $user->{screenname} %></a>
     </li>

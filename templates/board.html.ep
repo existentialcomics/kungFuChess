@@ -18,8 +18,16 @@
             %= include 'player', 'player' => $whitePlayer, 'ratingType' => $ratingType
             %= include 'player', 'player' => $blackPlayer, 'ratingType' => $ratingType
             <% if ($gameType eq '4way') { %>
-                %= include 'player', 'player' => $redPlayer, 'ratingType' => $ratingType
-                %= include 'player', 'player' => $greenPlayer, 'ratingType' => $ratingType
+                <% if ($redPlayer) { %>
+                    %= include 'player', 'player' => $redPlayer, 'ratingType' => $ratingType
+                <% } else { %>
+                    (empty seat)<br />
+                <% } %>
+                <% if ($redPlayer) { %>
+                    %= include 'player', 'player' => $greenPlayer, 'ratingType' => $ratingType
+                <% } else { %>
+                    (empty seat)<br />
+                <% } %>
             <% } %>
         </div>
             <div id="game-chat-log" disabled="true" class='text-chat'></div>
@@ -223,7 +231,7 @@
 </script>
 
 <script src="/pieces/pieces.js"></script>
-<script src="/game.js?cache=2022-08-07"></script>
+<script src="/game.js?cache=2022-08-22"></script>
 
 <script>
 $('input[type=radio]').on('change', function() {

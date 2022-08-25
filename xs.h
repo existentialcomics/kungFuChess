@@ -280,3 +280,31 @@ std::string pretty(Square s) {
 std::string pretty(Move m) {
     return pretty(from_sq(m) | to_sq(m));
 }
+
+// pieces
+Bitboard byColorBB[3] = {
+    0x0,
+    0x0,
+    0x0
+};
+Bitboard byTypeBB[PIECE_TYPE_NB];
+
+Bitboard pieces(PieceType pt = ALL_PIECES) {
+  return byTypeBB[pt];
+}
+
+Bitboard pieces(PieceType pt1, PieceType pt2) {
+  return pieces(pt1) | pieces(pt2);
+}
+
+Bitboard pieces(Color c) {
+  return byColorBB[c];
+}
+
+Bitboard pieces(Color c, PieceType pt) {
+  return pieces(c) & pieces(pt);
+}
+
+Bitboard pieces(Color c, PieceType pt1, PieceType pt2) {
+  return pieces(c) & (pieces(pt1) | pieces(pt2));
+}

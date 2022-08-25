@@ -431,7 +431,16 @@ var joinGame = function(){
         'uid' : anonKey,
         'gameId' : gameId
     };
-    gameId = gameId;
+    sendMsg(ret);
+};
+
+var sitGame = function(){
+    var ret = {
+        'c' : 'sit',
+        'uid' : userAuthToken,
+        'gameId' : gameId
+    };
+    console.log(ret);
     sendMsg(ret);
 };
 
@@ -769,10 +778,13 @@ var handleMessage = function(msg) {
 				pieces[id].image.draggable(true);
 			}
 		}
-        console.debug(msg);
+        //console.debug(msg);
 		resetGamePieces();
 		pieceLayer.draw();
         setTimeout(remindAiTakeover, 20000)
+        if (myColor == 'watch') {
+            sitGame();
+        }
     } else if (msg.c == 'suspend'){
         // knights and castles are removed from the board entirely 
         // when they move, until they land.

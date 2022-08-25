@@ -19,7 +19,7 @@
         </div>
 
         <div class="col-6" id="col-lobby">
-            <% if (!($user && $user->{player_id} != -1)) { %>
+            <% if (!$user || $user->{player_id} == -1) { %>
                 <a href="/register">Register to play rated games.</a>
             <% } %>
             <nav class="navbar navbar-expand-lg navbar-expand navbar-light bg-light">
@@ -38,13 +38,13 @@
                 <div class="d-grid gap-2">
                     <a class="btn btn-primary p-4 text-light" id="enter-pool-standard" role="button">
                         Standard Pool
-                        <% if (!($user && $user->{player_id} != -1)) { %>
+                        <% if (!$user || $user->{player_id} == -1) { %>
                             (unrated)
                         <% } %>
                     </a>
                     <a class="btn btn-primary p-4 text-light" id="enter-pool-lightning" role="button">
                         Lightning Pool
-                        <% if (!($user && $user->{player_id} != -1)) { %>
+                        <% if (!$user || $user->{player_id} == -1) { %>
                             (unrated)
                         <% } %>
                     </a>
@@ -58,7 +58,7 @@
                     Play Against the AI
                     </a>
                 </div>
-                <% if (!($user && $user->{player_id} != -1)) { %>
+                <% if (!$user || $user->{player_id} == -1) { %>
                     <small><a href="/login">Log in</a> to play rated games.</small>
                 <% } %>
 --->
@@ -69,19 +69,19 @@
                         <div class="btn-group d-flex gap-1" role="group" aria-label="Rated">
                             <a class="btn btn-primary p-2 text-light" id="enter-pool-standard" role="button">
                                 Standard
-                                <% if (!($user && $user->{player_id} != -1)) { %>
+                                <% if (!$user || $user->{player_id} == -1) { %>
                                     (unrated)
                                 <% } %>
                             </a>
                             <a class="btn btn-primary p-2 text-light" id="enter-pool-lightning" role="button">
                                 Lightning
-                                <% if (!($user && $user->{player_id} != -1)) { %>
+                                <% if (!$user || $user->{player_id} == -1) { %>
                                     (unrated)
                                 <% } %>
                             </a>
                             <a class="btn btn-primary p-2 text-light" id="enter-pool-4way-lightning" role="button">
                                 4way Lightning
-                                <% if (!($user && $user->{player_id} != -1)) { %>
+                                <% if (!$user || $user->{player_id} == -1) { %>
                                     (unrated)
                                 <% } %>
                             </a>

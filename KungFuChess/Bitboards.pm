@@ -4,8 +4,8 @@ use strict;
 #use warnings;
 
 package XS;
-use Inline CPP => config => typemaps => './typemap';
-use Inline CPP => './xs.cpp' => namespace => 'xs';
+#use Inline CPP => config => typemaps => './typemap';
+#use Inline CPP => './xs.cpp' => namespace => 'xs';
 
 package KungFuChess::Bitboards;
 use Math::BigInt;
@@ -1522,14 +1522,16 @@ sub setPosXS {
         $frozenBB ,
         $movingBB
     );
-    print "done setBBs()\n";
+    #print "done setPosXS()\n";
 }
 
 sub initXS {
     xs::initialise_bitboard();
+    xs::initialise_all_databases();
 }
 
 sub evaluateXS {
+    xs::setAllMoves();
     return xs::evaluate();
 }
 

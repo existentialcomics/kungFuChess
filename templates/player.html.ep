@@ -1,5 +1,7 @@
 <div id="playerWrapper">
+    <% if ($player) { %>
     <div id="<%= $player->getBelt($ratingType) %>belt"></div>
     &nbsp;<a href=/profile/<%= $player->{screenname} %> class='link-dark'><%= $player->{screenname} %></a>
     &nbsp;<%= $player->getRating($ratingType) %>
+    <% } %>
 </div>

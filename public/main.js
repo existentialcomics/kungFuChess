@@ -138,9 +138,6 @@ function getPlayers(originalThread = false) {
             url  : '/activePlayers?ratingType=' + ratingToggle,
             dataType : 'html',
             success : function(data){
-                //var $s = $(data).not('#challenge_' . screenname);
-                var $s = $(data).not('#challenge_thebalrog');
-                $(data).find('#challenge_thebalrog').remove();
                 $('#playersContent').html(data);
                 $('#challenge_' + screenname).remove();
                 if (setInterval) {
@@ -171,7 +168,7 @@ function checkPool(originalThread = false) {
 
     }
     $.ajax({
-        type : 'GET',
+        type : 'POST',
         url  : '/ajax/pool/' + checkPoolGameSpeed + "/" + checkPoolGameType,
         data : {
             uuid : currentGameUid
@@ -653,7 +650,6 @@ var bindEvents = function(ws_conn) {
                 var gameUrl = '/game/' + msg.gameId;
                 var buttonHtml = '<a href="' + gameUrl + '"><button type="button" class="btn btn-danger">You have an active game! Click here to go to your game.</button></a>'
                 $('#active-game').html(buttonHtml);
-                console.log(buttonHtml);
                 //window.location.replace('/game/' + msg.gameId);
             }
         } else if (msg.c == 'challenge'){
@@ -756,8 +752,8 @@ $(function () {
         if (screenname == null) {
             screenname = 'anonymous';
         }
-        if (screenname === 'thebalrog') {
-            screenname = 'thebalrog (ADMIN)';
+        if (screenname === 'TheBalrog') {
+            screenname = 'TheBalrog (ADMIN)';
         }
         addChatMessage(
             screenname,

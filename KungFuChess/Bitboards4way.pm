@@ -1958,10 +1958,10 @@ sub evaluate {
                         $attackedBy2[$color] |= ($to & $attackedBy[$color]->[ALL_PIECES]);
                         if ($frozen) {
                             $attackedByFrozen[$color]->[$pieceType] |= $to;
-                            $attackedByFrozen[$color]->[ALL_PIECES]      |= $to;
+                            $attackedByFrozen[$color]->[ALL_PIECES] |= $to;
                         } else {
                             $attackedByUnFrozen[$color]->[$pieceType] |= $to;
-                            $attackedByUnFrozen[$color]->[ALL_PIECES]      |= $to;
+                            $attackedByUnFrozen[$color]->[ALL_PIECES] |= $to;
                         }
                     }
                 }

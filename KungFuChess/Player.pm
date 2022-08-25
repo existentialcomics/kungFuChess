@@ -33,13 +33,13 @@ sub _init {
     $self->{dbh} = $dbh;
 
     if (defined($data->{userId})) { 
-        return $self->_loadById($data->{userId});
+        return $self->_loadById($data->{userId}, $data->{auth_token});
+    } elsif (defined($data->{anon})) { 
+        return $self->_loadAnonymousUser($data->{auth_token}, $data->{screenname});
     } elsif (defined($data->{screenname})) { 
         return $self->_loadByScreenname($data->{screenname});
     } elsif (defined($data->{row})) { 
         return $self->_loadByRow($data->{row});
-    } elsif (defined($data->{anon})) { 
-        return $self->_loadAnonymousUser();
     } elsif (defined($data->{ai})) { 
         return $self->_loadAiUser($data->{auth_token});
     } elsif (defined($data->{auth_token})) { 
@@ -68,7 +68,7 @@ sub getBelt {
     my $gameSpeed = shift;
     my $gameType  = shift;
 
-    if ($self->{is_anon}) { return 'green'; }
+    if ($self->{is_anon}) { return 'white'; }
 
     if (!$gameSpeed) { $gameSpeed = 'standard'; }
     if (!$gameType ) { $gameType  = '2way'; }
@@ -343,9 +343,17 @@ sub _loadByRow {
 
 sub _loadAnonymousUser {
     my $self = shift;
+    my $authToken = shift;
+    my $screenname = shift;
 
+    if (! $screenname && $authToken) {
+        my $anonRow = $self->{dbh}->selectrow_arrayref("SELECT screenname FROM guest_players WHERE auth_token = ?", {}, $authToken);
+        if ($anonRow) {
+            $screenname = $anonRow->[0];
+        }
+    }
     $self->{player_id} = -1;
-    $self->{screenname} = 'anonymous';
+    $self->{screenname} = $screenname ? $screenname : 'anonymous';
     $self->{rating_standard} = 0;
     $self->{rating_lighting} = 0;
     $self->{rating_standard_4way} = 0;
@@ -354,7 +362,7 @@ sub _loadAnonymousUser {
     $self->{chat_sounds}  = 0;
     $self->{game_sounds}  = 1;
     $self->{music_sounds} = 1;
-    $self->{'auth_token'} = create_uuid_as_string();
+    $self->{'auth_token'} = $authToken // create_uuid_as_string();
 }
 
 sub _loadAiUser {
@@ -374,8 +382,9 @@ sub _loadAiUser {
 sub _loadById {
     my $self = shift;
     my $userId = shift;
+    my $anonToken = shift;
     if ($userId == ANON_USER) {
-        return $self->_loadAnonymousUser();
+        return $self->_loadAnonymousUser($anonToken);
     }
     if ($userId == AI_USER) {
         return $self->_loadAiUser();
@@ -398,6 +407,9 @@ sub _loadByAuth {
     my $self = shift;
     my $authToken = shift;
 
+    if ($authToken =~ m/^anon_/) {
+        return $self->_loadAnonymousUser($authToken);
+    }
     my $profileRows = $self->{dbh}->selectall_arrayref('
         SELECT *
         FROM players

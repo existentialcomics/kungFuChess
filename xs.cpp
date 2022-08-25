@@ -11,7 +11,7 @@
 #include "xs.h"
 //#include <pre/json/to_json.hpp>
 
-bool debug = true;
+int debug = 1;
 int totalEvals = 0;
 
 namespace chess_xs {
@@ -839,6 +839,9 @@ void initialise_all_databases() {
 	initialise_squares_between();
 	initialise_line();
 	initialise_pseudo_legal();
+    if (debug) {
+        std::cout << "done init all dbs()\n";
+    }
 }
 
 Bitboard frozen = 0x0;
@@ -850,64 +853,6 @@ Bitboard PAWN_ATTACKERS[3] = {
     0x0,
     0x0
 };
-Bitboard PIECE_ATTACKERS[3] = {
-    0x0,
-    0x0,
-    0x0
-};
-Bitboard ROOK_ATTACKERS[3] = {
-    0x0,
-    0x0,
-    0x0
-};
-Bitboard QUEEN_ATTACKERS[3] = {
-    0x0,
-    0x0,
-    0x0
-};
-Bitboard KING_ATTACKERS[3] = {
-    0x0,
-    0x0,
-    0x0
-};
-
-// pieces
-Bitboard PAWN_BB[3] = {
-    0x0,
-    0x0,
-    0x0
-};
-Bitboard KNIGHT_BB[3] = {
-    0x0,
-    0x0,
-    0x0
-};
-Bitboard BISHOP_BB[3] = {
-    0x0,
-    0x0,
-    0x0
-};
-Bitboard ROOK_BB[3] = {
-    0x0,
-    0x0,
-    0x0
-};
-Bitboard QUEEN_BB[3] = {
-    0x0,
-    0x0,
-    0x0
-};
-Bitboard KING_BB[3] = {
-    0x0,
-    0x0,
-    0x0
-};
-Bitboard byColorBB[3] = {
-    0x0,
-    0x0,
-    0x0
-};
-Bitboard byTypeBB[PIECE_TYPE_NB];
 
 //#define moveSet int[6];
 
@@ -915,10 +860,6 @@ const int MOVE_FR       = 0;
 const int MOVE_TO       = 1;
 const int MOVE_SCORE    = 2;
 const int MOVE_DISTANCE = 3;
-
-// technically you can have more than 195 legal moves but whatever
-typedef int (*MoveList)[195][5] ;
-
 
 Piece board[65];
 int moveSpot = 0;
@@ -994,7 +935,7 @@ int evaluateThreats(Color Us) {
     int score = 0;
 
     // Non-pawn enemies
-    nonPawnEnemies = byColorBB[Them] & ~PAWN_BB[Them];
+    nonPawnEnemies = byColorBB[Them] & ~pieces(Them, PAWN);
 
     // Squares strongly protected by the enemy, either because they defend the
     // square with a pawn, or because they defend the square twice and we don't.
@@ -1006,6 +947,25 @@ int evaluateThreats(Color Us) {
 
     // Enemies not strongly protected and under our attack
     weak = byColorBB[Them] & ~stronglyProtected & attackedBy[Us][ALL_PIECES];
+    //weak = byColorBB[Them] & attackedBy[Us][ALL_PIECES];
+
+    if (debug > 1) {
+        std::cout << "\n\n------------ attacked by us / def / weak -----------------\n\n";
+        std::cout << pretty(attackedBy[Us][PAWN]);
+        std::cout << pretty(attackedBy[Them][PAWN]);
+        std::cout << "\n\n --defended\n";
+        std::cout << pretty(defended);
+        std::cout << "\n\n --weak\n";
+        std::cout << pretty(weak);
+        std::cout << "\n\n----------------------------------------------------------\n\n";
+    }
+    if (debug > 1) {
+        std::cout << "\n\n------------ pieces them/us -----------------\n\n";
+        std::cout << pretty(byColorBB[Them]);
+        std::cout << pretty(byColorBB[Us]);
+        std::cout << "\n\n----------------------------------------------------------\n\n";
+    }
+
 
     // Bonus according to the kind of attacking pieces
     if (defended | weak)
@@ -1038,9 +998,15 @@ int evaluateThreats(Color Us) {
     // Protected or unattacked squares
     safe = ~attackedBy[Them][ALL_PIECES] | attackedBy[Us][ALL_PIECES];
 
+    if (debug > 1) {
+        std::cout << "\n\n------------ SAFE -----------------\n\n";
+        std::cout << pretty(safe);
+        //std::cout << pretty(occupiedMe);
+    }
+
     // Bonus for attacking enemy pieces with our relatively safe pawns
-    b = PAWN_BB[Us] & safe;
-    b = PAWN_ATTACKERS[Us] & nonPawnEnemies;
+    b = pieces(Us, PAWN) & safe;
+    b = attackedBy[Us][PAWN] & nonPawnEnemies;
     score += ThreatBySafePawn * popcount(b);
 
     if (debug) {
@@ -1064,26 +1030,6 @@ Bitboard shift(Direction D, Bitboard b) {
         : 0;
 }
 
-Bitboard pieces(PieceType pt = ALL_PIECES) {
-  return byTypeBB[pt];
-}
-
-Bitboard pieces(PieceType pt1, PieceType pt2) {
-  return pieces(pt1) | pieces(pt2);
-}
-
-Bitboard pieces(Color c) {
-  return byColorBB[c];
-}
-
-Bitboard pieces(Color c, PieceType pt) {
-  return pieces(c) & pieces(pt);
-}
-
-Bitboard pieces(Color c, PieceType pt1, PieceType pt2) {
-  return pieces(c) & (pieces(pt1) | pieces(pt2));
-}
-
 
 // call setAllMoves() first
 void evalInit(Color Us) {
@@ -1093,7 +1039,7 @@ void evalInit(Color Us) {
     Direction Down = pawn_push(Them);
     Bitboard LowRanks = (Us == WHITE ? Rank2BB | Rank3BB : Rank7BB | Rank6BB);
 
-    Bitboard b = KING_BB[Us];
+    Bitboard b = pieces(Us, KING);
     Square ksq = pop_lsb(b);
 
     //Bitboard dblAttackByPawn = pawn_double_attacks_bb<Us>(pos.pieces(Us, PAWN));
@@ -1206,12 +1152,6 @@ std::vector<Move> getAllMoves(Color c) {
         Direction Up   = pawn_push(Us);
         Direction Down = pawn_push(Them);
 
-        if (debug) {
-            std::cout << "\n\n------------ ME -----------------\n\n";
-            std::cout << pretty();
-            //std::cout << pretty(occupiedMe);
-        }
-
         //*********************** pawns
         b = pieces(c, PAWN);
         while (Square sq = pop_lsb(b)) {
@@ -1226,8 +1166,8 @@ std::vector<Move> getAllMoves(Color c) {
             att_bb &= occupiedThem;
             att_bb |= p_move;
             while (Square sq_to = pop_lsb(att_bb)) {
-                //Move m = make_move(sq, sq_to, QUIET);
-                //if (c == Us) { moveArrayTmp.push_back(m); }
+                Move m = make_move(sq, sq_to, QUIET);
+                if (c == Us) { moveArrayTmp.push_back(m); }
             }
         }
         
@@ -1285,7 +1225,7 @@ std::vector<Move> getAllMoves(Color c) {
             Bitboard att_bb = get_rook_attacks(sq, occupied);
             attackedBy[Us][ROOK] |= att_bb;
 
-            ROOK_ATTACKERS[Us] |= att_bb;
+            attackedBy[Us][ROOK] |= att_bb;
             Piece piece = make_piece(c, ROOK);
             board[sq] = piece;
 
@@ -1319,6 +1259,15 @@ std::vector<Move> getAllMoves(Color c) {
                                      attackedBy[Us][KING];
     }
     return moveArrayTmp;
+}
+
+std::vector<Move> baseMovesWhite;
+std::vector<Move> baseMovesBlack;
+
+void setAllMoves() {
+    std::cout << "setAllMoves()\n";
+    baseMovesWhite = getAllMoves(WHITE);
+    baseMovesBlack = getAllMoves(BLACK);
 }
 
 inline void put_piece(Piece pc, Square s) {
@@ -1371,8 +1320,7 @@ struct Node
 {
   int score;
   Move move;
-  Node *next;
-  Node *prev;
+  struct Node *next;
 };
 
 Node bestNodeFound;
@@ -1403,15 +1351,52 @@ void setBBs(
 
     frozen  = bb_frozen;
     moving  = bb_moving;
+    if (debug) {
+        std::cout << "done set BBs cpp\n" << "\n";
+    }
 }
 
-Node searchTree(Move currentMove, int depth, int ply, int& alpha, int& beta, bool isMaximizingPlayer, Color c) {
+class MoveList
+{
+private:
+    Node *head,*tail;
+public:
+    MoveList()
+    {
+        head = NULL;
+        tail = NULL;
+    }
 
-    Node highNode;
-    Node lowNode;
+    void add_node(int score, Move m)
+    {
+        Node *tmp = new Node;
+        tmp->score = score;
+        tmp->move = m;
+        tmp->next = NULL;
 
-    Node currentNode;
-    currentNode.move = currentMove;
+        if(head == NULL)
+        {
+            head = tmp;
+            tail = tmp;
+        }
+        else
+        {
+            tail->next = tmp;
+            tail = tail->next;
+        }
+    }
+};
+
+Node* searchTree(Move currentMove, int depth, int ply, int& alpha, int& beta, bool isMaximizingPlayer, Color c) {
+    if (debug) {
+        std::cout << "\n\n\nply:" << ply << " depth:" << depth << "\n";
+    }
+
+    Node *highNode = new Node;
+    Node *lowNode = new Node;
+
+    Node *currentNode = new Node;
+    currentNode->move = currentMove;
 
     std::vector<Move> moves(0);
     moves = getAllMoves(c);
@@ -1421,12 +1406,13 @@ Node searchTree(Move currentMove, int depth, int ply, int& alpha, int& beta, boo
     int moveSpot = 0;
 
     if (debug) {
-        std::cout << "ply:" << ply << " depth:" << depth << "\n";
         std::cout << "moves: " << moves.size() << "\n";
+        std::cout << "cm: " << currentNode->move << "\n";
     }
     if (ply > depth) {
-        highNode.score = score;
-        return highNode;
+        currentNode->score = score;
+        currentNode->next = NULL;
+        return currentNode;
     }
 
     int highScore = -999999;
@@ -1440,13 +1426,12 @@ Node searchTree(Move currentMove, int depth, int ply, int& alpha, int& beta, boo
         Move m = moves[moveSpot];
         Piece p = do_move(m);
         if (debug && ply == 0) {
-            std::cout << "\n ++++++++++++++++ move +++++++++++++++\n" << pretty(m) << "\n";
+            std::cout << "\n ++++++++++++++++ move: " << m << " +++++++++++++++\n" << pretty(m) << "\n";
         }
         ply++;
 
-        Node nextBestMove = searchTree(m, depth, ply, alpha, beta, isMaximizingPlayer, c);
-        currentNode.score = nextBestMove.score;
-        int newScore = currentNode.score;
+        Node* nextBestMove = searchTree(m, depth, ply, alpha, beta, isMaximizingPlayer, c);
+        int newScore = nextBestMove->score;
         if (debug) {
             for (int i = 0; i <= ply; i++) {
                 std::cout << "...";
@@ -1455,11 +1440,11 @@ Node searchTree(Move currentMove, int depth, int ply, int& alpha, int& beta, boo
         }
         if (newScore > highScore) {
             highScore = newScore;
-            highNode = currentNode;
+            highNode = nextBestMove;
         }
         if (newScore < lowScore) {
             lowScore = newScore;
-            lowNode = currentNode;
+            lowNode = nextBestMove;
         }
 
         ply--;
@@ -1468,36 +1453,48 @@ Node searchTree(Move currentMove, int depth, int ply, int& alpha, int& beta, boo
         moveSpot++;
     }
     if (isMaximizingPlayer) {
-        highNode.score   = highScore;
-        highNode.prev    = &currentNode;
-        currentNode.next = &highNode;
+        currentNode->score  = highScore;
+        currentNode->next   = highNode;
     } else {
-        lowNode.score    = lowScore;
-        highNode.prev    = &currentNode;
-        currentNode.next = &lowNode;
+        currentNode->score  = lowScore;
+        currentNode->next   = lowNode;
+    }
+    if (debug) {
+        std::cout << "      ply: " << ply << "\n";
+        std::cout << "highscore: " << highNode->score << "\n";
+        std::cout << " lowscore: " << lowNode->score << "\n";
+        std::cout << " curscore: " << currentNode->score << "\n";
+        std::cout << " curmove : " << currentNode->move << "\n";
+        std::cout << "nextmove : " << currentNode->next->move << "\n";
+        //std::cout << "nnnnmove : " << currentNode->next->next->move << "\n";
+
     }
     return currentNode;
 }
 
-Node bestMoveNode;
+Node *bestMoveNode = new Node;
+
 int beginSearch(int depth) {
     int alpha = -9999;
     int beta  = 9999;
     totalEvals = 0;
     std::cout << "begin search: " << totalEvals << "\n";
     Color c = WHITE;
-    Node baseNode;
-    Node bestMoveN = searchTree(0, depth, 0, alpha, beta, true, c);
-    std::cout << "total evals: " << totalEvals << "\n";
-    std::cout << "best move int: " << baseNode.move << "\n";
-    bestMoveNode = bestMoveN;
-    return baseNode.score;
+    Node *baseNode = searchTree(0, depth, 0, alpha, beta, true, c);
+    if (debug) {
+        //std::cout << " --------------------------------- " << "\n";
+        //std::cout << " curscore: " << baseNode->score << "\n";
+        //std::cout << " curmove : " << baseNode->move << "\n";
+        //std::cout << "nextmove : " << baseNode->next->move << "\n";
+        //std::cout << "nnnnmove : " << baseNode->next->next->move << "\n";
+    }
+    return 0;
 }
 
 Move getBestMove() {
-    return bestMoveNode.move;
+    return bestMoveNode->move;
 }
 
 Move getBestMoveCont() {
-    return bestMoveNode.move;
+    return bestMoveNode->move;
 }

@@ -1,0 +1,14 @@
+Style
+Lotus
+Dragon
+Art
+Legend
+Rook
+Knight
+Queen
+King
+Pawn
+Bishop
+Checkmate
+Fists
+Hand

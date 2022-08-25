@@ -20,6 +20,10 @@ if ($fen) {
 } else {
     KungFuChess::Bitboards::setupInitialPosition();
 }
+
+KungFuChess::Bitboards::initXS();
+KungFuChess::Bitboards::setPosXS();
+
 if ($frozenIn) {
     KungFuChess::Bitboards::setFrozen($frozenIn);
     KungFuChess::Bitboards::resetAiBoards();
@@ -88,11 +92,11 @@ while ($go) {
         print "XS evaluate: ";
         print KungFuChess::Bitboards::evaluateXS();
         print "\n";
-        #my $xsScore = xs::beginSearch(0);
-        #my $bestMove = xs::getBestMove();
-        #print "best: $bestMove\n";
-        #print "donemoves\n";
-        #exit;
+        my $xsScore = xs::beginSearch(1);
+        my $bestMove = xs::getBestMove();
+        print "best: $bestMove\n";
+        print "donemoves\n";
+        exit;
     } elsif ($input =~ m/^(white|black)$/) {
         my $cIn = $1;
         my $color = ($cIn =~ 'white' ? 1 : 2);

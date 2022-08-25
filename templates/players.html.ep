@@ -14,13 +14,13 @@
         </td>
         <td>
            <small>
-            <%= $player->getRating($ratingType) %>
+            <%= $player->getRating($ratingType) ? $player->getRating($ratingType) : "" %>
            </small>
         </td>
         <td>
            <small>
            <a href="#" class='link-dark'>
-           <% if ($showChallenge) { %>
+           <% if ($showChallenge && ! $player->{is_anon}) { %>
            <img src="/challenge25_25.png" class="challengePlayer" id="challenge_<%= $player->{screenname} %>" data-screenname="<%= $player->{screenname} %>"> </a>
            <% } %>
            <a href=/profile/<%= $player->{screenname} %> class='link-dark'><%= $player->{screenname} %></a>
