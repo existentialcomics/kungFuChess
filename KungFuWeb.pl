@@ -2109,7 +2109,7 @@ websocket '/ws' => sub {
             }
         } elsif ($msg->{'c'} eq 'sit'){
             my ($color, $gameRow, $successAuth) = authGameColor($msg->{auth}, $msg->{uid}, $msg->{gameId});
-            if (! $color) {
+            if (! $color && $game->{game_type} eq '4way') {
                 my $player = new KungFuChess::Player({auth_token => $msg->{uid}}, app->db());
                 if (! defined($gameRow->{white_player}) ) {
                     app->db()->do(
