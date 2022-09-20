@@ -3,14 +3,18 @@ Bitboard T_U_LONG_LONG
 Move T_U_LONG_LONG
 int T_U_LONG_LONG
 uint64_t T_U_LONG_LONG              # equivalent to typedef unsigned long long uint64_t;
+char *          T_PV
+const char *    T_PV
+unsigned char * T_PV
 
 INPUT
 T_U_LONG_LONG
     $var = (unsigned long long)SvUV($arg)
+T_PV
+  $var = ($type)SvPV_nolen($arg)
+T_PTR
+  $var = INT2PTR($type,SvIV($arg))
 
 OUTPUT
 T_U_LONG_LONG
     sv_setuv($arg, (UV)$var);
-
-TYPEMAP
-Square T_UV

@@ -907,6 +907,7 @@ sub moveIfLegal {
         'color' => $colorbit,
         'fr_bb' => $fr_bb,
         'to_bb' => $to_bb,
+        'dir' => $moveDir, ### to help AI find move path
         'moveType' => $moveType
     };
     $self->send($msg);

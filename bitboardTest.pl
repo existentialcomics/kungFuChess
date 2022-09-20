@@ -24,13 +24,16 @@ if ($fen) {
 KungFuChess::Bitboards::initXS();
 KungFuChess::Bitboards::setPosXS();
 
+#$frozenIn = 0x1111111111111111;
+
+
 if ($frozenIn) {
-    KungFuChess::Bitboards::setFrozen($frozenIn);
-    KungFuChess::Bitboards::resetAiBoards();
+    #KungFuChess::Bitboards::setFrozen($frozenIn);
+    #KungFuChess::Bitboards::resetAiBoards();
 }
 #print KungFuChess::Bitboards::setPosXS();
 ##print KungFuChess::Bitboards::pretty();
-#print KungFuChess::Bitboards::pretty_ai();
+print KungFuChess::Bitboards::pretty_ai();
 #print "XS evaluate:\n";
 #print KungFuChess::Bitboards::evaluateXS();
 #print "\nmoves:\n";
@@ -46,7 +49,9 @@ my ($score, $bestMoves, $moves) = (0.0, [], []);
 $| = 1;
 
 my $go = 1;
-my $input = 'eval';
+my $input = '';
+$input = 'eval';
+#$input = 'induce white c2g6';
 while ($go) {
 
     if ($input =~ m/^[a-z][0-9][a-z][0-9]$/) {
@@ -71,31 +76,39 @@ while ($go) {
         KungFuChess::Bitboards::unsetFrozen($fr_bb);
         KungFuChess::Bitboards::resetAiBoards();
         print KungFuChess::Bitboards::prettyFrozen();
-    } elsif ($input =~ m/^induce (white|black) ([a-z][0-9])\s*$/) {
+    } elsif ($input =~ m/^induce (white|black) ([a-z][0-9])([a-z][0-9])\s*$/) {
         my $cIn = $1;
-        my $input = $2;
+        my $inputA = $2;
+        my $inputB = $3;
+        print "moves: $inputA $inputB\n";
         my $color = ($cIn =~ 'white' ? 1 : 2);
-        my $fr_bb = KungFuChess::Bitboards::parseSquare($input);
+        my $fr_bb = KungFuChess::Bitboards::parseSquare($inputA);
+        my $to_bb = KungFuChess::Bitboards::parseSquare($inputB);
         my ($eval, $moves, $material, $attacks) = KungFuChess::Bitboards::evaluate(1);
-        my ($bestMove, $bestScore) = KungFuChess::Bitboards::recommendMoveForBB($fr_bb, $color, $attacks);
-        print "moving...$bestMove, $bestScore";
-        print KungFuChess::BBHash::getSquareFromBB($bestMove);
+        my ($bestMove, $bestScore) = KungFuChess::Bitboards::recommendMoveForBB($fr_bb, $to_bb, $color, $attacks);
+        print "moving...$bestMove->[1], $bestScore";
+        print KungFuChess::BBHash::getSquareFromBB($bestMove->[0]);
+        print KungFuChess::BBHash::getSquareFromBB($bestMove->[1]);
         print "\n";
+        exit;
     } elsif ($input =~ m/^debug (\d+)$/) {
         KungFuChess::Bitboards::setDebugLevel($1);
     } elsif ($input =~ m/^eval$/) {
-        print KungFuChess::Bitboards::pretty_ai();
+        #print KungFuChess::Bitboards::pretty_ai();
         my ($eval, $moves, $material, $attacks) = KungFuChess::Bitboards::evaluate(1);
         print "eval: $eval\n";
         print KungFuChess::Bitboards::setPosXS();
         print "\n";
         print "XS evaluate: ";
-        print KungFuChess::Bitboards::evaluateXS();
+        #print KungFuChess::Bitboards::evaluateXS();
         print "\n";
-        my $xsScore = xs::beginSearch(1);
+        my $xsScore = xs::beginSearch(3);
         my $bestMove = xs::getBestMove();
         print "best: $bestMove\n";
-        print "donemoves\n";
+        print "best: " . xs::to_bb($bestMove) . "\n";
+        my $nextMove = xs::getNextBestMove();
+        print "next best: $nextMove\n";
+        #print "donemoves\n";
         exit;
     } elsif ($input =~ m/^(white|black)$/) {
         my $cIn = $1;
@@ -214,7 +227,7 @@ while ($go) {
         print "  frozen (show frozen moves)\n";
         print "  debug <level>\n";
         print "  clear (clear ai moves)\n";
-        print "  induce <move> (i.e. induce e2)\n";
+        print "  induce <move> (i.e. induce e1e2)\n";
         print "  white|black (make moves off recommendMoves)\n";
 
     }

@@ -4,8 +4,8 @@ use strict;
 #use warnings;
 
 package XS;
-#use Inline CPP => config => typemaps => './typemap';
-#use Inline CPP => './xs.cpp' => namespace => 'xs';
+use Inline CPP => config => typemaps => './typemap';
+use Inline CPP => './xs.cpp' => namespace => 'xs';
 
 package KungFuChess::Bitboards;
 use Math::BigInt;
@@ -14,6 +14,8 @@ use Data::Dumper;
 use KungFuChess::BBHash;
 #use Algorithm::MinPerfHashTwoLevel;
 use base 'Exporter';
+
+my $useXS = 1;
 
 # 1 for tree debugging, 2 for addition eval debugging
 my $aiDebug = 0;
@@ -388,7 +390,9 @@ sub setCurrentMoves {
     $currentMoves = $_;
 }
 
-#xs::initialise_all_databases();
+if ($useXS) {
+    initXS();
+}
 
 ### similar to stockfish we have multiple bitboards that we intersect
 ### to determine the position of things and state of things.
@@ -1526,7 +1530,7 @@ sub setPosXS {
 }
 
 sub initXS {
-    xs::initialise_bitboard();
+    #xs::initialise_bitboard();
     xs::initialise_all_databases();
 }
 
@@ -2026,7 +2030,39 @@ sub getCurrentScore {
     return $aiScore;
 }
 
+## aiScore not used
+## moves only used for debug,
+## totalMaterial TODO for changing to endgame
+## attackedBy used for recommendBB
+#my ($aiScore, $moves, $totalMaterial, $attackedBy) = KungFuChess::Bitboards::aiThink(
+sub aiThinkXS {
+    my ($depth, $timeToThink, $color) = @_;
+    KungFuChess::Bitboards::setPosXS();
+    xs::beginSearch(3);
+
+    return (0, [], 9999, 0);
+}
+
+sub aiRecommendMovesXS {
+    my $bestMove = xs::getBestMove();
+    my $nextMove = xs::getNextBestMove();
+
+    my $best_fr = xs::fr_bb($bestMove);
+    my $best_to = xs::to_bb($bestMove);
+    my $next_fr = xs::fr_bb($nextMove);
+    my $next_to = xs::to_bb($nextMove);
+    print "best : $best_fr, $best_to\n";
+    print "bestn: $next_fr, $next_to\n";
+    return [
+        [$best_fr, $best_to],
+        [$next_fr, $next_to],
+    ];
+}
+
 sub aiThink {
+    if ($useXS) {
+        return aiThinkXS(@_);
+    }
     my ($depth, $timeToThink, $color) = @_;
     print "thinking ... $depth, $timeToThink, $color\n";
 
@@ -2066,7 +2102,12 @@ sub aiThink {
 }
 
 sub aiRecommendMoves {
+    if ($useXS) {
+        return aiRecommendMovesXS(@_);
+    }
+
     my $color = shift;
+
     my $maxMovesBreadth  = shift // 1;
     my $maxMovesDepth    = shift // 1;
     my $randomSkipChance = shift // 0; ### to sometimes select worse moves
@@ -2101,9 +2142,21 @@ sub aiRecommendMoves {
     return \@myMoves;
 }
 
+### TODO xs::refute()
+sub recommendMoveForBB_XS {
+    my $move = xs::refuteBB($_[0], $_[1], $_[2]);
+    my $fr = xs::fr_bb($move);
+    my $to = xs::to_bb($move);
+    return [ $fr, $to ];
+}
+
 ### tries to find a move that reacts to an enemy piece moving to a specified BB
 #   we either try to dodge away from that square, or attack it.
 sub recommendMoveForBB {
+    if ($useXS) {
+        return recommendMoveForBB_XS(@_);
+    }
+    my $fr_bb = shift;
     my $bb = shift;
     my $color = shift;
     my $currentAttackedBy = shift;

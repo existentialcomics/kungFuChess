@@ -67,6 +67,13 @@ enum Piece {
   PIECE_NB = 16
 };
 
+Piece board[65];
+//std::vector<Move> moveArray(0);
+
+//Piece piece_on(Square sq) {
+    //return board[sq];
+//}
+
 enum File : int {
 	AFILE, BFILE, CFILE, DFILE, EFILE, FFILE, GFILE, HFILE
 };	
@@ -195,12 +202,12 @@ constexpr File operator-(File d1, int d2) { return File(int(d1) - d2); }
 //***************************************************************
 // Eval constants
 
-const int E_PAWN_VALUE = 1;
-const int E_KNIGHT_VALUE = 3;
-const int E_BISHOP_VALUE = 3;
-const int E_ROOK_VALUE = 5;
-const int E_QUEEN_VALUE = 7;
-const int E_KING_VALUE = 999;
+const int E_PAWN_VALUE = 150;
+const int E_KNIGHT_VALUE = 300;
+const int E_BISHOP_VALUE = 300;
+const int E_ROOK_VALUE = 450;
+const int E_QUEEN_VALUE = 700;
+const int E_KING_VALUE = 10000;
 
 constexpr Square make_square(File f, Rank r) {
   return Square((r << 3) + f);
@@ -214,6 +221,14 @@ constexpr Square to_sq(Move m) {
   return Square(m & 0x3F);
 }
 
+std::string square_str(Square s) {
+  return std::string{ char('a' + file_of(s)), char('1' + rank_of(s)) };
+}
+
+std::string move_str(Move m) {
+    return square_str(from_sq(m)) + square_str(to_sq(m));
+}
+
 constexpr int from_to(Move m) {
  return m & 0xFFF;
 }
@@ -224,6 +239,14 @@ constexpr bool is_ok(Square s) {
 //constexpr bool is_ok(Move m) {
   //return from_sq(m) != to_sq(m); // Catch MOVE_NULL and MOVE_NONE
 //}
+
+// pieces
+Bitboard byColorBB[3] = {
+    0x0,
+    0x0,
+    0x0
+};
+Bitboard byTypeBB[PIECE_TYPE_NB];
 
 std::string pretty(Bitboard b) {
 
@@ -241,6 +264,38 @@ std::string pretty(Bitboard b) {
   return s;
 }
 
+std::string prettyBB() {
+
+  std::string s = "+---+---+---+---+---+---+---+---+\n";
+
+  for (Rank r = RANK_8; r >= RANK_1; r = r - 1)
+  {
+      for (File f = AFILE; f <= HFILE; f = f + 1) {
+          Square sq = make_square(f, r);
+          if (sq & byTypeBB[PAWN]) {
+              s += "| p ";
+          } else if (sq & byTypeBB[ROOK]) {
+              s += "| r ";
+          } else if (sq & byTypeBB[QUEEN]) {
+              s += "| q ";
+          } else if (sq & byTypeBB[KING]) {
+              s += "| k ";
+          } else if (sq & byTypeBB[BISHOP]) {
+              s += "| b ";
+          } else if (sq & byTypeBB[KNIGHT]) {
+              s += "| n ";
+          } else {
+              s += "|   ";
+          }
+      }
+
+      s += "| " + std::to_string(1 + r) + "\n+---+---+---+---+---+---+---+---+\n";
+  }
+  s += "  a   b   c   d   e   f   g   h\n";
+
+  return s;
+}
+
 std::string pretty() {
 
   std::string s = "+---+---+---+---+---+---+---+---+\n";
@@ -249,21 +304,35 @@ std::string pretty() {
   {
       for (File f = AFILE; f <= HFILE; f = f + 1) {
           Square sq = make_square(f, r);
-          //if (sq & byTypeBB[PAWN]) {
-              //s += "| p ";
-          //} else if (sq & byTypeBB[ROOK]) {
-              //s += "| r ";
-          //} else if (sq & byTypeBB[QUEEN]) {
-              //s += "| q ";
-          //} else if (sq & byTypeBB[KING]) {
-              //s += "| k ";
-          //} else if (sq & byTypeBB[BISHOP]) {
-              //s += "| b ";
-          //} else if (sq & byTypeBB[KNIGHT]) {
-              //s += "| n ";
-          //} else {
+          //Piece p = piece_on(sq);
+          Piece p = board[sq];
+          if (p == W_PAWN) {
+              s += "| P ";
+          } else if (p == B_PAWN) {
+              s += "| p ";
+          } else if (p == W_KNIGHT) {
+              s += "| N ";
+          } else if (p == B_KNIGHT) {
+              s += "| n ";
+          } else if (p == W_BISHOP) {
+              s += "| B ";
+          } else if (p == B_BISHOP) {
+              s += "| b ";
+          } else if (p == W_ROOK) {
+              s += "| R ";
+          } else if (p == B_ROOK) {
+              s += "| r ";
+          } else if (p == W_QUEEN) {
+              s += "| Q ";
+          } else if (p == B_QUEEN) {
+              s += "| q ";
+          } else if (p == W_KING) {
+              s += "| K ";
+          } else if (p == B_KING) {
+              s += "| k ";
+          } else {
               s += "|   ";
-          //}
+          }
       }
 
       s += "| " + std::to_string(1 + r) + "\n+---+---+---+---+---+---+---+---+\n";
@@ -280,14 +349,6 @@ std::string pretty(Square s) {
 std::string pretty(Move m) {
     return pretty(from_sq(m) | to_sq(m));
 }
-
-// pieces
-Bitboard byColorBB[3] = {
-    0x0,
-    0x0,
-    0x0
-};
-Bitboard byTypeBB[PIECE_TYPE_NB];
 
 Bitboard pieces(PieceType pt = ALL_PIECES) {
   return byTypeBB[pt];

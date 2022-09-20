@@ -16,65 +16,6 @@ use Time::HiRes qw(time usleep);
 use Data::Dumper;
 use KungFuChess::BBHash;
 
-### taken from Chess::Rep
-### can't use the whole lib because of chess specific rules like check
-use constant ({
-    CASTLE_W_OO  => 1,
-    CASTLE_W_OOO => 2,
-    CASTLE_B_OO  => 4,
-    CASTLE_B_OOO => 8,
-    PIECE_TO_ID => {
-        p => 0x01,              # black pawn
-        n => 0x02,              # black knight
-        k => 0x04,              # black king
-        b => 0x08,              # black bishop
-        r => 0x10,              # black rook
-        q => 0x20,              # black queen
-        P => 0x81,              # white pawn
-        N => 0x82,              # white knight
-        K => 0x84,              # white king
-        B => 0x88,              # white bishop
-        R => 0x90,              # white rook
-        Q => 0xA0,              # white queen
-    },
-    ID_TO_PIECE => [
-        undef,                  # 0
-        'p',                    # 1
-        'n',                    # 2
-        undef,                  # 3
-        'k',                    # 4
-        undef,                  # 5
-        undef,                  # 6
-        undef,                  # 7
-        'b',                    # 8
-        undef,                  # 9
-        undef,                  # 10
-        undef,                  # 11
-        undef,                  # 12
-        undef,                  # 13
-        undef,                  # 14
-        undef,                  # 15
-        'r',                    # 16
-        undef,                  # 17
-        undef,                  # 18
-        undef,                  # 19
-        undef,                  # 20
-        undef,                  # 21
-        undef,                  # 22
-        undef,                  # 23
-        undef,                  # 24
-        undef,                  # 25
-        undef,                  # 26
-        undef,                  # 27
-        undef,                  # 28
-        undef,                  # 29
-        undef,                  # 30
-        undef,                  # 31
-        'q',                    # 32
-    ],
-    FEN_STANDARD => 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
-});
-
 $| = 1;
 
 sub new {
@@ -326,11 +267,11 @@ sub _init {
     }
 
     ### reduce CPU load of 4way AI
-    if ($self->{mode} ne '4way') {
-        #$self->{ai_depth} = $self->{ai_depth} < 3 ? $self->{ai_depth} : 2;
-        #$self->{ai_delay} *= 2; 
-        #$self->{ai_min_delay} *= 2;
-        #$self->{ai_interval} *= 2;
+    if ($self->{mode} eq '4way') {
+        $self->{ai_depth} = $self->{ai_depth} < 3 ? $self->{ai_depth} : 2;
+        $self->{ai_delay} *= 2; 
+        $self->{ai_min_delay} *= 2;
+        $self->{ai_interval} *= 2;
     }
 
 
@@ -490,8 +431,10 @@ sub handleMessage {
         KungFuChess::Bitboards::strToInt($msg->{bb});
     }
 
-	if ($msg->{c} eq 'move'){
+	if ($msg->{c} eq 'moveAnimate'){
+    } elsif ($msg->{c} eq 'move'){
         KungFuChess::Bitboards::move($msg->{fr_bb}, $msg->{to_bb});
+        KungFuChess::Bitboards::unsetMoving($msg->{fr_bb});
         KungFuChess::Bitboards::setMoving($msg->{to_bb});
         KungFuChess::Bitboards::resetAiBoards($self->{color});
         $self->setFrozen($msg->{to_bb});
@@ -501,7 +444,7 @@ sub handleMessage {
 	} elsif ($msg->{c} eq 'moveAnimate'){
         ### dodge that shit
         if ($msg->{color} != $self->{color}) {
-            push @{$self->{inducedMoves}}, $msg->{to_bb};
+            push @{$self->{inducedMoves}}, [$msg->{fr_bb}+0, $msg->{to_bb}+0];
         }
 	} elsif ($msg->{c} eq 'aiOnly'){
         sleep(rand() * 5);
@@ -635,10 +578,17 @@ sub deferred_interval {
 sub aiTick {
     my $self = shift;
     my $aiStartTime = time();
+    my $debug = 1;
+
+    if ($debug) {
+        print "aiTick() " . time() . "\n";
+
+    }
 
     my $handle = $self->{conn}->{handle};
         $handle->push_read( 'line' => sub {}
     );
+    ### an attempt to clear the read q of websockets to prevent log jams
     while (my $q = pop(@{$handle->{_queue}})) {
         &$q();
     }
@@ -651,7 +601,6 @@ sub aiTick {
         $self->send($msg);
         $self->endGame();
     }
-    my $debug = 0;
     if ($#{$self->{movesQueue}} > -1) {
         foreach my $move (@{$self->{movesQueue}}) {
             my ($fr_bb, $to_bb, $fr_rank, $fr_file, $to_rank, $to_file) = KungFuChess::Bitboards::parseMove($move);
@@ -674,6 +623,11 @@ sub aiTick {
             #print KungFuChess::Bitboards::prettyFrozen();
             #print KungFuChess::Bitboards::getFENstring();
         }
+
+        # aiScore not used
+        # moves only used for debug,
+        # totalMaterial TODO for changing to endgame
+        # attackedBy used for recommendBB
         my ($aiScore, $moves, $totalMaterial, $attackedBy) = KungFuChess::Bitboards::aiThink(
             $self->{ai_depth},
             $self->{ai_thinkTime},
@@ -681,7 +635,7 @@ sub aiTick {
         );
 
         if ($debug) {
-            print "current score: " . KungFuChess::Bitboards::getCurrentScore() . "\n";
+            #print "current score: " . KungFuChess::Bitboards::getCurrentScore() . "\n";
             KungFuChess::BBHash::displayMoves(
                 $moves,
                 $self->{mode} eq '4way' ? 1 : $self->{color},
@@ -692,6 +646,7 @@ sub aiTick {
             );
         }
 
+        ### 0 = fr, 1 = to, that's all that's used
         my $suggestedMoves = KungFuChess::Bitboards::aiRecommendMoves(
             $self->{mode} eq '4way' ? 1 : $self->{color}, # 4way is always white
             $self->{ai_simul_moves},
@@ -720,7 +675,10 @@ sub aiTick {
             }
         }
 
+        print "moving suggested:\n";
         foreach my $move (@$suggestedMoves) {
+            ### to skip for testing
+            next;
             if ($debug) {
                 print "moving...";
                 print KungFuChess::BBHash::getSquareFromBB($move->[0]);
@@ -757,14 +715,14 @@ sub aiTick {
         }
 
         ### dodges or anticipated attacks
-        foreach my $induced_fr (@{$self->{inducedMoves}}) {
+        foreach my $induced (@{$self->{inducedMoves}}) {
             $self->{lastMoved} = time();
-            $induced_fr += 0;
-            my ($best_to, $score) = KungFuChess::Bitboards::recommendMoveForBB($induced_fr, $self->{color}, $attackedBy);
-            if ($best_to) {
+            ### no longer compatible with perl AI but only a few adjustments, it only used the to_bb
+            my $move = KungFuChess::Bitboards::recommendMoveForBB($induced->[0], $induced->[1], $self->{color}, $attackedBy);
+            if ($move) {
                 my $msg = {
-                    'fr_bb' => $induced_fr,
-                    'to_bb' => $best_to,
+                    'fr_bb' => $move->[0],
+                    'to_bb' => $move->[1],
                     'c'     => 'move'
                 };
                 $self->send($msg);
