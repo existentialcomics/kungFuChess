@@ -432,20 +432,47 @@ sub handleMessage {
     }
 
 	if ($msg->{c} eq 'moveAnimate'){
+        my $moveType = $msg->{moveType} + 0;
+        my $dir      = $msg->{dir} + 0;
+        my $fr_bb    = $msg->{fr_bb} + 0;
+        my $to_bb    = $msg->{to_bb} + 0;
+        #### blackout the entire line, we don't want to risk crossing it
+        if ($moveType == KungFuChess::Bitboards::MOVE_NORMAL) {
+            my $bb = $fr_bb;
+            my $count = 1;
+            while ($bb && $bb != $to_bb) {
+                $bb = KungFuChess::Bitboards::shift_BB($bb, $dir);
+                KungFuChess::Bitboards::setMoving($bb);
+                my $bb2 = $bb;
+                $self->{"aiInterval_unmove_$bb"} = AnyEvent->timer(
+                    after => $self->{pieceSpeed} * $count, 
+                    cb => sub {
+                        my $_bb = $bb2;
+                        KungFuChess::Bitboards::unsetMoving($_bb);
+                    }
+                );
+                $count++;
+            }
+        } elsif ($moveType == KungFuChess::Bitboards::MOVE_KNIGHT) {
+            KungFuChess::Bitboards::setMoving($to_bb);
+            $self->{"aiInterval_unmove_$to_bb"} = AnyEvent->timer(
+                after => $self->{pieceSpeed} * 2, 
+                cb => sub {
+                    KungFuChess::Bitboards::unsetMoving($to_bb);
+                }
+            );
+        }
+        ### dodge that shit
+        if ($msg->{color} != $self->{color}) {
+            push @{$self->{inducedMoves}}, [$msg->{fr_bb}+0, $msg->{to_bb}+0];
+        }
     } elsif ($msg->{c} eq 'move'){
-        KungFuChess::Bitboards::move($msg->{fr_bb}, $msg->{to_bb});
-        KungFuChess::Bitboards::unsetMoving($msg->{fr_bb});
-        KungFuChess::Bitboards::setMoving($msg->{to_bb});
+        KungFuChess::Bitboards::move($msg->{fr_bb}+0, $msg->{to_bb}+0);
         KungFuChess::Bitboards::resetAiBoards($self->{color});
         $self->setFrozen($msg->{to_bb});
 	} elsif ($msg->{c} eq 'stop'){
         KungFuChess::Bitboards::unsetMoving($msg->{fr_bb});
         delete $self->{frozen}->{$msg->{fr_bb}};
-	} elsif ($msg->{c} eq 'moveAnimate'){
-        ### dodge that shit
-        if ($msg->{color} != $self->{color}) {
-            push @{$self->{inducedMoves}}, [$msg->{fr_bb}+0, $msg->{to_bb}+0];
-        }
 	} elsif ($msg->{c} eq 'aiOnly'){
         sleep(rand() * 5);
         my $msg = {
@@ -453,6 +480,12 @@ sub handleMessage {
         };
         $self->send($msg);
         $self->endGame();
+	} elsif ($msg->{c} eq 'requestDraw'){
+        print "drawing...\n";
+        my $msg = {
+            'c'     => 'requestDraw'
+        };
+        $self->send($msg);
 	} elsif ($msg->{c} eq 'suspend'){
         $self->{suspendedPieces}->{$msg->{to_bb}} =
             KungFuChess::Bitboards::_getPieceBB($msg->{fr_bb});
@@ -518,13 +551,12 @@ sub handleMessage {
             }
         } else {
             if ($rand < 0.3) {
-                @moves = qw(e7e5 d7d5 c7c6 f7f6 c8e6 f8d6 g8e7 b8d7);
-                #@moves = qw(e7e5 d7d6 c8f6 f8f7 g7g6 f8g7 b8b7 a8a7 b8c6);
+                @moves = qw(c7c5 f7f5 b7b6 g7g6 f8g7);
             } elsif ($rand < 0.6) {
-                @moves = qw(f7f5 e7e5 d7d6 e7e6 b7b6 g7g6 f8g7 c7b6);
+                @moves = qw(c7c5 e7e5 b7b6 f7f6 g7g6 f8g7);
                 #@moves = qw(c7c5 d7d5 e7e6 b7b6 c8b7 b8c6 g7g6 f8g7 d8e7);
             } else {
-                @moves = qw(e7e6 f8c5 d7d5 b8c6 b7b6 g8f6 c8b2 d8d6 e8c8);
+                @moves = qw(d7d5 g7g5 h7h6 e7e6);
             }
         }
 
@@ -578,13 +610,12 @@ sub deferred_interval {
 sub aiTick {
     my $self = shift;
     my $aiStartTime = time();
-    my $debug = 1;
+    my $debug = 0;
 
     if ($debug) {
         print "aiTick() " . time() . "\n";
 
     }
-
     my $handle = $self->{conn}->{handle};
         $handle->push_read( 'line' => sub {}
     );
@@ -614,117 +645,133 @@ sub aiTick {
         }
         $self->{movesQueue} = [];
     } else {
-        # depth, thinkTime
-        my $start = time();
-        my $score = 0;
-        if ($debug) {
-            print "AI THINK $self->{ai_depth}, $self->{ai_thinkTime}, $self->{color}\n";
-            print KungFuChess::Bitboards::pretty_ai();
-            #print KungFuChess::Bitboards::prettyFrozen();
-            #print KungFuChess::Bitboards::getFENstring();
-        }
-
-        # aiScore not used
-        # moves only used for debug,
-        # totalMaterial TODO for changing to endgame
-        # attackedBy used for recommendBB
-        my ($aiScore, $moves, $totalMaterial, $attackedBy) = KungFuChess::Bitboards::aiThink(
-            $self->{ai_depth},
-            $self->{ai_thinkTime},
-            $self->{mode} eq '4way' ? 1 : $self->{color},
-        );
-
-        if ($debug) {
-            #print "current score: " . KungFuChess::Bitboards::getCurrentScore() . "\n";
-            KungFuChess::BBHash::displayMoves(
-                $moves,
-                $self->{mode} eq '4way' ? 1 : $self->{color},
-                0,
-                undef,
-                undef,
-                undef
-            );
-        }
-
-        ### 0 = fr, 1 = to, that's all that's used
-        my $suggestedMoves = KungFuChess::Bitboards::aiRecommendMoves(
-            $self->{mode} eq '4way' ? 1 : $self->{color}, # 4way is always white
-            $self->{ai_simul_moves},
-            $self->{ai_depth_moves},
-            $self->{ai_skip_best}
-        );
-
-        my $fr_moves = {};
-        my $to_moves = {};
-
-        ### this is for testing, there is no reason to resign lost positions for the real AI
-        ### wait at least 2 minutes though
-        if (time() - $self->{startTime} > (60 * 2) && $self->{ai_human} ) {
-            if (KungFuChess::Bitboards::getCurrentScore() < -2000) {
-                $self->{resignCount} ++;
-                if ($self->{resignCount} > 15) {
-                    print "resigning...\n";
-                    my $msg = {
-                        'c'     => 'resign'
-                    };
-                    $self->send($msg);
-                    $self->endGame();
-                }
-            } else {
-                $self->{resignCount} = 0;
-            }
-        }
-
-        print "moving suggested:\n";
-        foreach my $move (@$suggestedMoves) {
-            ### to skip for testing
-            next;
+        ### so we can turn off moves to test anticipate
+        if (1) {
+            # depth, thinkTime
+            my $start = time();
+            my $score = 0;
             if ($debug) {
-                print "moving...";
-                print KungFuChess::BBHash::getSquareFromBB($move->[0]);
-                print KungFuChess::BBHash::getSquareFromBB($move->[1]);
-                print "\n";
+                print "AI THINK $self->{ai_depth}, $self->{ai_thinkTime}, $self->{color}\n";
+                print KungFuChess::Bitboards::pretty_ai();
+                #print KungFuChess::Bitboards::prettyFrozen();
+                #print KungFuChess::Bitboards::getFENstring();
             }
 
-            # no suggested moves, everything is probably frozen
-            if (! defined($move->[0])) {
-                last;
-            }
-            ### skip frozen pieces or it will premove
-            if (defined($self->{timeoutSquares}->{$move->[0]})) {
-                last;
-            }
-            ### don't move if we already moved from or to the same spot!
-            if (exists($fr_moves->{$move->[1]})) {
-                #print "fr move!\n";
-                next;
-            }
-            if (exists($to_moves->{$move->[1]})) {
-                #print "to move!\n";
-                next;
-            }
-            $fr_moves->{$move->[0]} = 1;
-            $to_moves->{$move->[1]} = 1;
-            my $msg = {
-                'fr_bb' => $move->[0],
-                'to_bb' => $move->[1],
-                'c'     => 'move'
-            };
-            $self->send($msg);
-            #usleep(rand($self->{ai_delay}) + $self->{ai_min_delay});
-        }
+            # aiScore not used
+            # moves only used for debug,
+            # totalMaterial TODO for changing to endgame
+            # attackedBy used for recommendBB
+            my ($aiScore, $moves, $totalMaterial, $attackedBy) = KungFuChess::Bitboards::aiThink(
+                $self->{ai_depth},
+                $self->{ai_thinkTime},
+                $self->{mode} eq '4way' ? 1 : $self->{color},
+            );
 
-        ### dodges or anticipated attacks
-        foreach my $induced (@{$self->{inducedMoves}}) {
-            $self->{lastMoved} = time();
-            ### no longer compatible with perl AI but only a few adjustments, it only used the to_bb
-            my $move = KungFuChess::Bitboards::recommendMoveForBB($induced->[0], $induced->[1], $self->{color}, $attackedBy);
-            if ($move) {
+            if ($debug) {
+                #print "current score: " . KungFuChess::Bitboards::getCurrentScore() . "\n";
+                KungFuChess::BBHash::displayMoves(
+                    $moves,
+                    $self->{mode} eq '4way' ? 1 : $self->{color},
+                    0,
+                    undef,
+                    undef,
+                    undef
+                );
+            }
+
+            ### 0 = fr, 1 = to, that's all that's used
+            my $suggestedMoves = KungFuChess::Bitboards::aiRecommendMoves(
+                $self->{mode} eq '4way' ? 1 : $self->{color}, # 4way is always white
+                $self->{ai_simul_moves},
+                $self->{ai_depth_moves},
+                $self->{ai_skip_best}
+            );
+
+            my $fr_moves = {};
+            my $to_moves = {};
+
+            ### this is for testing, there is no reason to resign lost positions for the real AI
+            ### wait at least 2 minutes though
+            if (time() - $self->{startTime} > (60 * 2) && $self->{ai_human} ) {
+                if (KungFuChess::Bitboards::getCurrentScore() < -2000) {
+                    $self->{resignCount} ++;
+                    if ($self->{resignCount} > 15) {
+                        print "resigning...\n";
+                        my $msg = {
+                            'c'     => 'resign'
+                        };
+                        $self->send($msg);
+                        $self->endGame();
+                    }
+                } else {
+                    $self->{resignCount} = 0;
+                }
+                if (KungFuChess::Bitboards::getCurrentScore() > -1000) {
+                    $self->{drawCount} ++;
+                    if ($self->{drawCount} > 15) {
+                        print "drawing...\n";
+                        my $msg = {
+                            'c'     => 'requestDraw'
+                        };
+                        $self->send($msg);
+                    }
+                } else {
+                    $self->{drawCount} = 0;
+                }
+            }
+
+            foreach my $move (@$suggestedMoves) {
+                if ($debug) {
+                    print "moving...";
+                    print KungFuChess::BBHash::getSquareFromBB($move->[0]);
+                    print KungFuChess::BBHash::getSquareFromBB($move->[1]);
+                    print "\n";
+                }
+
+                # no suggested moves, everything is probably frozen
+                if (! defined($move->[0])) {
+                    last;
+                }
+                ### skip frozen pieces or it will premove
+                if (defined($self->{timeoutSquares}->{$move->[0]})) {
+                    last;
+                }
+                ### don't move if we already moved from or to the same spot!
+                if (exists($fr_moves->{$move->[1]})) {
+                    #print "fr move!\n";
+                    next;
+                }
+                if (exists($to_moves->{$move->[1]})) {
+                    #print "to move!\n";
+                    next;
+                }
+                $fr_moves->{$move->[0]} = 1;
+                $to_moves->{$move->[1]} = 1;
                 my $msg = {
                     'fr_bb' => $move->[0],
                     'to_bb' => $move->[1],
                     'c'     => 'move'
                 };
+                $self->send($msg);
+                #usleep(rand($self->{ai_delay}) + $self->{ai_min_delay});
+            }
+        }
+        KungFuChess::Bitboards::setPosXS();
+        ### dodges or anticipated attacks
+        foreach my $induced (@{$self->{inducedMoves}}) {
+            ### no longer compatible with perl AI but only a few adjustments, it only used the to_bb
+            my $move = KungFuChess::Bitboards::recommendMoveForBB($induced->[0], $induced->[1], $self->{color}, 0x0); ### 0x0 is attackedBy, not used for now
+            print "induced : $induced->[1]\n";
+            if ($move) {
+                print "moving induced\n";
+                $self->{lastMoved} = time();
+                my $msg = {
+                    'fr_bb' => $move->[0],
+                    'to_bb' => $move->[1],
+                    'c'     => 'move'
+                };
+                print Dumper($msg);
+                print "\n";
                 $self->send($msg);
             }
         }

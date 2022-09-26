@@ -103,7 +103,18 @@ my $aiInterval = AnyEvent->timer(
             my $url = '/ajax/pool/' . $speed . '/' . $way;
             print "$url\n";
             if (! $uid) {
-                $mech->get($url);
+                my ($csr_input) = $mech->find_all_inputs(name => 'csrftoken');
+                my $token = $csr_input->value();
+
+                if ($mech->content() =~ m/<meta name="csrftoken" content="(.+?)"/) {
+                    print "regex token: $1\n";
+                }
+                #$mech->add_header("X-CSRFToken", $token);
+                $mech->add_header("X-CSRFToken", $token);
+                print "token: $token\n";
+                $mech->post($url, ['csrftoken' => $token]);
+
+                print $mech->content();
                 if ($mech->content() =~ m/"uid":"(.+?)"/) {
                     $uid = $1;
                 }

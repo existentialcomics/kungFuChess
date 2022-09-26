@@ -736,29 +736,35 @@ sub _removePiece_ai {
 
 sub setFrozen {
     my $bb = shift;
+    $bb = $bb + 0;
     $frozenBB = $bb;
     $ai_frozenBB = $bb;
 }
 sub addFrozen {
     my $bb = shift;
+    $bb = $bb + 0;
     $frozenBB |= $bb;
     $ai_frozenBB |= $bb;
 }
 sub unsetFrozen {
     my $bb = shift;
+    $bb = $bb + 0;
     $frozenBB &= ~$bb;
     $ai_frozenBB &= ~$bb;
 }
 sub setMoving {
     my $bb = shift;
+    $bb = $bb + 0;
     $movingBB |= $bb;
 }
 sub unsetMoving {
     my $bb = shift;
+    $bb = $bb + 0;
     $movingBB &= ~$bb;
 }
 sub isMoving {
     my $bb = shift;
+    $bb = $bb + 0;
     return $movingBB & $bb;
 }
 
@@ -2038,7 +2044,8 @@ sub getCurrentScore {
 sub aiThinkXS {
     my ($depth, $timeToThink, $color) = @_;
     KungFuChess::Bitboards::setPosXS();
-    xs::beginSearch(3);
+    xs::setMyColor($color);
+    xs::beginSearch($depth);
 
     return (0, [], 9999, 0);
 }
@@ -2051,8 +2058,8 @@ sub aiRecommendMovesXS {
     my $best_to = xs::to_bb($bestMove);
     my $next_fr = xs::fr_bb($nextMove);
     my $next_to = xs::to_bb($nextMove);
-    print "best : $best_fr, $best_to\n";
-    print "bestn: $next_fr, $next_to\n";
+    #print "best : $best_fr, $best_to\n";
+    #print "bestn: $next_fr, $next_to\n";
     return [
         [$best_fr, $best_to],
         [$next_fr, $next_to],

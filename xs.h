@@ -30,6 +30,28 @@ typedef uint64_t Bitboard;
 typedef uint16_t Move;
 //typedef __uint128_t Bitboard4way;
 
+// TODO make it faster like Stockfish?
+bool is_endgame = false;
+#define S(mg, eg) make_score(mg, eg)
+//constexpr int make_score(int mg, int eg) {
+  //return (is_endgame ? eg : mg);
+//}
+
+constexpr int make_score(int mg, int eg) {
+  return (int)((unsigned int)eg << 16) + mg;
+}
+
+int eg_value(int s) {
+  union { uint16_t u; int16_t s; } eg = { uint16_t(unsigned(s + 0x8000) >> 16) };
+  return eg.s;
+}
+
+int mg_value(int s) {
+  union { uint16_t u; int16_t s; } mg = { uint16_t(unsigned(s)) };
+  return mg.s;
+}
+
+
 enum Color {
   WHITE, BLACK, COLOR_NB = 2
 };
@@ -67,20 +89,29 @@ enum Piece {
   PIECE_NB = 16
 };
 
+constexpr Piece operator~(Piece pc) {
+  return Piece(pc ^ 8); // Swap color of piece B_KNIGHT <-> W_KNIGHT
+}
+
 Piece board[65];
 //std::vector<Move> moveArray(0);
 
 //Piece piece_on(Square sq) {
     //return board[sq];
 //}
+//
 
-enum File : int {
-	AFILE, BFILE, CFILE, DFILE, EFILE, FFILE, GFILE, HFILE
-};	
+//enum File : int {
+  //FILE_A, FILE_B, FILE_C, FILE_D, FILE_E, FILE_F, FILE_G, FILE_H, FILE_NB
+//};
 
 enum Rank : int {
   RANK_1, RANK_2, RANK_3, RANK_4, RANK_5, RANK_6, RANK_7, RANK_8, RANK_NB
 };
+
+enum File : int {
+    AFILE, BFILE, CFILE, DFILE, EFILE, FFILE, GFILE, HFILE, FILE_NB
+};	
 
 enum Square : int {
   SQ_A1, SQ_B1, SQ_C1, SQ_D1, SQ_E1, SQ_F1, SQ_G1, SQ_H1,
@@ -98,6 +129,77 @@ enum Square : int {
 };
 
 const size_t NSQUARES = 64;
+
+// TODO figure out how to get this back to constexpr
+int Bonus[][RANK_NB][int(FILE_NB) / 2] = {
+  { },
+  { },
+  { // Knight
+   { S(-175, -96), S(-92,-65), S(-74,-49), S(-73,-21) },
+   { S( -77, -67), S(-41,-54), S(-27,-18), S(-15,  8) },
+   { S( -61, -40), S(-17,-27), S(  6, -8), S( 12, 29) },
+   { S( -35, -35), S(  8, -2), S( 40, 13), S( 49, 28) },
+   { S( -34, -45), S( 13,-16), S( 44,  9), S( 51, 39) },
+   { S(  -9, -51), S( 22,-44), S( 58,-16), S( 53, 17) },
+   { S( -67, -69), S(-27,-50), S(  4,-51), S( 37, 12) },
+   { S(-201,-100), S(-83,-88), S(-56,-56), S(-26,-17) }
+  },
+  { // Bishop
+   { S(-37,-40), S(-4 ,-21), S( -6,-26), S(-16, -8) },
+   { S(-11,-26), S(  6, -9), S( 13,-12), S(  3,  1) },
+   { S(-5 ,-11), S( 15, -1), S( -4, -1), S( 12,  7) },
+   { S(-4 ,-14), S(  8, -4), S( 18,  0), S( 27, 12) },
+   { S(-8 ,-12), S( 20, -1), S( 15,-10), S( 22, 11) },
+   { S(-11,-21), S(  4,  4), S(  1,  3), S(  8,  4) },
+   { S(-12,-22), S(-10,-14), S(  4, -1), S(  0,  1) },
+   { S(-34,-32), S(  1,-29), S(-10,-26), S(-16,-17) }
+  },
+  { // Rook
+   { S(-31, -9), S(-20,-13), S(-14,-10), S(-5, -9) },
+   { S(-21,-12), S(-13, -9), S( -8, -1), S( 6, -2) },
+   { S(-25,  6), S(-11, -8), S( -1, -2), S( 3, -6) },
+   { S(-13, -6), S( -5,  1), S( -4, -9), S(-6,  7) },
+   { S(-27, -5), S(-15,  8), S( -4,  7), S( 3, -6) },
+   { S(-22,  6), S( -2,  1), S(  6, -7), S(12, 10) },
+   { S( -2,  4), S( 12,  5), S( 16, 20), S(18, -5) },
+   { S(-17, 18), S(-19,  0), S( -1, 19), S( 9, 13) }
+  },
+  { // Queen
+   { S( 3,-69), S(-5,-57), S(-5,-47), S( 4,-26) },
+   { S(-3,-54), S( 5,-31), S( 8,-22), S(12, -4) },
+   { S(-3,-39), S( 6,-18), S(13, -9), S( 7,  3) },
+   { S( 4,-23), S( 5, -3), S( 9, 13), S( 8, 24) },
+   { S( 0,-29), S(14, -6), S(12,  9), S( 5, 21) },
+   { S(-4,-38), S(10,-18), S( 6,-11), S( 8,  1) },
+   { S(-5,-50), S( 6,-27), S(10,-24), S( 8, -8) },
+   { S(-2,-74), S(-2,-52), S( 1,-43), S(-2,-34) }
+  },
+  { // King
+   { S(271,  1), S(327, 45), S(271, 85), S(198, 76) },
+   { S(278, 53), S(303,100), S(234,133), S(179,135) },
+   { S(195, 88), S(258,130), S(169,169), S(120,175) },
+   { S(164,103), S(190,156), S(138,172), S( 98,172) },
+   { S(154, 96), S(179,166), S(105,199), S( 70,199) },
+   { S(123, 92), S(145,172), S( 81,184), S( 31,191) },
+   { S( 88, 47), S(120,121), S( 65,116), S( 33,131) },
+   { S( 59, 11), S( 89, 59), S( 45, 73), S( -1, 78) }
+  }
+};
+
+
+constexpr int PBonus[RANK_NB][FILE_NB] =
+  { // Pawn (asymmetric distribution)
+   { },
+   { S(  2, -8), S(  4, -6), S( 11,  9), S( 18,  5), S( 16, 16), S( 21,  6), S(  9, -6), S( -3,-18) },
+   { S( -9, -9), S(-15, -7), S( 11,-10), S( 15,  5), S( 31,  2), S( 23,  3), S(  6, -8), S(-20, -5) },
+   { S( -3,  7), S(-20,  1), S(  8, -8), S( 19, -2), S( 39,-14), S( 17,-13), S(  2,-11), S( -5, -6) },
+   { S( 11, 12), S( -4,  6), S(-11,  2), S(  2, -6), S( 11, -5), S(  0, -4), S(-12, 14), S(  5,  9) },
+   { S(  3, 27), S(-11, 18), S( -6, 19), S( 22, 29), S( -8, 30), S( -5,  9), S(-14,  8), S(-11, 14) },
+   { S( -7, -1), S(  6,-14), S( -2, 13), S(-11, 22), S(  4, 24), S(-14, 17), S( 10,  7), S( -9,  7) }
+  };
+
+int psq[PIECE_NB][SQUARE_NB];
+
 
 enum Direction : int {
   NORTH =  8,
@@ -197,6 +299,19 @@ constexpr Rank operator+(Rank d1, int d2) { return Rank(int(d1) + d2); }
 constexpr Rank operator-(Rank d1, int d2) { return Rank(int(d1) - d2); }
 constexpr File operator+(File d1, int d2) { return File(int(d1) + d2); }
 constexpr File operator-(File d1, int d2) { return File(int(d1) - d2); }
+
+/// Additional operators to add a Direction to a Square
+//constexpr Square operator+(Square s, Direction d) { return Square(int(s) + int(d)); }
+//constexpr Square operator-(Square s, Direction d) { return Square(int(s) - int(d)); }
+//Square& operator+=(Square& s, Direction d) { return s = s + d; }
+//Square& operator-=(Square& s, Direction d) { return s = s - d; }
+
+
+inline Square& operator++(Square& s) { return s = Square(int(s) + 1); }
+constexpr Square operator+(Square s, Direction d) { return Square(int(s) + int(d)); }
+constexpr Square operator-(Square s, Direction d) { return Square(int(s) - int(d)); }
+inline Square& operator+=(Square& s, Direction d) { return s = s + d; }
+inline Square& operator-=(Square& s, Direction d) { return s = s - d; }
 
 
 //***************************************************************
@@ -368,4 +483,117 @@ Bitboard pieces(Color c, PieceType pt) {
 
 Bitboard pieces(Color c, PieceType pt1, PieceType pt2) {
   return pieces(c) & (pieces(pt1) | pieces(pt2));
+}
+
+inline int edge_distance(File f) { return std::min(f, File(HFILE - f)); }
+inline int edge_distance(Rank r) { return std::min(r, Rank(RANK_8 - r)); }
+
+// couldn't figure out how the stockfish one worked so just did this lol
+// not run in tight loops to my knowledge so it doesn't matter
+constexpr Square flip_rank(Square s) { // Swap A1 <-> A8
+    if (s == SQ_A1) return SQ_A8;
+    if (s == SQ_A2) return SQ_A7;
+    if (s == SQ_A3) return SQ_A6;
+    if (s == SQ_A4) return SQ_A5;
+    if (s == SQ_A5) return SQ_A4;
+    if (s == SQ_A6) return SQ_A3;
+    if (s == SQ_A7) return SQ_A2;
+    if (s == SQ_A8) return SQ_A1;
+
+    if (s == SQ_B1) return SQ_B8;
+    if (s == SQ_B2) return SQ_B7;
+    if (s == SQ_B3) return SQ_B6;
+    if (s == SQ_B4) return SQ_B5;
+    if (s == SQ_B5) return SQ_B4;
+    if (s == SQ_B6) return SQ_B3;
+    if (s == SQ_B7) return SQ_B2;
+    if (s == SQ_B8) return SQ_B1;
+
+    if (s == SQ_C1) return SQ_C8;
+    if (s == SQ_C2) return SQ_C7;
+    if (s == SQ_C3) return SQ_C6;
+    if (s == SQ_C4) return SQ_C5;
+    if (s == SQ_C5) return SQ_C4;
+    if (s == SQ_C6) return SQ_C3;
+    if (s == SQ_C7) return SQ_C2;
+    if (s == SQ_C8) return SQ_C1;
+
+    if (s == SQ_D1) return SQ_D8;
+    if (s == SQ_D2) return SQ_D7;
+    if (s == SQ_D3) return SQ_D6;
+    if (s == SQ_D4) return SQ_D5;
+    if (s == SQ_D5) return SQ_D4;
+    if (s == SQ_D6) return SQ_D3;
+    if (s == SQ_D7) return SQ_D2;
+    if (s == SQ_D8) return SQ_D1;
+
+    if (s == SQ_E1) return SQ_E8;
+    if (s == SQ_E2) return SQ_E7;
+    if (s == SQ_E3) return SQ_E6;
+    if (s == SQ_E4) return SQ_E5;
+    if (s == SQ_E5) return SQ_E4;
+    if (s == SQ_E6) return SQ_E3;
+    if (s == SQ_E7) return SQ_E2;
+    if (s == SQ_E8) return SQ_E1;
+
+    if (s == SQ_F1) return SQ_F8;
+    if (s == SQ_F2) return SQ_F7;
+    if (s == SQ_F3) return SQ_F6;
+    if (s == SQ_F4) return SQ_F5;
+    if (s == SQ_F5) return SQ_F4;
+    if (s == SQ_F6) return SQ_F3;
+    if (s == SQ_F7) return SQ_F2;
+    if (s == SQ_F8) return SQ_F1;
+
+    if (s == SQ_G1) return SQ_G8;
+    if (s == SQ_G2) return SQ_G7;
+    if (s == SQ_G3) return SQ_G6;
+    if (s == SQ_G4) return SQ_G5;
+    if (s == SQ_G5) return SQ_G4;
+    if (s == SQ_G6) return SQ_G3;
+    if (s == SQ_G7) return SQ_G2;
+    if (s == SQ_G8) return SQ_G1;
+
+    if (s == SQ_H1) return SQ_H8;
+    if (s == SQ_H2) return SQ_H7;
+    if (s == SQ_H3) return SQ_H6;
+    if (s == SQ_H4) return SQ_H5;
+    if (s == SQ_H5) return SQ_H4;
+    if (s == SQ_H6) return SQ_H3;
+    if (s == SQ_H7) return SQ_H2;
+    if (s == SQ_H8) return SQ_H1;
+
+    return SQ_NONE;
+}
+
+//constexpr Square flip_file(Square s) { // Swap A1 <-> H1
+  //return Square(s ^ SQ_H1);
+//}
+
+constexpr PieceType type_of(Piece pc) {
+  return PieceType(pc & 7);
+}
+
+inline Color color_of(Piece pc) {
+  return Color(pc >> 3);
+}
+
+// PSQT::init() initializes piece-square tables: the white halves of the tables are
+// copied from Bonus[] and PBonus[], adding the piece value, then the black halves of
+// the tables are initialized by flipping and changing the sign of the white scores.
+void init_sqt() {
+
+  for (Piece pc : {W_PAWN, W_KNIGHT, W_BISHOP, W_ROOK, W_QUEEN, W_KING})
+  {
+    //int score = make_score(PieceValue[MG][pc], PieceValue[EG][pc]);
+    int score = 0;
+
+    for (Square s = SQ_A1; s <= SQ_H8; ++s)
+    {
+      File f = File(edge_distance(file_of(s)));
+      psq[pc][s] = score + (type_of(pc) == PAWN ? PBonus[rank_of(s)][file_of(s)]
+                                                 : Bonus[pc][rank_of(s)][f]);
+      psq[~pc][flip_rank(s)] = -psq[pc][s];
+    }
+  }
 }

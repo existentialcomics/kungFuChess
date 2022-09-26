@@ -11,11 +11,11 @@ use Data::Dumper;
 use KungFuChess::Bitboards;
 use KungFuChess::BBHash;
 
-print "PID: $$\n";
 my $fen = shift;
+my $colorIn = shift // 2;
 my $frozenIn = shift;
 if ($fen) {
-    print "fen: $fen\n";
+    #print "fen: $fen\n";
     KungFuChess::Bitboards::loadFENstring($fen);
 } else {
     KungFuChess::Bitboards::setupInitialPosition();
@@ -33,7 +33,7 @@ if ($frozenIn) {
 }
 #print KungFuChess::Bitboards::setPosXS();
 ##print KungFuChess::Bitboards::pretty();
-print KungFuChess::Bitboards::pretty_ai();
+#print KungFuChess::Bitboards::pretty_ai();
 #print "XS evaluate:\n";
 #print KungFuChess::Bitboards::evaluateXS();
 #print "\nmoves:\n";
@@ -96,19 +96,13 @@ while ($go) {
     } elsif ($input =~ m/^eval$/) {
         #print KungFuChess::Bitboards::pretty_ai();
         my ($eval, $moves, $material, $attacks) = KungFuChess::Bitboards::evaluate(1);
-        print "eval: $eval\n";
-        print KungFuChess::Bitboards::setPosXS();
-        print "\n";
-        print "XS evaluate: ";
-        #print KungFuChess::Bitboards::evaluateXS();
-        print "\n";
-        my $xsScore = xs::beginSearch(3);
+        # depth time color
+        KungFuChess::Bitboards::aiThink(3, 9999, $colorIn);
         my $bestMove = xs::getBestMove();
-        print "best: $bestMove\n";
+        #print "best: $bestMove\n";
         print "best: " . xs::to_bb($bestMove) . "\n";
         my $nextMove = xs::getNextBestMove();
-        print "next best: $nextMove\n";
-        #print "donemoves\n";
+        #print "next best: $nextMove\n";
         exit;
     } elsif ($input =~ m/^(white|black)$/) {
         my $cIn = $1;
