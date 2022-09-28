@@ -1,8 +1,7 @@
 #!/usr/bin/perl
 #
 use strict; use warnings;
-use Mojolicious::Lite;
-use Mojo::AsyncAwait;
+use Mojolicious::Lite -async_await;
 use Mojolicious::Plugin::Database;
 use Mojolicious::Plugin::Authentication;
 use Mojolicious::Validator;
@@ -1128,7 +1127,7 @@ get '/profile/:screenname' => async sub {
     my $user = $c->stash('user');
 
     my $data = { 'screenname' => $c->stash('screenname') };
-    my $player = await new KungFuChess::Player($data, app->db());
+    my $player = new KungFuChess::Player($data, app->db());
 
     $c->stash('player' => $player);
 
@@ -1163,7 +1162,7 @@ get '/profile/:screenname/games/:speed/:type' => async sub {
     }
     my $offset = ($page - 1) * $limit;
 
-    my $return = await getGameHistory($player, $gameSpeed, $gameType, $limit, $offset);
+    my $return = getGameHistory($player, $gameSpeed, $gameType, $limit, $offset);
 
 
     $c->stash('page' => $page);
