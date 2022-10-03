@@ -187,16 +187,34 @@ sub _init {
             $self->{ai_skip_best} = 0.4;
         } elsif ($difficulty eq '3') {
             $self->{ai_thinkTime} = 2.0;
-            $self->{ai_depth} = 3;
+            $self->{ai_depth} = 4;
             $self->{ai_simul_moves} = 1;
             $self->{ai_simul_depth} = 2;
             $self->{ai_delay} = 100_000; 
             $self->{ai_min_delay} = 0;
             $self->{ai_interval} = 500_000;
             $self->{ai_skip_best} = 0.0;
+        } elsif ($difficulty eq '4') {
+            $self->{ai_thinkTime} = 2.0;
+            $self->{ai_depth} = 4;
+            $self->{ai_simul_moves} = 1;
+            $self->{ai_simul_depth} = 2;
+            $self->{ai_delay} = 100_000; 
+            $self->{ai_min_delay} = 0;
+            $self->{ai_interval} = 600_000;
+            $self->{ai_skip_best} = 0.0;
+        } elsif ($difficulty eq '5') {
+            $self->{ai_thinkTime} = 2.0;
+            $self->{ai_depth} = 5;
+            $self->{ai_simul_moves} = 1;
+            $self->{ai_simul_depth} = 2;
+            $self->{ai_delay} = 100_000; 
+            $self->{ai_min_delay} = 0;
+            $self->{ai_interval} = 700_000;
+            $self->{ai_skip_best} = 0.0;
         } elsif ($difficulty eq 'human_a') {
             $self->{ai_thinkTime} = 2.0;
-            $self->{ai_depth} = 3;
+            $self->{ai_depth} = 4;
             $self->{ai_simul_moves} = 1;
             $self->{ai_simul_depth} = 2;
             $self->{ai_delay} = 300_000; 

@@ -23,7 +23,7 @@
                 <% } else { %>
                     (empty seat)<br />
                 <% } %>
-                <% if ($redPlayer) { %>
+                <% if ($greenPlayer) { %>
                     %= include 'player', 'player' => $greenPlayer, 'ratingType' => $ratingType
                 <% } else { %>
                     (empty seat)<br />

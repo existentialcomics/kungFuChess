@@ -348,6 +348,11 @@ my $ai_movingBB = 0x0000000000000000;
 
 my $currentAiMoveTree = undef;
 
+### for c++ 2way
+sub setPosXS {
+
+}
+
 sub movingOppositeDirs {
     my ($a, $b) = @_;
 
@@ -2384,26 +2389,6 @@ sub recommendMoveForBB {
         }
 
         return ($best_to, $bestScore);
-    } else { ### look for attacks on the square
-        # we are already attacking them with a pawn
-        if ($currentAttackedBy->[$color]->[PAWN] & $bb) {
-            return undef, undef;
-        }
-
-        ### look for pawn attacks in moves
-        foreach my $move (@{$currentMoves->[$color]}) {
-            if ($move->[MOVE_ATTACKS]->[$color]->[PAWN] & $bb) {
-                return ($move->[MOVE_TO], $move->[MOVE_SCORE]);
-            }
-        }
-
-        # we are attacking but not with a pawn.
-        if ($currentAttackedBy->[$color]->[ALL_PIECES]) {
-        }
-        foreach my $move (@{$currentMoves->[$color]}) {
-
-
-        }
     }
     return undef;
 }

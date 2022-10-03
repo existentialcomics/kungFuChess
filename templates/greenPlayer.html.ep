@@ -1,5 +1,5 @@
         <% if ($gameType eq '4way') { %>
-            <% if ($redPlayer) { %>
+            <% if ($greenPlayer) { %>
             <span class="circle offline" id="greenOnline"></span>
             <span id='greenPlayerName'><%= $greenPlayer->{screenname} %></span>
             <span id='greenRating'><%= $greenPlayer->{"rating_$gameSpeed"} %></span>
