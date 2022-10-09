@@ -233,7 +233,7 @@ get '/' => sub {
         'post_time' => time,
         'game_id' => undef,
         'player_id' => 1,
-        'comment_text' => 'Welcome to KungFuChess (currently in beta). Enter the matching pools or start a game to play. Click the "about" tab to see more about the game, or "tactics" to learn some of the unique tactics in this game.',
+        'comment_text' => 'Welcome to KungFuChess. Enter the matching pools or start a game to play. Click the "about" tab to see more about the game, or "tactics" to learn some of the unique tactics in this game.',
         'screenname' => 'SYSTEM',
         'color' => 'red',
         'text_color' => '#666666',
@@ -1324,6 +1324,25 @@ get '/open-json/ai' => sub {
     $c->render('json' => \@openAiGames);
 };
 
+get '/ajax/openGames/json' => sub {
+    my $c = shift;
+
+    my @return;
+    my $openGames = getOpenGames();
+    foreach my $pool (@{$openGames}) {
+        if (! $pool->{challenge_player_id} ) {
+            push @return, {
+                'game_type' => $pool->{game_type},
+                'piece_speed' => $pool->{piece_speed},
+                'piece_recharge' => $pool->{piece_recharge},
+                'piece_advantage' => $pool->{piece_advantage},
+                'private_game_key' => $pool->{private_game_key},
+            }
+        }
+    }
+    $c->render('json' => \@return);
+};
+
 get '/ajax/openGames' => sub {
     my $c = shift;
     my $user = $c->stash('user');
@@ -1402,6 +1421,15 @@ get '/rankings' => sub {
 };
 
 #############################################
+# used for bot
+get '/ajax/game/:gameId' => sub {
+    my $c = shift;
+    my $gameId = $c->stash('gameId');
+    my $gameRow = app->db()->selectrow_hashref('SELECT game_speed, piece_speed, piece_recharge, teams, game_type, time_created, time_ended, white_player, black_player, red_player, green_player FROM games WHERE game_id = ?', { 'Slice' => {} }, $gameId);
+
+    $c->render('json' => $gameRow );
+};
+
 ### GET game
 get '/game/:gameId' => sub {
     my $c = shift;
@@ -1955,6 +1983,13 @@ get '/logout' => sub {
     $c->logout();
 
     $c->redirect_to("/");
+};
+
+get '/ajax/userId' => sub {
+    my $c = shift;
+    my $user = $c->current_user();
+
+    $c->render('json' => { 'userId' => $user->{player_id}} );
 };
 
 get '/login' => sub {
@@ -3321,7 +3356,7 @@ sub matchGameUid {
 
     my $playerId = ($player ? $player->{player_id} : -1);
 
-    my $poolRow = app->db()->selectrow_hashref('SELECT * FROM pool WHERE private_game_key = ?',
+    my $poolRow = app->db()->selectrow_hashref('SELECT * FROM pool WHERE private_game_key = ? AND matched_game IS NULL',
         { 'Slice' => {} },
         $uid
     );

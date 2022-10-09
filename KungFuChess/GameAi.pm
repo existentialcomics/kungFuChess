@@ -559,11 +559,9 @@ sub handleMessage {
 
         if ($self->{color} == 1) {
             if ($rand < 0.3) {
-                #@moves = qw(e2e3 d2d4 g1f3 a2a4 a1a3 c1d2 b1c3 h2h3 d1e2);
                 @moves = qw(d2d4 e2e4 c2c3 f2f3 c1e3 f1d3 g1e2 b1d2);
             } elsif ($rand < 0.6) {
                 @moves = qw(f2f4 e2e4 d2d3 e2e3 b2b3 g2g3 f1g2 c1b2);
-                #@moves = qw(f2f4 e2e4 d2d3 g2g3 f1e2 c1d2 g1f3 b1c3 a2a3);
             } else {
                 @moves = qw(c2c4 e2e3 f1e2 g1f3 e1g1 b2b3 c1b2 b1c3 h2h3);
             }
@@ -572,7 +570,6 @@ sub handleMessage {
                 @moves = qw(c7c5 f7f5 b7b6 g7g6 f8g7);
             } elsif ($rand < 0.6) {
                 @moves = qw(c7c5 e7e5 b7b6 f7f6 g7g6 f8g7);
-                #@moves = qw(c7c5 d7d5 e7e6 b7b6 c8b7 b8c6 g7g6 f8g7 d8e7);
             } else {
                 @moves = qw(d7d5 g7g5 h7h6 e7e6);
             }
