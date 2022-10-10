@@ -2033,7 +2033,7 @@ sub clearAiMoves {
 }
 
 sub getCurrentScore {
-    return $aiScore;
+    return $aiScore // 0;
 }
 
 ## aiScore not used

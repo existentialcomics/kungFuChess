@@ -776,17 +776,13 @@ sub aiTick {
         foreach my $induced (@{$self->{inducedMoves}}) {
             ### no longer compatible with perl AI but only a few adjustments, it only used the to_bb
             my $move = KungFuChess::Bitboards::recommendMoveForBB($induced->[0], $induced->[1], $self->{color}, 0x0); ### 0x0 is attackedBy, not used for now
-            print "induced : $induced->[1]\n";
             if ($move) {
-                print "moving induced\n";
                 $self->{lastMoved} = time();
                 my $msg = {
                     'fr_bb' => $move->[0],
                     'to_bb' => $move->[1],
                     'c'     => 'move'
                 };
-                print Dumper($msg);
-                print "\n";
                 $self->send($msg);
             }
         }

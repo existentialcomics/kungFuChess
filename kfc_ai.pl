@@ -28,7 +28,7 @@ if (! $speed) {
     exit;
 
 }
-print "starting with $user, $pass, $domain, $level, $speed, $register\n";
+print "\n\nstarting with $user, $pass, $domain, $level, $speed, $register\n";
 
 #my $domain = "http://127.0.0.1:3000";
 #my $domain = "https://kungfuchess.org";
@@ -79,6 +79,11 @@ $mech->submit_form(
     fields    => $params,
     #button    => 'Search Now'
 );
+$mech->get('/ajax/userId');
+my $userId = -1;
+my $jsonUser = decode_json($mech->content());
+$userId = $jsonUser->{userId};
+print "userId: $userId\n";
 
 my $mode = 'searchForGame';
 my $gameId = undef;;
@@ -94,11 +99,66 @@ print "authToken: $authToken\n";
 my $uid = '';
 my $wsdomain = '';
 my $color;
+
+my %uidHashCount = ();
 my $aiInterval = AnyEvent->timer(
-    after => 3,
+    after => 1,
     interval => 3,
     cb => sub {
         if ($mode eq 'searchForGame') {
+            print "interval searcForGame\n";
+            #$mech->get('/activePlayers?ratingType=standard');
+            my $url = '/ajax/openGames/json';
+            $mech->get($url);
+            eval {
+                my $json = decode_json($mech->content());
+                print Dumper($json);
+                foreach my $pool (@$json) {
+                    $mech->get('/ajax/matchGame/' . $pool->{private_game_key});
+                    my $poolMatch = decode_json($mech->content());
+                    my $color = "";
+                    my $game = {};
+                    if ($poolMatch->{gameId}) {
+                        $gameId = $poolMatch->{gameId};
+                        $mech->get('/ajax/game/' . $poolMatch->{gameId});
+                        $game = decode_json($mech->content());
+                    } else {
+                        next;
+                    }
+                    if ($game->{white_player} == $userId) {
+                        $color = 1;
+                    }
+                    if ($game->{black_player} == $userId) {
+                        $color = 2;
+                    }
+                    if ($game->{red_player} == $userId) {
+                        $color = 3;
+                    }
+                    if ($game->{green_player} == $userId) {
+                        $color = 4;
+                    }
+                    if ($color) {
+                        print "game matched $color\n";
+                        my $cmdAi = sprintf('/usr/bin/perl ./kungFuChessGame%sAi.pl %s %s %s %s %s %s %s %s >%s 2>%s',
+                            $game->{game_type},
+                            $gameId,
+                            $authToken,
+                            $game->{piece_speed},
+                            $game->{piece_recharge},
+                            '1-1-1-1',
+                            $level,
+                            $color,
+                            $game->{ws_server},
+                            "/var/log/kungfuchess/$gameId-$color-game-ai.log",
+                            "/var/log/kungfuchess/$gameId-$color-error-ai.log"
+                        );
+                        print "$cmdAi\n";
+                        system($cmdAi);
+                    }
+                    print "\n\n\n";
+                }
+            };
+        } elsif ($mode eq 'pool') {
             #$mech->get('/activePlayers?ratingType=standard');
             my $url = '/ajax/pool/' . $speed . '/' . $way;
             print "$url\n";
@@ -160,7 +220,7 @@ my $aiInterval = AnyEvent->timer(
                 my $pid = system($cmdAi);
                 print "game finished\n";
                 $uid = undef;
-                $mode = 'searchForGame';
+                $mode = 'pool';
             }
         }
     }

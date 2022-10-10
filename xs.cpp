@@ -1499,9 +1499,9 @@ void setBBs(
 
     frozen  = bb_frozen;
     moving  = bb_moving;
-    //moving  = 0;
     if (debug) {
-        std::cout << "done set BBs cpp\n" << "\n";
+        std::cout << "done set BBs cpp MOVING:\n" << "\n";
+        std::cout << pretty(moving) << "\n";
     }
 }
 
@@ -1560,7 +1560,7 @@ Move dodge(Square toSq, Color c) {
         if (relevant) {
             Piece p = do_move(m);
             int newScore = evaluate();
-            if (true) {
+            if (debug) {
                 std::cout << "relevant: " << (relevant ? "true" : "false") << "\n";
                 std::cout << pretty(m) << "\n";
                 std::cout << pretty() << "\n";
@@ -1688,7 +1688,7 @@ Move refuteBB(Bitboard frBB, Bitboard toBB, int intC) {
 }
 
 Node* searchTree(Move currentMove, int depth, int ply, int& alpha, int& beta, bool isMaximizingPlayer, Color c, std::string moveString = "") {
-    if (true) {
+    if (debug) {
         //std::cout << "\n\n\nply:" << ply << " depth:" << depth << " color: " << c << "\n";
         if (ply == 1) {
             moveString = move_str(currentMove);
@@ -1743,11 +1743,10 @@ Node* searchTree(Move currentMove, int depth, int ply, int& alpha, int& beta, bo
     //if (ply == 1 || ply == 3 || ply == 5 || ply > 6) {
     if (isNextTurn(ply)) {
         // unfreeze the enemy, it's their turn now
-        //frozen &= ~(byColorBB[Them]);
+        frozen &= ~(byColorBB[Them]);
         nextColor = (c == WHITE ? BLACK : WHITE);
         nextIsMaximizingPlayer = (isMaximizingPlayer ? false : true);
     }
-    frozen = 0;
 
     while (moveSpot < moves.size()) {
         Move m = moves[moveSpot];
@@ -1758,7 +1757,11 @@ Node* searchTree(Move currentMove, int depth, int ply, int& alpha, int& beta, bo
                 std::cout << "\n    ---------------- move: " << m << " , ply: " << ply << " , spot" << moveSpot << " color: " << c <<  " ---------------\n" << pretty(m) << "\n";
             }
         }
+        //***************
+        Bitboard old_frozen = frozen;
+        Bitboard old_moving = moving;
         Piece p = do_move(m);
+        //***************
         if (debug && ply < 3) {
             std::cout << "after move" << "\n";
             std::cout << pretty(m) << "\n";
@@ -1775,7 +1778,11 @@ Node* searchTree(Move currentMove, int depth, int ply, int& alpha, int& beta, bo
         }
 
         ply--;
+        //***************
         undo_move(m, p);
+        frozen = old_frozen;
+        moving = old_moving;
+        //***************
 
         if (ply == 1 && debug) {
             std::cout << "\n ++++++++++++++++ move: " << m << " , ply: " << ply << " , spot" << moveSpot << " color: " << c << " +++++++++++++++\n" << pretty(m) << "\n";
@@ -1854,7 +1861,7 @@ int beginSearch(int depth) {
     bool isMax = (aiColor == WHITE);
     Node *baseNode = searchTree(0, depth, 0, alpha, beta, isMax, aiColor);
     bestMoveNode = baseNode->next;
-    if (true) {
+    if (debug) {
         std::cout << " -------------- done search ---------------- " << "\n";
         std::cout << pretty();
         std::cout << " curscore: " << baseNode->score << "\n";
@@ -1873,7 +1880,7 @@ Move getBestMove() {
     if (! bestMoveNode) {
         return 0;
     }
-    if (true) {
+    if (debug) {
         std::cout << "best move node " << bestMoveNode->move << "\n";
         std::cout << pretty(bestMoveNode->move) << "\n";
     }
@@ -1888,7 +1895,7 @@ Move getNextBestMove() {
     if (! bestMoveNode->next) {
         return 0;
     }
-    if (true) {
+    if (debug) {
         std::cout << "best move node NEXT " << bestMoveNode->next->move << "\n";
         std::cout << pretty(bestMoveNode->next->move) << "\n";
         std::cout << "best move node COUNTER " << bestMoveNode->next->next->move << "\n";

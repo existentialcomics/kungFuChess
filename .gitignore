@@ -3,6 +3,8 @@ kungFuChess.cnf
 scss/bootstrap
 *.swp
 *.swo
+*.swn
+*.swm
 .env
 hypnotoad.pid
 _Inline
