@@ -313,6 +313,8 @@ constexpr Square operator-(Square s, Direction d) { return Square(int(s) - int(d
 inline Square& operator+=(Square& s, Direction d) { return s = s + d; }
 inline Square& operator-=(Square& s, Direction d) { return s = s - d; }
 
+//inline Square& operator==(Square& s1, Square s2) { return int(s1) == int(s2); }
+
 
 //***************************************************************
 // Eval constants
@@ -351,9 +353,9 @@ constexpr int from_to(Move m) {
 constexpr bool is_ok(Square s) {
   return s >= SQ_A1 && s <= SQ_H8;
 }
-//constexpr bool is_ok(Move m) {
-  //return from_sq(m) != to_sq(m); // Catch MOVE_NULL and MOVE_NONE
-//}
+constexpr bool is_ok(Move m) {
+  return from_sq(m) != to_sq(m); // Catch MOVE_NULL and MOVE_NONE
+}
 
 // pieces
 Bitboard byColorBB[3] = {

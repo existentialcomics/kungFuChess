@@ -31,84 +31,6 @@ sub new {
 	}
 }
 
-# http://wbec-ridderkerk.nl/html/UCIProtocol.html
-sub getStockfishMsgs {
-    my $self = shift;
-
-    print "--- begin reading...\n";
-    my $cout = $self->{ai_out};
-    my $timeout = 0;
-    while(my $line = <$cout>) {
-        print "$line";
-        chomp($line);
-        if ($line eq 'uciok') {
-            $self->{aiStates}->{uciok} = 1;
-            $self->writeStockfishMsg('setoption name MultiPV value 5');
-            $self->writeStockfishMsg('setoption name Debug Log File value /var/log/stockfish/debug.log');
-            $self->writeStockfishMsg('ucinewgame');
-            #$self->writeStockfishMsg('position startpos');
-            #$self->writeStockfishMsg('go infinite');
-        }
-        if ($line =~ m/^bestmove\s(.+?)\s/){
-            my $move = $1;
-            print "bestmove $move\n";
-            my $bestScore = -999999;
-            if ($self->{aiStates}->{possibleMoves}->{$move}) {
-                my $moveScore = $self->{aiStates}->{possibleMoves}->{$move}->{score};
-                if ($moveScore =~ m/^mate/) {
-                    next;
-                }
-            }
-            ### prevent moving on top of yourself.
-            $move =~ m/(..)(..)$/;
-            my ($src, $dst) = ($1, $2);
-            my $allMoveSrc = {
-                $src => 1
-            };
-            my $allMoveDests = {
-                $dst => 1
-            };
-            foreach (values %{$self->{aiStates}->{possibleMoves}}) {
-                if ($_->{score} =~ m/^mate/) {
-                    next;
-                }
-                if ($_->{score} > $bestScore - 100) {
-                    $_->{move} =~ m/(..)(..)$/;
-                    if ($allMoveSrc->{$1}) {
-                        next;
-                    }
-                    if ($allMoveDests->{$2}) {
-                        next;
-                    }
-                    $allMoveSrc->{$1} = 1;
-                    $allMoveDests->{$2} = 1;
-
-                    $self->moveNotation($_->{move});
-                }
-            }
-            $self->{aiStates}->{possibleMoves} = {};
-        } elsif ($line =~ m/info depth (\d+).*? multipv (\d+) score cp (.+) nodes (\d+) .*? pv ([a-h][0-9][a-h][0-9])/) {
-            my ($depth, $ranking, $score, $nodes, $move) = ($1, $2, $3, $4, $5);
-            print "pv move $score $nodes $move\n";
-
-            $self->{aiStates}->{possibleMoves}->{$move} = {
-                'move' => $move,
-                'score' => $score,
-                'ranking' => $ranking
-            };
-        }
-    }
-    print "--- end reading\n";
-}
-
-sub writeStockfishMsg {
-    my $self = shift;
-    my $msg = shift;
-    my $cin = $self->{ai_in};
-    print "sending stockfish: $msg\n";
-    print $cin $msg . "\n";
-}
-
 sub _init {
 	my $self = shift;
 	my $gameKey = shift;
@@ -162,20 +84,20 @@ sub _init {
     # ai_delay         random delay before move for queued moves only (opening)
     # ai_min_delay     min random delay
     # ai_interval      time to wait before next move
-    # ai_skip_best     % chance to skip the best move (and next again)
+    # ai_randomness    randomness of scores, centipawns
 
     if ($speed eq 'standard') {
         $self->{pieceSpeed} = 1;
         $self->{pieceRecharge} = 10;
         if ($difficulty eq '1') {
             $self->{ai_thinkTime} = 1;
-            $self->{ai_depth} = 2;
+            $self->{ai_depth} = 1;
             $self->{ai_simul_moves} = 1;
             $self->{ai_simul_depth} = 1;
             $self->{ai_delay} = 1_000_000; 
             $self->{ai_min_delay} = 1_000_000;
-            $self->{ai_interval} = 2_000_000;
-            $self->{ai_skip_best} = 0.7;
+            $self->{ai_interval} = 2_500_000;
+            $self->{randomness} = 300;
         } elsif ($difficulty eq '2') {
             $self->{ai_thinkTime} = 1;
             $self->{ai_depth} = 2;
@@ -183,44 +105,46 @@ sub _init {
             $self->{ai_simul_depth} = 1;
             $self->{ai_delay} = 800_000; 
             $self->{ai_min_delay} = 200_000;
-            $self->{ai_interval} = 1_000_000;
-            $self->{ai_skip_best} = 0.4;
+            $self->{ai_interval} = 1_500_000;
+            $self->{randomness} = 150;
         } elsif ($difficulty eq '3') {
             $self->{ai_thinkTime} = 2.0;
             $self->{ai_depth} = 4;
             $self->{ai_simul_moves} = 1;
             $self->{ai_simul_depth} = 2;
-            $self->{ai_delay} = 100_000; 
+            $self->{ai_delay} = 50_000; 
             $self->{ai_min_delay} = 0;
             $self->{ai_interval} = 500_000;
-            $self->{ai_skip_best} = 0.0;
-        } elsif ($difficulty eq '4') {
-            $self->{ai_thinkTime} = 2.0;
-            $self->{ai_depth} = 4;
-            $self->{ai_simul_moves} = 1;
-            $self->{ai_simul_depth} = 2;
-            $self->{ai_delay} = 100_000; 
-            $self->{ai_min_delay} = 0;
-            $self->{ai_interval} = 600_000;
-            $self->{ai_skip_best} = 0.0;
-        } elsif ($difficulty eq '5') {
-            $self->{ai_thinkTime} = 2.0;
-            $self->{ai_depth} = 5;
-            $self->{ai_simul_moves} = 1;
-            $self->{ai_simul_depth} = 2;
-            $self->{ai_delay} = 100_000; 
-            $self->{ai_min_delay} = 0;
-            $self->{ai_interval} = 700_000;
-            $self->{ai_skip_best} = 0.0;
+            $self->{randomness} = 30;
         } elsif ($difficulty eq 'human_a') {
             $self->{ai_thinkTime} = 2.0;
             $self->{ai_depth} = 4;
             $self->{ai_simul_moves} = 1;
             $self->{ai_simul_depth} = 2;
-            $self->{ai_delay} = 300_000; 
+            $self->{ai_delay} = 400_000; 
             $self->{ai_min_delay} = 150_000;
             $self->{ai_interval} = 300_000;
-            $self->{ai_skip_best} = 0.0;
+            $self->{randomness} = 150;
+            $self->{ai_human} = 1;
+        } elsif ($difficulty eq 'human_b') {
+            $self->{ai_thinkTime} = 2.0;
+            $self->{ai_depth} = 4;
+            $self->{ai_simul_moves} = 1;
+            $self->{ai_simul_depth} = 2;
+            $self->{ai_delay} = 1_500_000; 
+            $self->{ai_min_delay} = 450_000;
+            $self->{ai_interval} = 500_000;
+            $self->{randomness} = 50;
+            $self->{ai_human} = 1;
+        } elsif ($difficulty eq 'human_c') {
+            $self->{ai_thinkTime} = 2.0;
+            $self->{ai_depth} = 2;
+            $self->{ai_simul_moves} = 1;
+            $self->{ai_simul_depth} = 2;
+            $self->{ai_delay} = 500_000; 
+            $self->{ai_min_delay} = 250_000;
+            $self->{ai_interval} = 400_000;
+            $self->{randomness} = 350;
             $self->{ai_human} = 1;
         } else {
             $self->{ai_thinkTime} = 2.0;
@@ -230,10 +154,11 @@ sub _init {
             $self->{ai_delay} = 300_000; 
             $self->{ai_min_delay} = 0;
             $self->{ai_interval} = 500_000;
-            $self->{ai_skip_best} = 0.0;
+            $self->{randomness} = 0.0;
         }
     } elsif ($speed eq 'lightning') {
-        $self->{pieceRecharge} = 2;
+        $self->{pieceSpeed} = 0.1;
+        $self->{pieceRecharge} = 1;
         if ($difficulty eq '1') {
             $self->{ai_thinkTime} = 1.0;
             $self->{ai_depth} = 2;
@@ -242,7 +167,7 @@ sub _init {
             $self->{ai_delay} = 1_000_000; 
             $self->{ai_min_delay} = 500_000;
             $self->{ai_interval} = 2_000_000;
-            $self->{ai_skip_best} = 0.7;
+            $self->{randomness} = 300;
         } elsif ($difficulty eq '2') {
             $self->{ai_thinkTime} = 1.0;
             $self->{ai_depth} = 2;
@@ -251,7 +176,7 @@ sub _init {
             $self->{ai_delay} = 1_000_000; 
             $self->{ai_min_delay} = 500_000;
             $self->{ai_interval} = 750_000;
-            $self->{ai_skip_best} = 0.4;
+            $self->{randomness} = 200;
         } elsif ($difficulty eq '3') {
             $self->{ai_thinkTime} = 1.0;
             $self->{ai_depth} = 2;
@@ -260,16 +185,34 @@ sub _init {
             $self->{ai_delay} = 200_000; 
             $self->{ai_min_delay} = 150_000;
             $self->{ai_interval} = 250_000;
-            $self->{ai_skip_best} = 0.0;
+            $self->{randomness} = 100;
         } elsif ($difficulty eq 'human_a') {
             $self->{ai_thinkTime} = 1.0;
             $self->{ai_depth} = 2;
             $self->{ai_simul_moves} = 1;
             $self->{ai_simul_depth} = 2;
             $self->{ai_delay} = 1_000_000; 
-            $self->{ai_min_delay} = 500_000;
-            $self->{ai_interval} = 1_000_000;
-            $self->{ai_skip_best} = 0.0;
+            $self->{ai_min_delay} = 300_000;
+            $self->{ai_interval} = 500_000;
+            $self->{randomness} = 200;
+        } elsif ($difficulty eq 'human_b') {
+            $self->{ai_thinkTime} = 1.0;
+            $self->{ai_depth} = 2;
+            $self->{ai_simul_moves} = 1;
+            $self->{ai_simul_depth} = 2;
+            $self->{ai_delay} = 1_000_000; 
+            $self->{ai_min_delay} = 1_000_000;
+            $self->{ai_interval} = 1_500_000;
+            $self->{randomness} = 400;
+        } elsif ($difficulty eq 'human_c') {
+            $self->{ai_thinkTime} = 1.0;
+            $self->{ai_depth} = 2;
+            $self->{ai_simul_moves} = 1;
+            $self->{ai_simul_depth} = 2;
+            $self->{ai_delay} = 1_000_000; 
+            $self->{ai_min_delay} = 300_000;
+            $self->{ai_interval} = 500_000;
+            $self->{randomness} = 600;
         } else {
             $self->{ai_thinkTime} = 1.0;
             $self->{ai_depth} = 2;
@@ -278,7 +221,7 @@ sub _init {
             $self->{ai_delay} = 1_000_000; 
             $self->{ai_min_delay} = 500_000;
             $self->{ai_interval} = 1_000_000;
-            $self->{ai_skip_best} = 0.0;
+            $self->{randomness} = 0.0;
         }
     } else {
         warn "unknown game speed $speed\n";
@@ -367,7 +310,6 @@ sub _init {
 			# $connection is the same connection object
 			my($connection) = @_;
 			AnyEvent->condvar->send;
-            if ($self->{stockfishPid}) { system("kill $self->{stockfishPid}"); }
 			exit;
 		});
 
@@ -388,6 +330,10 @@ sub _init {
             if (! defined($self->{gameStartTime}) &&
                 time() - $self->{startTime} > 60
             ) {
+                my $standMsg = {
+                    'c' => 'stand',
+                };
+                $self->send($standMsg);
                 my $abortMsg = {
                     'c' => 'abort',
                 };
@@ -400,6 +346,17 @@ sub _init {
                 'ping' => int(rand(100) + 50) # don't care about really figuring out our true ping
             };
             $self->send($msg);
+
+            if ($self->{ai_human}) {
+                my $msgMain = {
+                    'c' => 'main_ping',
+                    'userAuthToken' => $self->{authkey},
+                };
+                $self->send($msgMain);
+            } else {
+                print "IS NOT AI HUMAN\n";
+
+            }
         }
     );
 
@@ -462,11 +419,11 @@ sub handleMessage {
                 $bb = KungFuChess::Bitboards::shift_BB($bb, $dir);
                 KungFuChess::Bitboards::setMoving($bb);
                 my $bb2 = $bb;
-                $self->{"aiInterval_unmove_$bb"} = AnyEvent->timer(
-                    after => $self->{pieceSpeed} * $count, 
+                $self->{"aiInterval_unmove_{$bb}_{$count}"} = AnyEvent->timer(
+                    after => $self->{pieceSpeed} * ($count + 3), 
                     cb => sub {
                         my $_bb = $bb2;
-                        KungFuChess::Bitboards::unsetMoving($_bb);
+                        #KungFuChess::Bitboards::unsetMoving($_bb);
                     }
                 );
                 $count++;
@@ -474,7 +431,7 @@ sub handleMessage {
         } elsif ($moveType == KungFuChess::Bitboards::MOVE_KNIGHT) {
             KungFuChess::Bitboards::setMoving($to_bb);
             $self->{"aiInterval_unmove_$to_bb"} = AnyEvent->timer(
-                after => $self->{pieceSpeed} * 2, 
+                after => $self->{pieceSpeed} * 3, 
                 cb => sub {
                     KungFuChess::Bitboards::unsetMoving($to_bb);
                 }
@@ -499,11 +456,11 @@ sub handleMessage {
         $self->send($msg);
         $self->endGame();
 	} elsif ($msg->{c} eq 'requestDraw'){
-        print "drawing...\n";
-        my $msg = {
-            'c'     => 'requestDraw'
-        };
-        $self->send($msg);
+        #print "drawing...\n";
+        #my $msg = {
+            #'c'     => 'requestDraw'
+        #};
+        #$self->send($msg);
 	} elsif ($msg->{c} eq 'suspend'){
         $self->{suspendedPieces}->{$msg->{to_bb}} =
             KungFuChess::Bitboards::_getPieceBB($msg->{fr_bb});
@@ -628,8 +585,7 @@ sub aiTick {
     my $debug = 0;
 
     if ($debug) {
-        print "aiTick() " . time() . "\n";
-
+        print "\naiTick() " . time() . "\n";
     }
     my $handle = $self->{conn}->{handle};
         $handle->push_read( 'line' => sub {}
@@ -662,14 +618,21 @@ sub aiTick {
     } else {
         ### so we can turn off moves to test anticipate
         if (1) {
+            ### progressive pentalties against NO_MOVE
+            my $sinceLastMove = time() - $self->{lastMoved};
+            my $noMovePenalty = $sinceLastMove * ($self->{noMovePenalty} // 0.1);
+            if ($debug) {
+                print "no move penalty: $noMovePenalty\n";
+            }
+            KungFuChess::Bitboards::setNoMovePenalty($noMovePenalty);
+
             # depth, thinkTime
             my $start = time();
             my $score = 0;
             if ($debug) {
                 print "AI THINK $self->{ai_depth}, $self->{ai_thinkTime}, $self->{color}\n";
                 print KungFuChess::Bitboards::pretty_ai();
-                #print KungFuChess::Bitboards::prettyFrozen();
-                #print KungFuChess::Bitboards::getFENstring();
+                print KungFuChess::Bitboards::getFENstring();
             }
 
             # aiScore not used
@@ -699,7 +662,7 @@ sub aiTick {
                 $self->{mode} eq '4way' ? 1 : $self->{color}, # 4way is always white
                 $self->{ai_simul_moves},
                 $self->{ai_depth_moves},
-                $self->{ai_skip_best}
+                $self->{randomness}
             );
 
             my $fr_moves = {};
@@ -724,11 +687,12 @@ sub aiTick {
                 if (KungFuChess::Bitboards::getCurrentScore() > -1000) {
                     $self->{drawCount} ++;
                     if ($self->{drawCount} > 15) {
-                        print "drawing...\n";
-                        my $msg = {
-                            'c'     => 'requestDraw'
-                        };
-                        $self->send($msg);
+                        #print "drawing...\n";
+                        #my $msg = {
+                            #'c'     => 'requestDraw'
+                        #};
+                        #$self->send($msg);
+                        #$self->{drawCount} = 0;
                     }
                 } else {
                     $self->{drawCount} = 0;
@@ -760,15 +724,21 @@ sub aiTick {
                     #print "to move!\n";
                     next;
                 }
-                $fr_moves->{$move->[0]} = 1;
-                $to_moves->{$move->[1]} = 1;
-                my $msg = {
-                    'fr_bb' => $move->[0],
-                    'to_bb' => $move->[1],
-                    'c'     => 'move'
-                };
-                $self->send($msg);
-                #usleep(rand($self->{ai_delay}) + $self->{ai_min_delay});
+
+                ### NO_MOVE guard
+                if ($move->[0] != $move->[1]) {
+                    $fr_moves->{$move->[0]} = 1;
+                    $to_moves->{$move->[1]} = 1;
+
+                    $self->{lastMoved} = time();
+                    my $msg = {
+                        'fr_bb' => $move->[0],
+                        'to_bb' => $move->[1],
+                        'c'     => 'move'
+                    };
+                    $self->send($msg);
+                    usleep(rand($self->{ai_delay}) + $self->{ai_min_delay});
+                }
             }
         }
         KungFuChess::Bitboards::setPosXS();
@@ -789,23 +759,23 @@ sub aiTick {
         $self->{inducedMoves} = [];
     }
     my $timeSpent = time() - $aiStartTime;
-    my $intervalLeft = $timeSpent - (($self->{ai_interval} // 1_000_000) / 1_000_000);
+    #my $intervalLeft = $timeSpent - (($self->{ai_interval} // 1_000_000) / 1_000_000);
 
-    ### at least a tenth of a second to recieve messages
-    if ($intervalLeft < 0.1) {
-        $intervalLeft = 0.1;
-    }
-    $intervalLeft = 1;
+    #### at least two tenth of a second to recieve messages
+    #if ($intervalLeft < 0.2) {
+        #$intervalLeft = 0.2;
+    #}
+    #$intervalLeft = 1;
 
     if ($self->{debug}) {
         print "time ending " . time() . "\n";
     }
-    $self->{aiInterval} = AnyEvent->timer(
-        after => $intervalLeft, 
-        cb => sub {
-            $self->aiTick();
-        }
-    );
+    #$self->{aiInterval} = AnyEvent->timer(
+        #after => $intervalLeft, 
+        #cb => sub {
+            #$self->aiTick();
+        #}
+    #);
 }
 
 sub doOpeningAndStart {
@@ -830,10 +800,9 @@ sub endGame {
             'c' => 'rematch',
         };
         $self->send($dataPost);
-    } else {
-        if ($self->{stockfishPid}) { system("kill $self->{stockfishPid}"); }
-        exit;
+        sleep 1;
     }
+    exit;
 }
 
 sub send {

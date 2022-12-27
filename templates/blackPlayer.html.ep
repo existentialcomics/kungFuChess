@@ -1,3 +1,4 @@
+<% if ($blackPlayer) { %>
         <span class="circle offline" id="blackOnline"></span>
         <span id='blackPlayerName'><%= $blackPlayer->{screenname} %></span>
         <span id='blackRating'><%= $blackPlayer->{"rating_$gameSpeed"} %></span>
@@ -5,6 +6,12 @@
         <% if ($blackReady == 0) { %>
         <span id='blackReady'><br /><small>not ready</small></span>
         <% } elsif ($blackReady > 0) { %>
-        <span id='blackReady'><br /><small>ready</small></span>
+        <br /><span id='blackReady'><small>ready</small></span>
         <% } %>
         <span>(black)</span>
+<% } else { %>
+        <span class="circle offline" id="blackOnline"></span>
+        <span id='blackPlayerName'>(empty seat)</span>
+        <span id='blackRating'></span>
+        <span id='blackReady'></span>
+<% } %>

@@ -12,34 +12,31 @@
 
         <tbody>
     <% foreach my $game (@{$openGames}){ %>
-        <% if (! (($user) && $game->{player_id} == $user->{player_id})
-              && ! (($uid) && $game->{private_game_key} eq $uid) ) { %>
-            <% if ($game->{game_id}) { %>
-                <tr class='join-game-row' style='cursor: pointer;' data-href='/ajax/joinGame/<%= $game->{game_id} %>'>
-            <% } else { %>
-                <tr class='join-game-row' style='cursor: pointer;' data-href='/ajax/matchGame/<%= $game->{private_game_key} %>'>
-            <% } %>
-                <td>
-                    <%= $game->{screenname} %>
-                    <% if ($game->{screenname2}) { %><br /><%= $game->{screenname2} %><% } %>
-                    <% if ($game->{screenname3}) { %><br /><%= $game->{screenname3} %><% } %>
-                </td>
-                <td>
-                    <%= $game->{ 'rating_' . $game->{'game_speed'}} %>
-                    <% if ($game->{'rating2_' . $game->{'game_speed'}}) { %><br /><%= $game->{'rating2_' . $game->{'game_speed'}} %><% } %>
-                    <% if ($game->{'rating3_' . $game->{'game_speed'}}) { %><br /><%= $game->{'rating3_' . $game->{'game_speed'}} %><% } %>
-                </td>
-                <td>
-                    <%= $game->{game_speed} %> (<%= int($game->{piece_recharge}) %>/<%= sprintf('%0.1f',$game->{piece_speed}) %>)
-                </td>
-                <td>
-                    <%= $game->{game_type} %>
-                </td>
-                <td>
-                    <%= ($game->{rated} ? 'rated' : 'unrated') %>
-                </td>
-            </tr>
+        <% if ($game->{game_id}) { %>
+            <tr class='join-game-row' style='cursor: pointer;' data-href='/ajax/joinGame/<%= $game->{game_id} %>'>
+        <% } else { %>
+            <tr class='join-game-row' style='cursor: pointer;' data-href='/ajax/matchGame/<%= $game->{private_game_key} %>'>
         <% } %>
+            <td>
+                <%= $game->{screenname} %>
+                <% if ($game->{screenname2}) { %><br /><%= $game->{screenname2} %><% } %>
+                <% if ($game->{screenname3}) { %><br /><%= $game->{screenname3} %><% } %>
+            </td>
+            <td>
+                <%= $game->{ 'rating_' . $game->{'game_speed'}} %>
+                <% if ($game->{'rating2_' . $game->{'game_speed'}}) { %><br /><%= $game->{'rating2_' . $game->{'game_speed'}} %><% } %>
+                <% if ($game->{'rating3_' . $game->{'game_speed'}}) { %><br /><%= $game->{'rating3_' . $game->{'game_speed'}} %><% } %>
+            </td>
+            <td>
+                <%= $game->{game_speed} %> (<%= int($game->{piece_recharge}) %>/<%= sprintf('%0.1f',$game->{piece_speed}) %>)
+            </td>
+            <td>
+                <%= $game->{game_type} %>
+            </td>
+            <td>
+                <%= ($game->{rated} ? 'rated' : 'unrated') %>
+            </td>
+        </tr>
     <% } %>
         </tbody>
     </table>

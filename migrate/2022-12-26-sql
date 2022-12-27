@@ -1,0 +1,11 @@
+CREATE TABLE `board` (
+  `board_id` int NOT NULL AUTO_INCREMENT,
+  `game_speed` enum('standard','lightning') NOT NULL DEFAULT 'standard',
+  `game_type` enum('2way','4way') NOT NULL DEFAULT '2way',
+  `time_created` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+   PRIMARY KEY (`board_id`)
+  ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=latin1;
+
+
+ALTER TABLE `games` ADD column board_id INT DEFAULT NULL AFTER game_id;
+ALTER TABLE `chat_log` ADD column board_id INT DEFAULT NULL AFTER game_id;

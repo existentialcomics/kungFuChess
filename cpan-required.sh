@@ -14,3 +14,4 @@ cpan AnyEvent::WebSocket::Client
 cpan Config::Simple
 cpan Digest::Bcrypt
 cpan HTML::Escape
+cpan LWP::Simple

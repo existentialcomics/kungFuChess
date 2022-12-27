@@ -440,7 +440,6 @@ var sitGame = function(){
         'uid' : userAuthToken,
         'gameId' : gameId
     };
-    console.log(ret);
     sendMsg(ret);
 };
 
@@ -603,7 +602,6 @@ var delays   = [];
 var debug = false;
 var handleMessage = function(msg) {
     if (msg.c != 'ping' && debug == true) {
-        console.log(msg);
         if (msg.hasOwnProperty('fr_bb')) {
             msg.fr_square = getSquareFromBB(msg.fr_bb);
         }
@@ -783,7 +781,7 @@ var handleMessage = function(msg) {
 		pieceLayer.draw();
         setTimeout(remindAiTakeover, 20000)
         if (myColor == 'watch') {
-            sitGame();
+            //sitGame();
         }
     } else if (msg.c == 'suspend'){
         // knights and castles are removed from the board entirely 
@@ -1043,6 +1041,8 @@ var handleMessage = function(msg) {
         if (msg.hasOwnProperty('gameId')) {
             window.location.replace('/game/' + msg.gameId + (anonKey ? "?anonKey=" + anonKey : ""));
         }
+    } else if (msg.c == 'playerAdded') {
+        setPlayer(msg.color, JSON.parse(msg.player));
     } else if (msg.c == 'watcherAdded') {
             var dt = new Date();
             var line = '<small>' + msg.screenname + '</small><br />';
@@ -1054,8 +1054,26 @@ var handleMessage = function(msg) {
                 }
             }
     } else {
-        console.log("unknown msg recieved");
+        console.log("unknown msg recieved:");
         console.debug(msg);
+        console.log("----------------------------------");
+    }
+}
+
+var setPlayer = function(color, player) {
+    if (color == 'white') {
+        $('#whitePlayerName').text(player.screenname);
+        if (gameType == '4way') {
+            $('#whiteRating').text(player.standard_rating);
+        } else {
+
+        }
+    } else if (color == 'black') {
+        $('#blackPlayerName').text(player.screenname);
+    } else if (color == 'red') {
+        $('#redPlayerName').text(player.screenname);
+    } else if (color == 'green') {
+        $('#greenPlayerName').text(player.screenname);
     }
 }
 
@@ -1875,6 +1893,18 @@ $(function () {
     $("#abortGame").click(function() {
         var msg = {
             "c" : "abort"
+        };
+        sendMsg(msg);
+    });
+    $("#stand").click(function() {
+        var msg = {
+            "c" : "stand"
+        };
+        sendMsg(msg);
+    });
+    $("#sit").click(function() {
+        var msg = {
+            "c" : "sit"
         };
         sendMsg(msg);
     });

@@ -18,16 +18,8 @@
             %= include 'player', 'player' => $whitePlayer, 'ratingType' => $ratingType
             %= include 'player', 'player' => $blackPlayer, 'ratingType' => $ratingType
             <% if ($gameType eq '4way') { %>
-                <% if ($redPlayer) { %>
-                    %= include 'player', 'player' => $redPlayer, 'ratingType' => $ratingType
-                <% } else { %>
-                    (empty seat)<br />
-                <% } %>
-                <% if ($greenPlayer) { %>
-                    %= include 'player', 'player' => $greenPlayer, 'ratingType' => $ratingType
-                <% } else { %>
-                    (empty seat)<br />
-                <% } %>
+                %= include 'player', 'player' => $redPlayer, 'ratingType' => $ratingType
+                %= include 'player', 'player' => $greenPlayer, 'ratingType' => $ratingType
             <% } %>
         </div>
             <div id="game-chat-log" disabled="true" class='text-chat'></div>
@@ -145,7 +137,13 @@
             <div id="gameStatusWaitingToStart" <%== $gameStatus eq 'waiting to begin' ? '' : 'style="display:none;"' %>>
                 <% if ($color ne 'watch') { %>
                 <button type="button" class="btn btn-primary btn-block" id="readyToStart" onclick="readyToStart()">Ready To Start</button>
-                <button type="button" class="btn btn-primary btn-block" id="abortGame">Abort</button>
+                    <% if ($gameType eq '4way') { %>
+                        <button type="button" class="btn btn-primary btn-block" id="stand">Stand</button>
+                    <% } else { %>
+                        <button type="button" class="btn btn-primary btn-block" id="abortGame">Abort</button>
+                    <% } %>
+                <% } else { %>
+                    <button type="button" class="btn btn-primary btn-block" id="sit">Sit</button>
                 <% } %>
             </div>
             <div id="gameStatusActive" <%== $gameStatus eq 'active' ? '' : 'style="display:none;"' %>>
@@ -190,10 +188,10 @@
     var isActiveGame = <%== $gameStatus eq 'finished' ? 'false' : 'true' %>;
     var wsGameDomain = "<%= $wsGameDomain %>";
 
-    var whitePlayer = JSON.parse('<%== $whitePlayer->getJsonMsg() %>');
-    var blackPlayer = JSON.parse('<%== $blackPlayer->getJsonMsg() %>');
-    var redPlayer   = JSON.parse('<%== $whitePlayer->getJsonMsg() %>');
-    var greenPlayer = JSON.parse('<%== $blackPlayer->getJsonMsg() %>');
+    var whitePlayer = JSON.parse('<%== $whitePlayer ? $whitePlayer->getJsonMsg() : '{}' %>');
+    var blackPlayer = JSON.parse('<%== $blackPlayer ? $blackPlayer->getJsonMsg() : '{}' %>');
+    var redPlayer   = JSON.parse('<%== $redPlayer   ? $redPlayer->getJsonMsg() : '{}' %>');
+    var greenPlayer = JSON.parse('<%== $greenPlayer ? $greenPlayer->getJsonMsg() : '{}' %>');
 	var gameId    = "<%= $gameId %>";
     var myColor   = "<%= $color %>";
 	var authId    = "<%= $authId %>";

@@ -427,8 +427,15 @@ sub getWatchers {
 
 sub addPlayer {
     my $self = shift;
-    my ($auth, $color) = @_;
+    my ($auth, $color, $player) = @_;
 
+    $self->playerBroadcast(
+        {
+            'c' => 'playerAdded',
+            'color' => $color,
+            'player' => $player ? $player->getJsonMsg() : '{}'
+        }
+    );
     $self->{playersByAuth}->{$auth} = $color;
 }
 

@@ -1,3 +1,4 @@
+<% if ($whitePlayer) { %>
         <span class="circle offline" id="whiteOnline"></span>
         <span id='whitePlayerName'><%= $whitePlayer->{screenname} %></span>
         <span id='whiteRating'><%= $whitePlayer->{"rating_$gameSpeed"} %></span>
@@ -8,3 +9,9 @@
         <br /><span id='whiteReady'><small>ready</small></span>
         <% } %>
         <span>(white)</span>
+<% } else { %>
+        <span class="circle offline" id="whiteOnline"></span>
+        <span id='whitePlayerName'>(empty seat)</span>
+        <span id='whiteRating'></span>
+        <span id='whiteReady'></span>
+<% } %>

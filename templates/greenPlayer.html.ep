@@ -1,16 +1,19 @@
-        <% if ($gameType eq '4way') { %>
-            <% if ($greenPlayer) { %>
-            <span class="circle offline" id="greenOnline"></span>
-            <span id='greenPlayerName'><%= $greenPlayer->{screenname} %></span>
-            <span id='greenRating'><%= $greenPlayer->{"rating_$gameSpeed"} %></span>
+<% if ($gameType eq '4way' ) { %>
+<% if ($greenPlayer) { %>
+        <span class="circle offline" id="greenOnline"></span>
+        <span id='greenPlayerName'><%= $greenPlayer->{screenname} %></span>
+        <span id='greenRating'><%= $greenPlayer->{"rating_$gameSpeed"} %></span>
 
-            <% if ($greenReady == 0) { %>
-            <span id='greenReady'><br /><small>not ready</small></span>
-            <% } elsif ($greenReady > 0) { %>
-            <br /><span id='greenReady'><small>ready</small></span>
-            <% } %>
-            <span>(green)</span>
-            <% } else { %>
-                (empty seat)
-            <% }%>
+        <% if ($greenReady == 0) { %>
+        <span id='greenReady'><br /><small>not ready</small></span>
+        <% } elsif ($greenReady > 0) { %>
+        <br /><span id='greenReady'><small>ready</small></span>
         <% } %>
+        <span>(green)</span>
+<% } else { %>
+        <span class="circle offline" id="greenOnline"></span>
+        <span id='greenPlayerName'>(empty seat)</span>
+        <span id='greenRating'></span>
+        <span id='greenReady'></span>
+<% } %>
+<% } %>

@@ -22,6 +22,17 @@ my $aiDebug = 0;
 
 my $aiRandomness = 50; # in points, 100 = PAWN
 
+sub setRandomness {
+    $aiRandomness = $_;
+    if ($useXS) {
+        xs::setRandomness($_);
+    }
+}
+sub setNoMovePenalty {
+    xs::setNoMovePenalty($_);
+}
+
+
 ### for alpha/beta pruning
 my $aiScore = undef;  ### current score
 
@@ -2024,7 +2035,7 @@ thtreat - ($threats[1] - $threats[2] )
 
     my $totalMaterial = $material[1] + $material[2];
 
-    #return ($score + rand($aiRandomness), \@moves);
+    $score = $score + (rand($aiRandomness) - ($aiRandomness / 2));
     return ($score, \@moves, $totalMaterial, \@attackedBy);
 }
 
@@ -2117,15 +2128,12 @@ sub aiRecommendMoves {
 
     my $maxMovesBreadth  = shift // 1;
     my $maxMovesDepth    = shift // 1;
-    my $randomSkipChance = shift // 0; ### to sometimes select worse moves
 
     if (! $currentMoves) { return undef; }
 
     my @myMoves = ();
 
     foreach my $breadth (0 .. $maxMovesBreadth) {
-        if (rand() < $randomSkipChance) { $maxMovesBreadth++; next; }
-
         my $move = $currentMoves->[$color][$breadth];
         if (! defined($move)) { last; }
         if (! defined($move->[MOVE_SCORE])) { next; }
@@ -2133,7 +2141,7 @@ sub aiRecommendMoves {
 
         foreach my $depth (0 .. $maxMovesDepth) {
             my $moveSelect = 0;
-            while (rand() < $randomSkipChance && $moveSelect < 5) {
+            while ($moveSelect < 5) {
                 $moveSelect++;
             }
             if (! defined($move->[MOVE_NEXT_MOVES])){ last; }
@@ -2429,6 +2437,11 @@ sub prettyBoard {
 sub prettyFrozen {
     return prettyBoard($ai_frozenBB);
 }
+
+sub prettyFrozen {
+    return prettyBoard($ai_movingBB);
+}
+
 
 sub debug {
     #return _getPiece('a', '1');

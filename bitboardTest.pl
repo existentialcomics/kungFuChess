@@ -26,13 +26,12 @@ KungFuChess::Bitboards::setPosXS();
 
 #$frozenIn = 0x1111111111111111;
 
-
 if ($frozenIn) {
     #KungFuChess::Bitboards::setFrozen($frozenIn);
     #KungFuChess::Bitboards::resetAiBoards();
 }
 #print KungFuChess::Bitboards::setPosXS();
-##print KungFuChess::Bitboards::pretty();
+print KungFuChess::Bitboards::pretty();
 #print KungFuChess::Bitboards::pretty_ai();
 #print "XS evaluate:\n";
 #print KungFuChess::Bitboards::evaluateXS();
@@ -97,6 +96,11 @@ while ($go) {
         #print KungFuChess::Bitboards::pretty_ai();
         my ($eval, $moves, $material, $attacks) = KungFuChess::Bitboards::evaluate(1);
         # depth time color
+        print "colorIn: $colorIn\n";
+        my $m_bb = KungFuChess::Bitboards::parseSquare('g4');
+        $m_bb |= KungFuChess::Bitboards::parseSquare('h5');
+        $m_bb |= KungFuChess::Bitboards::parseSquare('f3');
+        #KungFuChess::Bitboards::setMoving($m_bb);
         KungFuChess::Bitboards::aiThink(3, 9999, $colorIn);
         my $bestMove = xs::getBestMove();
         #print "best: $bestMove\n";
