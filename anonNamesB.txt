@@ -12,3 +12,7 @@ Bishop
 Checkmate
 Fists
 Hand
+Fist
+Check
+EnPassant
+Castle

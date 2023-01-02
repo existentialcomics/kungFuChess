@@ -14,3 +14,6 @@ Fury
 Shaolin
 Warrior
 Ninja
+Power
+Battle
+Ice

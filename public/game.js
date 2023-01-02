@@ -1060,23 +1060,74 @@ var handleMessage = function(msg) {
     }
 }
 
-var setPlayer = function(color, player) {
-    if (color == 'white') {
-        $('#whitePlayerName').text(player.screenname);
-        if (gameType == '4way') {
-            $('#whiteRating').text(player.standard_rating);
-        } else {
-
+var setPlayers = function() {
+    $('#sit').style.visibility = "hidden";
+    if (whitePlayer) {
+        $('#whitePlayerName').text(whitePlayer.screenname);
+        if (gameSpeed == 'standard') {
+            $('#whiteRating').text(whitePlayer.standard_rating);
+        } else if (gameSpeed = 'lightning') {
+            $('#whiteRating').text(whitePlayer.lightning_rating);
         }
-    } else if (color == 'black') {
-        $('#blackPlayerName').text(player.screenname);
-    } else if (color == 'red') {
-        $('#redPlayerName').text(player.screenname);
-    } else if (color == 'green') {
-        $('#greenPlayerName').text(player.screenname);
+    } else {
+        $('#whitePlayerName').text("(empty seat)");
+        $('#whitePlayerRating').text("");
+        $('#sit').style.visibility = "visible";
+    }
+    if (blackPlayer) {
+        $('#blackPlayerName').text(blackPlayer.screenname);
+        if (gameSpeed == 'standard') {
+            $('#blackRating').text(blackPlayer.standard_rating);
+        } else if (gameSpeed = 'lightning') {
+            $('#blackRating').text(blackPlayer.lightning_rating);
+        }
+    } else {
+        $('#blackPlayerName').text("(empty seat)");
+        $('#blackPlayerRating').text("");
+        $('#sit').style.visibility = "visible";
+    }
+
+    if (gameType == '4way') {
+        console.log('4way players');
+        if (redPlayer) {
+            $('#redPlayerName').text(redPlayer.screenname);
+            if (gameSpeed == 'standard') {
+                $('#redRating').text(redPlayer.standard_rating);
+            } else if (gameSpeed = 'lightning') {
+                $('#redRating').text(redPlayer.lightning_rating);
+            }
+        } else {
+            $('#redPlayerName').text("(empty seat)");
+            $('#redPlayerRating').text("");
+            $('#sit').style.visibility = "visible";
+        }
+        if (greenPlayer) {
+            $('#greenPlayerName').text(greenPlayer.screenname);
+            if (gameSpeed == 'standard') {
+                $('#greenRating').text(greenPlayer.standard_rating);
+            } else if (gameSpeed = 'lightning') {
+                $('#greenRating').text(greenPlayer.lightning_rating);
+            }
+        } else {
+            $('#greenPlayerName').text("(empty seat)");
+            $('#greenPlayerRating').text("");
+            $('#sit').style.visibility = "visible";
+        }
     }
 }
 
+var setPlayer = function(color, player) {
+    if (color == 'white') {
+        whitePlayer = player;
+    } else if (color == 'black') {
+        blackPlayer = player;
+    } else if (color == 'red') {
+        redPlayer = player;
+    } else if (color == 'green') {
+        greenPlayer = player;
+    }
+    setPlayers();
+}
 var setPieceBoardPos = function(piece, square) {
     piece.square = square;
     piecesByBoardPos[square] = piece;

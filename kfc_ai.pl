@@ -36,7 +36,7 @@ my $mech = WWW::Mechanize->new();
 my $loginUrl = $domain . '/login';
 my $registerUrl = $domain . '/register';
 
-if ($register) {
+if ($register && $user eq 'anon') {
     $mech->get($domain);
     $mech->get($registerUrl);
     my $params =  {
@@ -57,28 +57,30 @@ if ($register) {
         #button    => 'Search Now'
     );
 }
-$mech->get($domain);
-$mech->get($loginUrl);
 
-sleep(1);
-my $params =  {
-    'username' => $user,
-    'password' => $pass
-};
-my $forms = $mech->forms();
+if ($user ne 'anon') {
+    $mech->get($domain);
+    $mech->get($loginUrl);
 
-#print Dumper($forms);
-my $inputs = $forms->[0]->{inputs};
-foreach my $input (@$inputs){ 
-    if ($input->{type} eq 'hidden') {
-        $params->{$input->{name}} = $input->{value};
+    sleep(1);
+    my $params =  {
+        'username' => $user,
+        'password' => $pass
+    };
+    my $forms = $mech->forms();
+
+    my $inputs = $forms->[0]->{inputs};
+    foreach my $input (@$inputs){ 
+        if ($input->{type} eq 'hidden') {
+            $params->{$input->{name}} = $input->{value};
+        }
     }
+    $mech->submit_form(
+        form_number => 1,
+        fields    => $params,
+        #button    => 'Search Now'
+    );
 }
-$mech->submit_form(
-    form_number => 1,
-    fields    => $params,
-    #button    => 'Search Now'
-);
 $mech->get('/ajax/userId');
 my $userId = -1;
 my $jsonUser = decode_json($mech->content());
@@ -110,6 +112,7 @@ my $aiInterval = AnyEvent->timer(
             print "interval searchForGame\n";
             #$mech->get('/activePlayers?ratingType=standard');
             my $url = '/ajax/openGames/json';
+            $url .= "?update-time=true";
             $mech->get($url);
             eval {
                 $gameId = undef;
@@ -218,7 +221,6 @@ my $aiInterval = AnyEvent->timer(
             };
         } elsif ($mode eq 'pool') {
             my $url = '/ajax/pool/' . $speed . '/' . $way;
-            print "$url\n";
             if (! $uid) {
                 my $token;
                 my $csr_input;
@@ -240,7 +242,7 @@ my $aiInterval = AnyEvent->timer(
                     $uid = $1;
                 }
             } else {
-                $mech->get('/ajax/openGames?uid=' . $uid);
+                $mech->get('/ajax/openGames?uid=' . $uid . "&update-time=true");
             }
 
             if ($mech->content() =~ m/"(?:gameId|matchedGame)":"?(\d+)"?/) {

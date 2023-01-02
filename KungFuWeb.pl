@@ -134,12 +134,11 @@ app->plugin('authentication' => {
             if ($uid =~ m/^anon_/) {
                 my $auth = $uid;
                 my $rows = $app->db()->selectall_arrayref(
-                    'SELECT * FROM guest_players WHERE auth_token = ?',
+                    'SELECT * FROM guest_players WHERE auth_token = ? LIMIT 1',
                     { 'Slice' => {} },
                     $auth
                 );
                 foreach my $row (@{$rows}) {
-                    app->db()->do('UPDATE guest_players SET last_seen = NOW() WHERE auth_token = ?', {}, $uid);
                     my $player = new KungFuChess::Player(
                         {
                             'anon' => 1,
@@ -158,7 +157,6 @@ app->plugin('authentication' => {
                 $uid
             );
             foreach my $row (@{$rows}) {
-                app->db()->do('UPDATE players SET last_seen = NOW() WHERE player_id = ?', {}, $row->{'player_id'});
                 my $player = new KungFuChess::Player(
                     {  'row' => $row },
                     app->db()
@@ -202,10 +200,17 @@ app()->hook(before_routes => sub () {
 
     my $user = $c->current_user();
     ### auto log in as an anon user if no one is found
-    if (! $user) {
+    if (! $user && ! $c->req->param('healthcheck')) {
         $c->authenticate('anon');
     }
     $user = $c->current_user();
+    if ($user && $c->req->param('update-time')) {
+        if ($user->{player_id} == ANON_USER) {
+            app->db()->do('UPDATE guest_players SET last_seen = NOW() WHERE auth_token = ?', {}, $user->{auth_token});
+        } else {
+            app->db()->do('UPDATE players SET last_seen = NOW() WHERE player_id = ?', {}, $user->{player_id});
+        }
+    }
     $c->stash('user' => $user);
 });
 
@@ -528,7 +533,7 @@ sub chatGlobal {
     my $origMsg  = shift;
     my $color = shift;
 
-    $message =~ s/$badWordsRegex/****/g;
+    $message =~ s/$badWordsRegex/****/gi;
 
     $message = escape_html($message);
 
@@ -1255,6 +1260,7 @@ get '/ajax/cancelGame/:uid' => sub {
     $c->render('json' => { 'result' => $result } );
 };
 
+### open public game challenges
 get '/openGames' => sub {
     my $c = shift;
     my $user = $c->stash('user');
@@ -1339,6 +1345,7 @@ get '/open-json/ai' => sub {
     $c->render('json' => \@openAiGames);
 };
 
+### open game challenges, for bots mostly
 get '/ajax/openGames/json' => sub {
     my $c = shift;
     my $user = $c->stash('user');
@@ -1383,6 +1390,7 @@ get '/ajax/openGames/json' => sub {
     $c->render('json' => \@return);
 };
 
+### open game challenges, for website
 get '/ajax/openGames' => sub {
     my $c = shift;
     my $user = $c->stash('user');
@@ -1419,6 +1427,7 @@ get '/ajax/openGames' => sub {
     $c->render('json' => \%return);
 };
 
+### watch games going on
 get '/ajax/activeGames' => sub {
     my $c = shift;
 
@@ -3116,7 +3125,7 @@ sub getActiveGames {
         FROM games g
         LEFT JOIN players w ON g.white_player = w.player_id
         LEFT JOIN players b ON g.black_player = b.player_id
-        WHERE status = "active"
+        WHERE status = "active" OR status = "waiting to begin"
         ' . $additionalWhere . '
         ORDER BY white_rating + black_rating
     ',

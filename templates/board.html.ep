@@ -143,7 +143,7 @@
                         <button type="button" class="btn btn-primary btn-block" id="abortGame">Abort</button>
                     <% } %>
                 <% } else { %>
-                    <button type="button" class="btn btn-primary btn-block" id="sit">Sit</button>
+                <button type="button" class="btn btn-primary btn-block" id="sit" style="visibility:hidden;">Sit</button>
                 <% } %>
             </div>
             <div id="gameStatusActive" <%== $gameStatus eq 'active' ? '' : 'style="display:none;"' %>>
@@ -229,7 +229,7 @@
 </script>
 
 <script src="/pieces/pieces.js"></script>
-<script src="/game.js?cache=2022-08-22"></script>
+<script src="/game.js?cache=2022-12-22"></script>
 
 <script>
 $('input[type=radio]').on('change', function() {

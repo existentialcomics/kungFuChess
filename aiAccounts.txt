@@ -1,5 +1,11 @@
 BRUCE_LEE human_a human_a
 Pharoah human_a human_a
+anon human_a human_a
+anon human_a human_a
+anon human_a human_a
+anon human_a human_a
+anon human_a human_a
+anon human_a human_a
 KungFuLegend human_a human_a
 PandaStyle human_a human_a
 Mantis human_a human_a
@@ -10,6 +16,12 @@ ChessWizard human_a human_a
 MantisStyle human_a human_a
 DragonKnight human_a human_a
 TrickyKnights human_a human_a
+anon human_b human_b
+anon human_b human_b
+anon human_b human_b
+anon human_b human_b
+anon human_b human_b
+anon human_b human_b
 Samba_Master human_b human_b
 Morgoth human_b human_b
 KingOfTheWest human_b human_b
@@ -22,6 +34,12 @@ Power_of_Fire human_b human_b
 Rage_Keeper human_b human_b
 Flower_of_Time human_b human_b
 Combo_Breaker human_b human_b
+anon human_c human_c
+anon human_c human_c
+anon human_c human_c
+anon human_c human_c
+anon human_c human_c
+anon human_c human_c
 Lightning_Wizard human_c human_c
 Red_Mage human_c human_c
 Naga_Queen human_c human_c
