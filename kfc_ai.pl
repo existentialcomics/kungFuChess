@@ -36,7 +36,7 @@ my $mech = WWW::Mechanize->new();
 my $loginUrl = $domain . '/login';
 my $registerUrl = $domain . '/register';
 
-if ($register && $user eq 'anon') {
+if ($register && $user ne 'anon') {
     $mech->get($domain);
     $mech->get($registerUrl);
     my $params =  {
@@ -58,8 +58,8 @@ if ($register && $user eq 'anon') {
     );
 }
 
+$mech->get($domain);
 if ($user ne 'anon') {
-    $mech->get($domain);
     $mech->get($loginUrl);
 
     sleep(1);
@@ -115,6 +115,11 @@ my $aiInterval = AnyEvent->timer(
             $url .= "?update-time=true";
             $mech->get($url);
             eval {
+                if (rand() < 0.05 && $globalMode eq 'normal') {
+                    print "setting globalMode to pool\n";
+                    $mode = 'pool';
+                    return;
+                }
                 $gameId = undef;
                 my $game = {};
                 my $json = decode_json($mech->content());
@@ -134,7 +139,6 @@ my $aiInterval = AnyEvent->timer(
                         last;
                     }
                 }
-                print "searching pool now\n";
                 if (! $gameId ) {
                     foreach my $pool (@$json) {
                         ### pool games
@@ -187,15 +191,7 @@ my $aiInterval = AnyEvent->timer(
                     return;
                 }
 
-                if ($game->{white_player} == $userId) {
-                    $color = 1;
-                } elsif ($game->{black_player} == $userId) {
-                    $color = 2;
-                } elsif ($game->{red_player} == $userId) {
-                    $color = 3;
-                } elsif ($game->{green_player} == $userId) {
-                    $color = 4;
-                }
+                $color = $game->{color};
                 if ($color) {
                     print "game matched $color\n";
                     my $cmdAi = sprintf('/usr/bin/perl ./kungFuChessGame%sAi.pl %s %s %s %s %s %s %s %s >%s 2>%s',
@@ -215,11 +211,13 @@ my $aiInterval = AnyEvent->timer(
                     system($cmdAi);
                 }
                 print "\n\n\n";
-                if (rand() < 0.05 && $globalMode eq 'normal') {
-                    $mode = 'pool';
-                }
             };
         } elsif ($mode eq 'pool') {
+            if (rand() < 0.05 && $globalMode eq 'normal') {
+                print "setting globalMode to search\n";
+                $mode = 'searchForGame';
+                return;
+            }
             my $url = '/ajax/pool/' . $speed . '/' . $way;
             if (! $uid) {
                 my $token;

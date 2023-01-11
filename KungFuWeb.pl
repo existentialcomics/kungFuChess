@@ -1354,12 +1354,27 @@ get '/ajax/openGames/json' => sub {
 
     if ($user) {
         my $gameRow = app->db()->selectrow_hashref(
-            'SELECT * FROM games WHERE (white_player = ? OR black_player = ? OR red_player = ? OR green_player = ?) AND (status = "active" OR status = "waiting to begin")',
+            'SELECT * FROM games WHERE
+            (
+                   (white_player = ? AND white_player != -1)
+                OR (black_player = ? AND black_player != -1)
+                OR (red_player = ? AND black_player != -1)
+                OR (green_player = ? AND black_player != -1)
+                OR (white_anon_key = ? AND white_player = -1)
+                OR (black_anon_key = ? AND black_player = -1)
+                OR (red_anon_key = ? AND black_player = -1)
+                OR (green_anon_key = ? AND black_player = -1)
+            )
+            AND (status = "active" OR status = "waiting to begin")',
             { 'Slice' => {} },
             $user->{player_id},
             $user->{player_id},
             $user->{player_id},
-            $user->{player_id}
+            $user->{player_id},
+            $user->{auth_token},
+            $user->{auth_token},
+            $user->{auth_token},
+            $user->{auth_token},
         );
         if ($gameRow) {
             push @return, {
@@ -1474,15 +1489,35 @@ get '/rankings' => sub {
 get '/ajax/game/:gameId' => sub {
     my $c = shift;
     my $gameId = $c->stash('gameId');
+    my $user = $c->current_user();
     my $gameRow = app->db()->selectrow_hashref('
-        SELECT ws_server, game_speed, piece_speed, piece_recharge, teams, game_type, time_created, time_ended, white_player, black_player, red_player, green_player, board_id
-        FROM games WHERE game_id = ?',
+        SELECT * FROM games WHERE game_id = ?',
         { 'Slice' => {} },
         $gameId
     );
 
     $gameRow->{ws_protocol} = $c->stash('wsProtocol');
-    $c->render('json' => $gameRow );
+    my $color = undef;
+    ($color, $gameRow, my $playerAuth) = authGameColor($user->{auth_token}, $user->{auth_token}, $gameRow->{game_id}, $gameRow);
+
+    my $returnRow = {
+        'ws_server' => $gameRow->{'ws_server'},
+        'game_speed' => $gameRow->{'game_speed'},
+        'piece_speed' => $gameRow->{'piece_speed'},
+        'piece_recharge' => $gameRow->{'piece_recharge'},
+        'teams' => $gameRow->{'teams'},
+        'game_type' => $gameRow->{'game_type'},
+        'time_created' => $gameRow->{'time_created'},
+        'time_ended' => $gameRow->{'time_ended'},
+        'white_player' => $gameRow->{'white_player'},
+        'black_player' => $gameRow->{'black_player'},
+        'red_player' => $gameRow->{'red_player'},
+        'green_player' => $gameRow->{'green_player'},
+        'board_id' => $gameRow->{'board_id'},
+        'color' => $color,
+        'ws_protocol' => $c->stash('wsProtocol'),
+    };
+    $c->render('json' => $returnRow);
 };
 
 ### GET game sub getGame
