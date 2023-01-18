@@ -22,8 +22,9 @@ int distancePenalty = 5;
 void setRandomness(int randomnessSet) {
     randomness = randomnessSet;
 }
-void setNoMovePenalty(int nmb) {
-    noMovePenalty = nmb;
+void setNoMovePenalty(int no_move_pen) {
+    //std::cout << "no move penalty: " << no_move_pen << "\n";
+    noMovePenalty = no_move_pen;
 }
 void setDistancePenalty(int penalty) {
     distancePenalty = penalty;
@@ -936,7 +937,6 @@ int PieceValue[PIECE_TYPE_NB] = {
   // Assorted bonuses and penalties
 int UncontestedOutpost  = S(  1, 10);
 int BishopOnKingRing    = S( 24,  0);
-int BishopXRayPawns     = S(  4,  5);
 int FlankAttacks        = S(  8,  0);
 int Hanging             = S( 69, 36);
 int KnightOnQueen       = S( 16, 11);

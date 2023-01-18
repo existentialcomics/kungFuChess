@@ -131,8 +131,8 @@ my $aiInterval = AnyEvent->timer(
                         $gameId = $pool->{gameId};
                         print "join game/rematch $pool->{gameId}\n";
                         $mech->get('/ajax/joinGame/' . $pool->{gameId});
-                        my $joingame = decode_json($mech->content());
-                        if ($joingame->{color}) {
+                        my $joinGame = decode_json($mech->content());
+                        if ($joinGame->{color}) {
                             $mech->get('/ajax/game/' . $pool->{gameId});
                             $game = decode_json($mech->content());
                         }
@@ -142,6 +142,10 @@ my $aiInterval = AnyEvent->timer(
                 if (! $gameId ) {
                     foreach my $pool (@$json) {
                         ### pool games
+                        if ($userId == -1 && $pool->{rated} == 1) {
+                            print "skip rated anon\n";
+                            next;
+                        }
                         if ($pool->{private_game_key}) {
                             if (! $uidHashCount{$pool->{private_game_key}}) {
                                 print "adding to hash=1\n";

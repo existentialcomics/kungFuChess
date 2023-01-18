@@ -52,6 +52,17 @@ sub _init {
     my $cfg = new Config::Simple('kungFuChess.cnf');
     $self->{config} = $cfg;
     $self->{mode}   = $mode;
+
+    ### correct for a bug elsewhere lol
+    if ($color eq 'white') {
+        $color = 1;
+    } elsif ($color eq 'black') {
+        $color = 2;
+    } elsif ($color eq 'red') {
+        $color = 3;
+    } elsif ($color eq 'green') {
+        $color = 4;
+    }
     $self->{color}  = $color;
     if ($self->{mode} eq '4way') {
         $self->{ranks} = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12'];
@@ -98,6 +109,7 @@ sub _init {
             $self->{ai_min_delay} = 1_000_000;
             $self->{ai_interval} = 2_500_000;
             $self->{randomness} = 300;
+            $self->{no_move_penalty} = 0.2;
         } elsif ($difficulty eq '2') {
             $self->{ai_thinkTime} = 1;
             $self->{ai_depth} = 2;
@@ -107,6 +119,7 @@ sub _init {
             $self->{ai_min_delay} = 200_000;
             $self->{ai_interval} = 1_500_000;
             $self->{randomness} = 150;
+            $self->{no_move_penalty} = 0.2;
         } elsif ($difficulty eq '3') {
             $self->{ai_thinkTime} = 2.0;
             $self->{ai_depth} = 4;
@@ -116,6 +129,7 @@ sub _init {
             $self->{ai_min_delay} = 0;
             $self->{ai_interval} = 500_000;
             $self->{randomness} = 30;
+            $self->{no_move_penalty} = 0.2;
         } elsif ($difficulty eq 'human_a') {
             $self->{ai_thinkTime} = 2.0;
             $self->{ai_depth} = 4;
@@ -126,6 +140,7 @@ sub _init {
             $self->{ai_interval} = 300_000;
             $self->{randomness} = 150;
             $self->{ai_human} = 1;
+            $self->{no_move_penalty} = 0.2;
         } elsif ($difficulty eq 'human_b') {
             $self->{ai_thinkTime} = 2.0;
             $self->{ai_depth} = 4;
@@ -136,6 +151,7 @@ sub _init {
             $self->{ai_interval} = 500_000;
             $self->{randomness} = 50;
             $self->{ai_human} = 1;
+            $self->{no_move_penalty} = 0.2;
         } elsif ($difficulty eq 'human_c') {
             $self->{ai_thinkTime} = 2.0;
             $self->{ai_depth} = 2;
@@ -146,6 +162,7 @@ sub _init {
             $self->{ai_interval} = 400_000;
             $self->{randomness} = 350;
             $self->{ai_human} = 1;
+            $self->{no_move_penalty} = 0.2;
         } else {
             $self->{ai_thinkTime} = 2.0;
             $self->{ai_depth} = 2;
@@ -155,6 +172,7 @@ sub _init {
             $self->{ai_min_delay} = 0;
             $self->{ai_interval} = 500_000;
             $self->{randomness} = 0.0;
+            $self->{no_move_penalty} = 0.2;
         }
     } elsif ($speed eq 'lightning') {
         $self->{pieceSpeed} = 0.1;
@@ -168,6 +186,7 @@ sub _init {
             $self->{ai_min_delay} = 500_000;
             $self->{ai_interval} = 2_000_000;
             $self->{randomness} = 300;
+            $self->{no_move_penalty} = 0.2;
         } elsif ($difficulty eq '2') {
             $self->{ai_thinkTime} = 1.0;
             $self->{ai_depth} = 2;
@@ -177,6 +196,7 @@ sub _init {
             $self->{ai_min_delay} = 500_000;
             $self->{ai_interval} = 750_000;
             $self->{randomness} = 200;
+            $self->{no_move_penalty} = 0.2;
         } elsif ($difficulty eq '3') {
             $self->{ai_thinkTime} = 1.0;
             $self->{ai_depth} = 2;
@@ -186,6 +206,7 @@ sub _init {
             $self->{ai_min_delay} = 150_000;
             $self->{ai_interval} = 250_000;
             $self->{randomness} = 100;
+            $self->{no_move_penalty} = 0.2;
         } elsif ($difficulty eq 'human_a') {
             $self->{ai_thinkTime} = 1.0;
             $self->{ai_depth} = 2;
@@ -195,6 +216,7 @@ sub _init {
             $self->{ai_min_delay} = 300_000;
             $self->{ai_interval} = 500_000;
             $self->{randomness} = 200;
+            $self->{no_move_penalty} = 0.2;
         } elsif ($difficulty eq 'human_b') {
             $self->{ai_thinkTime} = 1.0;
             $self->{ai_depth} = 2;
@@ -204,6 +226,7 @@ sub _init {
             $self->{ai_min_delay} = 1_000_000;
             $self->{ai_interval} = 1_500_000;
             $self->{randomness} = 400;
+            $self->{no_move_penalty} = 0.2;
         } elsif ($difficulty eq 'human_c') {
             $self->{ai_thinkTime} = 1.0;
             $self->{ai_depth} = 2;
@@ -213,6 +236,7 @@ sub _init {
             $self->{ai_min_delay} = 300_000;
             $self->{ai_interval} = 500_000;
             $self->{randomness} = 600;
+            $self->{no_move_penalty} = 0.2;
         } else {
             $self->{ai_thinkTime} = 1.0;
             $self->{ai_depth} = 2;
@@ -222,6 +246,7 @@ sub _init {
             $self->{ai_min_delay} = 500_000;
             $self->{ai_interval} = 1_000_000;
             $self->{randomness} = 0.0;
+            $self->{no_move_penalty} = 0.2;
         }
     } else {
         warn "unknown game speed $speed\n";
@@ -502,6 +527,17 @@ sub handleMessage {
         delete $self->{frozen}->{$msg->{bb}};
         KungFuChess::Bitboards::_removePiece($msg->{bb});
         KungFuChess::Bitboards::resetAiBoards($self->{color});
+	} elsif ($msg->{c} eq 'rematch'){
+        if ($self->{gameEnded}) {
+            my $dataPost = {
+                'uid' => $self->{anonKey},
+                'gameId' => $self->{gameId},
+                'c' => 'rematch',
+            };
+            $self->send($dataPost);
+            sleep 1;
+            exit;
+        }
 	} elsif ($msg->{c} eq 'gameOver' || $msg->{c} eq 'abort'){
         $self->endGame();
 	} elsif ($msg->{c} eq 'gameBegins'){
@@ -603,6 +639,16 @@ sub aiTick {
         $self->send($msg);
         $self->endGame();
     }
+
+    ### progressive pentalties against NO_MOVE
+    my $sinceLastMove = time() - $self->{lastMoved};
+    my $noMovePenalty = $sinceLastMove * ($self->{no_move_penalty} // 0.1);
+    if ($debug) {
+        print "no move penalty: $noMovePenalty\n";
+        print "no move base $self->{no_move_penalty} * $sinceLastMove\n";
+    }
+    KungFuChess::Bitboards::setNoMovePenalty($noMovePenalty);
+
     if ($#{$self->{movesQueue}} > -1) {
         foreach my $move (@{$self->{movesQueue}}) {
             my ($fr_bb, $to_bb, $fr_rank, $fr_file, $to_rank, $to_file) = KungFuChess::Bitboards::parseMove($move);
@@ -618,13 +664,6 @@ sub aiTick {
     } else {
         ### so we can turn off moves to test anticipate
         if (1) {
-            ### progressive pentalties against NO_MOVE
-            my $sinceLastMove = time() - $self->{lastMoved};
-            my $noMovePenalty = $sinceLastMove * ($self->{noMovePenalty} // 0.1);
-            if ($debug) {
-                print "no move penalty: $noMovePenalty\n";
-            }
-            KungFuChess::Bitboards::setNoMovePenalty($noMovePenalty);
 
             # depth, thinkTime
             my $start = time();
@@ -793,16 +832,19 @@ sub endGame {
     my $self = shift;
 
     if ($self->{ai_human}) {
-        sleep(rand(5));
-        my $dataPost = {
-            'uid' => $self->{anonKey},
-            'gameId' => $self->{gameId},
-            'c' => 'rematch',
-        };
-        $self->send($dataPost);
-        sleep 1;
+        $self->{gameEnded} = time();
+        ### we'll hang around a bit in case they want to rematch
+        #sleep(rand(5));
+        #my $dataPost = {
+            #'uid' => $self->{anonKey},
+            #'gameId' => $self->{gameId},
+            #'c' => 'rematch',
+        #};
+        #$self->send($dataPost);
+        #sleep 1;
+    } else {
+        exit;
     }
-    exit;
 }
 
 sub send {

@@ -1193,9 +1193,14 @@ get '/ajax/joinGame/:gameId' => sub {
     foreach my $sitColor (@allColors) {
         if ($gameRow->{game_type} eq '4way' || $sitColor =~ m/black|white/) {
             if (
-                $gameRow->{$sitColor . "_player"}   eq $user->{player_id} &&
-                $gameRow->{$sitColor . "_anon_key"} eq $user->{auth_token}
-            ) {
+                (    $gameRow->{$sitColor . "_player"}   eq $user->{player_id} &&
+                    $gameRow->{$sitColor . "_anon_key"} eq $user->{auth_token}
+                ) || 
+                ( ### logged in players
+                    $gameRow->{$sitColor . "_player"} eq $user->{player_id} &&
+                    $gameRow->{$sitColor . "_player"} > 0
+                )
+            ){
                 $color = $sitColor;
                 last;
             } elsif (! defined($gameRow->{$sitColor . "_player"}) ) {
@@ -1394,6 +1399,7 @@ get '/ajax/openGames/json' => sub {
         if (! $pool->{challenge_player_id} ) {
             push @return, {
                 'gameId' => $pool->{game_id} // undef,
+                'rated' => $pool->{rated},
                 'game_type' => $pool->{game_type},
                 'piece_speed' => $pool->{piece_speed},
                 'piece_recharge' => $pool->{piece_recharge},
