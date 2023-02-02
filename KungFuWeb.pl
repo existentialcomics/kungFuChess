@@ -1643,7 +1643,7 @@ get '/game/:gameId' => sub {
             'post_time' => time,
             'game_id' => undef,
             'player_id' => 1,
-            'comment_text' => $gameMessage . 'Be polite in chat.',
+            'comment_text' => $gameMessage . 'Be polite in chat. Drag the pieces to move.',
             'screenname' => 'SYSTEM',
             'color' => 'red',
             'text_color' => '#666666',
@@ -1949,6 +1949,57 @@ post '/ajax/updateOptions' => sub {
         'success' => 1,
     };
     $c->render('json' => $return );
+};
+
+get '/reset-password/:token' => sub {
+    my $c = shift;
+
+    my $user = app()->db->selectrow_hashref(
+        'SELECT screenname FROM players WHERE password_token = ? AND password_token != "" AND password_token IS NOT NULL',
+        { 'Slice' => {} },
+        $c->stash('token')
+    );
+
+    if (! $user) {
+        $c->stash('error', 'password reset token not found, generate another.');
+    }
+
+    $c->stash('username' => $user->{screenname} // '');
+
+    $c->render('template' => 'resetPassword', format => 'html', handler => 'ep');
+};
+
+post '/reset-password' => sub {
+    my $c = shift;
+
+    $c->stash('token' => $c->req->param('token'));
+    my $user = app()->db->selectrow_hashref(
+        'SELECT screenname, player_id FROM players WHERE password_token = ? AND password_token != "" AND password_token IS NOT NULL',
+        { 'Slice' => {} },
+        $c->stash('token')
+    );
+
+    my $valid = 1;
+    if (! $user) {
+        $c->stash('error', 'password reset token not found, generate another.');
+        return $c->render('template' => 'resetPassword', format => 'html', handler => 'ep');
+    }
+    $c->stash('username' => $user->{screenname} // '');
+
+    if (length($c->req->param('password')) < 5) {
+        $c->stash('error', 'password must be > 5 characters');
+        return $c->render('template' => 'resetPassword', format => 'html', handler => 'ep');
+    }
+    if ($c->req->param('password') ne $c->req->param('passwordConfirm')) {
+        $c->stash('error', 'passwords do not match');
+        return $c->render('template' => 'resetPassword', format => 'html', handler => 'ep');
+    }
+
+    $c->stash('username' => $user->{screenname} // '');
+
+    $c->db()->do('UPDATE players SET password = ?, password_token = NULL WHERE player_id = ?', {}, encryptPassword($c->req->param('password')), $user->{player_id});
+
+    $c->render('template' => 'resetPasswordComplete', format => 'html', handler => 'ep');
 };
 
 get '/register' => sub {

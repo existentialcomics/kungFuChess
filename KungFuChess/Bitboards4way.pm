@@ -17,7 +17,8 @@ my $aiRandomness = 50; # in points, 100 = PAWN
 sub setRandomness {
     $aiRandomness = $_;
 }
-sub setNoMovePenalty {
+
+sub setLongCapturePenalty {
 }
 
 ### for alpha/beta pruning
@@ -1575,15 +1576,6 @@ sub prettyFrozen {
     return '';
 }
 
-
-sub setDistancePenalty {
-
-}
-
-sub setNoMovePenalty {
-
-}
-
 sub pretty {
     my $board = '';
     $board .= "\n    +---+---+---+---+---+---+---+---+---+---+---+---+\n";
@@ -1621,26 +1613,6 @@ sub pretty_ai {
 
 sub prettyMoving {
     return prettyBoard($movingBB);
-}
-sub prettyOccupied {
-    return prettyBoard($occupied);
-}
-sub prettyBoardTest {
-    #my $bb = FILES_H->{'a'};
-    #my $bb = RANKS_H->{'1'};
-    my $bb = RANKS_H->{'1'} & FILES_H->{'c'};
-    #my $bb = RANKS_H->{'2'} | FILES_H->{'c'};
-    my $str = prettyBoard($occupied);
-    #my $bb2 = shift_BB($bb, NORTH);
-    return $str;
-}
-sub printAllBitboards {
-    my $BB = shift;
-    foreach my $r ( qw(12 11 10 9 8 7 6 5 4 3 2 1) ) {
-        foreach my $f ( 'a' .. 'l' ) {
-            my $rf = RANKS_H->{$r} & FILES_H->{$f};
-        }
-    }
 }
 
 sub prettyBoard {
@@ -2307,6 +2279,38 @@ sub getCurrentScore {
     return $aiScore;
 }
 
+sub aiThinkXS {
+}
+sub aiRecommendMovesXS {
+}
+sub recommendMoveForBB_XS {
+}
+sub evaluateXS {
+}
+sub clearAiFrozen {
+}
+sub getBBfromSquare {
+    return 0
+}
+sub isMoving {
+}
+sub loadFENstring {
+}
+sub parseSquare {
+}
+sub initXS {
+}
+sub saveState {
+}
+sub applyState {
+}
+sub setDistancePenalty {
+}
+sub setNoMovePenalty {
+}
+sub getMovesXS {
+}
+
 sub aiThink {
     my ($depth, $timeToThink, $color) = @_;
     print "thinking ... $depth, $timeToThink, $color\n";
@@ -2683,61 +2687,49 @@ sub debug {
     print prettyBoard($cantGoEast );
     print "\n\n\nWEST:\n";
     print prettyBoard($cantGoWest );
-    #my $fr = RANKS_H->{'12'} & FILES_H->{'i'};
-    #print prettyBoard($fr);
-    #my $bb = shift_BB($fr, EAST);
+}
+#sub debugNorth {
+    #my $bb = RANKS->[0] & FILES->[4];
     #print prettyBoard($bb);
-    #print prettyBoard(shift_BB($bb, SOUTH_EAST));
-    #foreach my $to (
-        #shift_BB(shift_BB($fr, EAST) , SOUTH_EAST),
-    #) {
-        #if (($to != 0)) {
-            ##print prettyBoard($fr | $to);
-        #}
+    #while ($bb = shift_BB($bb, NORTH)) {
+        #print prettyBoard($bb);
     #}
-}
-sub debugNorth {
-    my $bb = RANKS->[0] & FILES->[4];
-    print prettyBoard($bb);
-    while ($bb = shift_BB($bb, NORTH)) {
-        print prettyBoard($bb);
-    }
-    $bb = RANKS->[2] & FILES->[0];
-    print prettyBoard($bb);
-    while ($bb = shift_BB($bb, NORTH)) {
-        print prettyBoard($bb);
-    }
-}
-sub debugSouth {
-    my $bb = RANKS->[11] & FILES->[4];
-    print prettyBoard($bb);
-    while ($bb = shift_BB($bb, SOUTH)) {
-        print prettyBoard($bb);
-    }
-    $bb = RANKS->[2] & FILES->[0];
-    print prettyBoard($bb);
-    while ($bb = shift_BB($bb, NORTH)) {
-        print prettyBoard($bb);
-    }
-}
-sub debugEast {
-    my $bb = RANKS->[4] & FILES->[0];
-    #return _getPiece('a', '1');
-    #print prettyBoard($occupied);
-    print prettyBoard($bb);
-    while ($bb = shift_BB($bb, EAST)) {
-        print prettyBoard($bb);
-    }
-}
-sub debugWest {
-    my $bb = RANKS->[4] & FILES->[11];
-    #return _getPiece('a', '1');
-    #print prettyBoard($occupied);
-    print prettyBoard($bb);
-    while ($bb = shift_BB($bb, WEST)) {
-        print prettyBoard($bb);
-    }
-}
+    #$bb = RANKS->[2] & FILES->[0];
+    #print prettyBoard($bb);
+    #while ($bb = shift_BB($bb, NORTH)) {
+        #print prettyBoard($bb);
+    #}
+#}
+#sub debugSouth {
+    #my $bb = RANKS->[11] & FILES->[4];
+    #print prettyBoard($bb);
+    #while ($bb = shift_BB($bb, SOUTH)) {
+        #print prettyBoard($bb);
+    #}
+    #$bb = RANKS->[2] & FILES->[0];
+    #print prettyBoard($bb);
+    #while ($bb = shift_BB($bb, NORTH)) {
+        #print prettyBoard($bb);
+    #}
+#}
+#sub debugEast {
+    #my $bb = RANKS->[4] & FILES->[0];
+    ##return _getPiece('a', '1');
+    ##print prettyBoard($occupied);
+    #print prettyBoard($bb);
+    #while ($bb = shift_BB($bb, EAST)) {
+        #print prettyBoard($bb);
+    #}
+#}
+#sub debugWest {
+    #my $bb = RANKS->[4] & FILES->[11];
+    ##return _getPiece('a', '1');
+    ##print prettyBoard($occupied);
+    #print prettyBoard($bb);
+    #while ($bb = shift_BB($bb, WEST)) {
+        #print prettyBoard($bb);
+    #}
+#}
 
 ### returns to piece for normal, 0 for from not occupied (failure)
 ### for ai we need to the toPiece to undo the move
@@ -2869,26 +2861,26 @@ sub pop_lsb {
     return $s;
 }
 
-sub printBBSquares {
-    foreach my $i ( 0 .. 11 ) {
-        my $r = 11-$i;
-        foreach my $f ( 0 .. 11 ) {
-            my $bb = RANKS->[$r] & FILES->[$f];
-            if ($bb != 0) {
-                print "'";
-                print $bb;
-                print "'";
-                print " : ";
-                print "'";
-                print chr($f + 97);
-                print ($r + 1) . "'";
-                print "'";
-                print ",";
-                print "\n";
-            }
-        }
-    }
-}
+#sub printBBSquares {
+    #foreach my $i ( 0 .. 11 ) {
+        #my $r = 11-$i;
+        #foreach my $f ( 0 .. 11 ) {
+            #my $bb = RANKS->[$r] & FILES->[$f];
+            #if ($bb != 0) {
+                #print "'";
+                #print $bb;
+                #print "'";
+                #print " : ";
+                #print "'";
+                #print chr($f + 97);
+                #print ($r + 1) . "'";
+                #print "'";
+                #print ",";
+                #print "\n";
+            #}
+        #}
+    #}
+#}
 
 ### ensures messages passed in are ints
 #

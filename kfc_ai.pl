@@ -11,6 +11,7 @@ use Data::Dumper;
 use WWW::Mechanize ();
 use AnyEvent::WebSocket::Client;
 use AnyEvent;
+use Sys::MemInfo qw(totalmem freemem totalswap);
 
 my $user   = shift;
 my $pass   = shift;
@@ -21,6 +22,8 @@ my $register = shift // 0;
 my $way      = shift // '2way';
 my $globalMode = shift // 'normal';
 my $timeToExit = shift // (time + (60 * 60));
+
+my $minMemory = 1500000;
 
 if (! $speed) {
     print "usage: perl kfc_ai.pl <user> <password> <domain> <level> <speed> <register?>
@@ -108,6 +111,8 @@ my $aiInterval = AnyEvent->timer(
     interval => 3.5,
     cb => sub {
         if (time > $timeToExit) { exit; }
+        if (Sys::MemInfo::get("freeswap") < $minMemory) { exit; }
+
         if ($mode eq 'searchForGame') {
             print "interval searchForGame\n";
             #$mech->get('/activePlayers?ratingType=standard');
@@ -198,7 +203,7 @@ my $aiInterval = AnyEvent->timer(
                 $color = $game->{color};
                 if ($color) {
                     print "game matched $color\n";
-                    my $cmdAi = sprintf('/usr/bin/perl ./kungFuChessGame%sAi.pl %s %s %s %s %s %s %s %s >%s 2>%s',
+                    my $cmdAi = sprintf('/usr/bin/perl ./kungFuChessGame%sAi.pl %s %s %s %s %s %s %s %s >>%s 2>>%s',
                         $game->{game_type},
                         $gameId,
                         $authToken,

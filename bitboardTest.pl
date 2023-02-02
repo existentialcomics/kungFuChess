@@ -83,7 +83,7 @@ while ($go) {
         my $color = ($cIn =~ 'white' ? 1 : 2);
         my $fr_bb = KungFuChess::Bitboards::parseSquare($inputA);
         my $to_bb = KungFuChess::Bitboards::parseSquare($inputB);
-        my ($eval, $moves, $material, $attacks) = KungFuChess::Bitboards::evaluate(1);
+        my ($eval, $moves, $material, $attacks) = KungFuChess::Bitboards::evaluate(2);
         my ($bestMove, $bestScore) = KungFuChess::Bitboards::recommendMoveForBB($fr_bb, $to_bb, $color, $attacks);
         print "moving...$bestMove->[1], $bestScore";
         print KungFuChess::BBHash::getSquareFromBB($bestMove->[0]);

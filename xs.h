@@ -366,9 +366,7 @@ Bitboard byColorBB[3] = {
 Bitboard byTypeBB[PIECE_TYPE_NB];
 
 std::string pretty(Bitboard b) {
-
   std::string s = "+---+---+---+---+---+---+---+---+\n";
-
   for (Rank r = RANK_8; r >= RANK_1; r = r - 1)
   {
       for (File f = AFILE; f <= HFILE; f = f + 1)
@@ -464,7 +462,25 @@ std::string pretty(Square s) {
 }
 
 std::string pretty(Move m) {
-    return pretty(from_sq(m) | to_sq(m));
+  std::string s = "+---+---+---+---+---+---+---+---+\n";
+  Bitboard b = square_bb(from_sq(m));
+  Bitboard b2 = square_bb(to_sq(m));
+  for (Rank r = RANK_8; r >= RANK_1; r = r - 1)
+  {
+      for (File f = AFILE; f <= HFILE; f = f + 1)
+          if (b & make_square(f, r)) {
+              s += "| X ";
+          } else if (b2 & make_square(f, r)) {
+              s += "| Y ";
+          } else {
+              s += "|   ";
+          }
+
+      s += "| " + std::to_string(1 + r) + "\n+---+---+---+---+---+---+---+---+\n";
+  }
+  s += "  a   b   c   d   e   f   g   h\n";
+
+  return s;
 }
 
 Bitboard pieces(PieceType pt = ALL_PIECES) {

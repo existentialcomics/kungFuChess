@@ -28,10 +28,18 @@ sub setRandomness {
         xs::setRandomness($_);
     }
 }
+
 sub setNoMovePenalty {
     xs::setNoMovePenalty($_);
 }
 
+sub setDistancePenalty {
+    xs::setDistancePenalty($_);
+}
+
+sub setLongCapturePenalty {
+    xs::setLongCapturePenalty($_);
+}
 
 ### for alpha/beta pruning
 my $aiScore = undef;  ### current score
@@ -2447,13 +2455,6 @@ sub debug {
     #return _getPiece('a', '1');
     #print prettyBoard($occupied);
     return prettyBoard($ai_bishops);
-}
-
-sub debug2 {
-    my $sq = pop_lsb($ai_bishops);
-    #return _getPiece('a', '1');
-    #print prettyBoard($occupied);
-    return prettyBoard($ai_bishops) . prettyBoard($sq);
 }
 
 ### https://en.wikipedia.org/wiki/Forsyth%E2%80%93Edwards_Notation

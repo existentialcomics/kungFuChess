@@ -64,6 +64,15 @@ sub _init {
         $color = 4;
     }
     $self->{color}  = $color;
+    if ($color == 1) {
+        $self->{colorHuman} = 'white';
+    } elsif ($color == 2) {
+        $self->{colorHuman} = 'black';
+    } elsif ($color == 3) {
+        $self->{colorHuman} = 'red';
+    } elsif ($color == 4) {
+        $self->{colorHuman} = 'green';
+    }
     if ($self->{mode} eq '4way') {
         $self->{ranks} = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12'];
         $self->{files} = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l'];
@@ -109,7 +118,9 @@ sub _init {
             $self->{ai_min_delay} = 1_000_000;
             $self->{ai_interval} = 2_500_000;
             $self->{randomness} = 300;
-            $self->{no_move_penalty} = 0.2;
+            $self->{no_move_penalty} = 0.2; # multiplier
+            $self->{long_capture_penalty} = 0; # centipawns
+            $self->{distance_penalty} = 0; # centipawns
         } elsif ($difficulty eq '2') {
             $self->{ai_thinkTime} = 1;
             $self->{ai_depth} = 2;
@@ -119,7 +130,9 @@ sub _init {
             $self->{ai_min_delay} = 200_000;
             $self->{ai_interval} = 1_500_000;
             $self->{randomness} = 150;
-            $self->{no_move_penalty} = 0.2;
+            $self->{no_move_penalty} = 0.2; # multiplier
+            $self->{long_capture_penalty} = 100; # centipawns
+            $self->{distance_penalty} = 10; # centipawns
         } elsif ($difficulty eq '3') {
             $self->{ai_thinkTime} = 2.0;
             $self->{ai_depth} = 4;
@@ -129,7 +142,9 @@ sub _init {
             $self->{ai_min_delay} = 0;
             $self->{ai_interval} = 500_000;
             $self->{randomness} = 30;
-            $self->{no_move_penalty} = 0.2;
+            $self->{no_move_penalty} = 0.2; # multiplier
+            $self->{long_capture_penalty} = 200; # centipawns
+            $self->{distance_penalty} = 15; # centipawns
         } elsif ($difficulty eq 'human_a') {
             $self->{ai_thinkTime} = 2.0;
             $self->{ai_depth} = 4;
@@ -140,7 +155,9 @@ sub _init {
             $self->{ai_interval} = 300_000;
             $self->{randomness} = 150;
             $self->{ai_human} = 1;
-            $self->{no_move_penalty} = 0.2;
+            $self->{no_move_penalty} = 0.2; # multiplier
+            $self->{long_capture_penalty} = 200; # centipawns
+            $self->{distance_penalty} = 15; # centipawns
         } elsif ($difficulty eq 'human_b') {
             $self->{ai_thinkTime} = 2.0;
             $self->{ai_depth} = 4;
@@ -151,7 +168,9 @@ sub _init {
             $self->{ai_interval} = 500_000;
             $self->{randomness} = 50;
             $self->{ai_human} = 1;
-            $self->{no_move_penalty} = 0.2;
+            $self->{no_move_penalty} = 0.2; # multiplier
+            $self->{long_capture_penalty} = 200; # centipawns
+            $self->{distance_penalty} = 15; # centipawns
         } elsif ($difficulty eq 'human_c') {
             $self->{ai_thinkTime} = 2.0;
             $self->{ai_depth} = 2;
@@ -162,7 +181,9 @@ sub _init {
             $self->{ai_interval} = 400_000;
             $self->{randomness} = 350;
             $self->{ai_human} = 1;
-            $self->{no_move_penalty} = 0.2;
+            $self->{no_move_penalty} = 0.2; # multiplier
+            $self->{long_capture_penalty} = 20; # centipawns
+            $self->{distance_penalty} = 5; # centipawns
         } else {
             $self->{ai_thinkTime} = 2.0;
             $self->{ai_depth} = 2;
@@ -172,7 +193,9 @@ sub _init {
             $self->{ai_min_delay} = 0;
             $self->{ai_interval} = 500_000;
             $self->{randomness} = 0.0;
-            $self->{no_move_penalty} = 0.2;
+            $self->{no_move_penalty} = 0.2; # multiplier
+            $self->{long_capture_penalty} = 20; # centipawns
+            $self->{distance_penalty} = 5; # centipawns
         }
     } elsif ($speed eq 'lightning') {
         $self->{pieceSpeed} = 0.1;
@@ -186,7 +209,9 @@ sub _init {
             $self->{ai_min_delay} = 500_000;
             $self->{ai_interval} = 2_000_000;
             $self->{randomness} = 300;
-            $self->{no_move_penalty} = 0.2;
+            $self->{no_move_penalty} = 0.1; # multiplier
+            $self->{long_capture_penalty} = 0; # centipawns
+            $self->{distance_penalty} = 0; # centipawns
         } elsif ($difficulty eq '2') {
             $self->{ai_thinkTime} = 1.0;
             $self->{ai_depth} = 2;
@@ -196,7 +221,9 @@ sub _init {
             $self->{ai_min_delay} = 500_000;
             $self->{ai_interval} = 750_000;
             $self->{randomness} = 200;
-            $self->{no_move_penalty} = 0.2;
+            $self->{no_move_penalty} = 0.3; # multiplier
+            $self->{long_capture_penalty} = 0; # centipawns
+            $self->{distance_penalty} = 0; # centipawns
         } elsif ($difficulty eq '3') {
             $self->{ai_thinkTime} = 1.0;
             $self->{ai_depth} = 2;
@@ -206,7 +233,9 @@ sub _init {
             $self->{ai_min_delay} = 150_000;
             $self->{ai_interval} = 250_000;
             $self->{randomness} = 100;
-            $self->{no_move_penalty} = 0.2;
+            $self->{no_move_penalty} = 0.5; # multiplier
+            $self->{long_capture_penalty} = 0; # centipawns
+            $self->{distance_penalty} = 5; # centipawns
         } elsif ($difficulty eq 'human_a') {
             $self->{ai_thinkTime} = 1.0;
             $self->{ai_depth} = 2;
@@ -216,7 +245,10 @@ sub _init {
             $self->{ai_min_delay} = 300_000;
             $self->{ai_interval} = 500_000;
             $self->{randomness} = 200;
-            $self->{no_move_penalty} = 0.2;
+            $self->{ai_human} = 1;
+            $self->{no_move_penalty} = 0.5; # multiplier
+            $self->{long_capture_penalty} = 0; # centipawns
+            $self->{distance_penalty} = 5; # centipawns
         } elsif ($difficulty eq 'human_b') {
             $self->{ai_thinkTime} = 1.0;
             $self->{ai_depth} = 2;
@@ -226,7 +258,10 @@ sub _init {
             $self->{ai_min_delay} = 1_000_000;
             $self->{ai_interval} = 1_500_000;
             $self->{randomness} = 400;
-            $self->{no_move_penalty} = 0.2;
+            $self->{ai_human} = 1;
+            $self->{no_move_penalty} = 0.5; # multiplier
+            $self->{long_capture_penalty} = 0; # centipawns
+            $self->{distance_penalty} = 5; # centipawns
         } elsif ($difficulty eq 'human_c') {
             $self->{ai_thinkTime} = 1.0;
             $self->{ai_depth} = 2;
@@ -235,8 +270,11 @@ sub _init {
             $self->{ai_delay} = 1_000_000; 
             $self->{ai_min_delay} = 300_000;
             $self->{ai_interval} = 500_000;
+            $self->{ai_human} = 1;
             $self->{randomness} = 600;
-            $self->{no_move_penalty} = 0.2;
+            $self->{no_move_penalty} = 0.5; # multiplier
+            $self->{long_capture_penalty} = 0; # centipawns
+            $self->{distance_penalty} = 5; # centipawns
         } else {
             $self->{ai_thinkTime} = 1.0;
             $self->{ai_depth} = 2;
@@ -303,6 +341,9 @@ sub _init {
 		   'c' => 'join',
 		};
 		$self->send($msg);
+        if ($self->{mode} eq '4way') {
+            $self->setupInitialBoard();
+        }
 
         sleep(1);
 		$msg = {
@@ -310,8 +351,6 @@ sub _init {
 		};
         print "sending readyToBegin\n";
 		$self->send($msg);
-
-		$self->setupInitialBoard();
 
 		#$connection->on(error => sub {
                 #print "ERROR: $!\n";
@@ -380,11 +419,11 @@ sub _init {
                 $self->send($msgMain);
             } else {
                 print "IS NOT AI HUMAN\n";
-
             }
         }
     );
 
+    print "GAME BEGIN condvar\n";
 	AnyEvent->condvar->recv;
 	print "GAME ENDING\n";
 }
@@ -445,10 +484,10 @@ sub handleMessage {
                 KungFuChess::Bitboards::setMoving($bb);
                 my $bb2 = $bb;
                 $self->{"aiInterval_unmove_{$bb}_{$count}"} = AnyEvent->timer(
-                    after => $self->{pieceSpeed} * ($count + 3), 
+                    after => ($self->{pieceSpeed} * ($count + 3)), 
                     cb => sub {
                         my $_bb = $bb2;
-                        #KungFuChess::Bitboards::unsetMoving($_bb);
+                        KungFuChess::Bitboards::unsetMoving($_bb);
                     }
                 );
                 $count++;
@@ -456,7 +495,7 @@ sub handleMessage {
         } elsif ($moveType == KungFuChess::Bitboards::MOVE_KNIGHT) {
             KungFuChess::Bitboards::setMoving($to_bb);
             $self->{"aiInterval_unmove_$to_bb"} = AnyEvent->timer(
-                after => $self->{pieceSpeed} * 3, 
+                after => ($self->{pieceSpeed} * 3) + 1, 
                 cb => sub {
                     KungFuChess::Bitboards::unsetMoving($to_bb);
                 }
@@ -473,13 +512,45 @@ sub handleMessage {
 	} elsif ($msg->{c} eq 'stop'){
         KungFuChess::Bitboards::unsetMoving($msg->{fr_bb});
         delete $self->{frozen}->{$msg->{fr_bb}};
+	} elsif ($msg->{c} eq 'gamechat'){
+        if ($msg->{authColor} && $msg->{authColor} ne $self->{colorHuman}) {
+            if ($msg->{message} =~ m/\b(hello|hi|hey)\b/i) {
+                if (! defined($self->{helloSaid})) {
+                    sleep 1;
+                    my $msg = {
+                        'c'     => 'chat',
+                        'message' => $1,
+                    };
+                    $self->send($msg);
+                    $self->{helloSaid} = 1;
+                }
+            } elsif ($msg->{message} =~ m/\b(gg|good game)\b/i) {
+                if (! defined($self->{ggSaid})) {
+                    sleep 1;
+                    my $msg = {
+                        'c'     => 'chat',
+                        'message' => 'gg',
+                    };
+                    $self->send($msg);
+                    $self->{ggSaid} = 1;
+                }
+            }
+        }
 	} elsif ($msg->{c} eq 'aiOnly'){
-        sleep(rand() * 5);
+        sleep(rand() * 6);
         my $msg = {
             'c'     => 'resign'
         };
         $self->send($msg);
         $self->endGame();
+	} elsif ($msg->{c} eq 'spawn'){
+        print Dumper($msg);
+        KungFuChess::Bitboards::_putPiece(
+            $msg->{chr} + 0,
+            KungFuChess::Bitboards::getBBfromSquare($msg->{square}),
+        );
+        KungFuChess::Bitboards::resetAiBoards($self->{color});
+        print KungFuChess::Bitboards::pretty_ai();
 	} elsif ($msg->{c} eq 'requestDraw'){
         #print "drawing...\n";
         #my $msg = {
@@ -640,6 +711,12 @@ sub aiTick {
         $self->endGame();
     }
 
+    ### game is over and no rematch in 20 seconds
+    if (defined($self->{gameEnded}) && (time() - $self->{gameEnded}) > 20) {
+        print "exiting after endgame\n";
+        exit;
+    }
+
     ### progressive pentalties against NO_MOVE
     my $sinceLastMove = time() - $self->{lastMoved};
     my $noMovePenalty = $sinceLastMove * ($self->{no_move_penalty} // 0.1);
@@ -648,6 +725,12 @@ sub aiTick {
         print "no move base $self->{no_move_penalty} * $sinceLastMove\n";
     }
     KungFuChess::Bitboards::setNoMovePenalty($noMovePenalty);
+    if ($self->{distance_penalty}) {
+        KungFuChess::Bitboards::setDistancePenalty($self->{distance_penalty});
+    }
+    if ($self->{long_capture_penalty}) {
+        KungFuChess::Bitboards::setLongCapturePenalty($self->{long_capture_penalty});
+    }
 
     if ($#{$self->{movesQueue}} > -1) {
         foreach my $move (@{$self->{movesQueue}}) {
@@ -664,7 +747,6 @@ sub aiTick {
     } else {
         ### so we can turn off moves to test anticipate
         if (1) {
-
             # depth, thinkTime
             my $start = time();
             my $score = 0;
@@ -731,7 +813,7 @@ sub aiTick {
                             #'c'     => 'requestDraw'
                         #};
                         #$self->send($msg);
-                        #$self->{drawCount} = 0;
+                        $self->{drawCount} = 0;
                     }
                 } else {
                     $self->{drawCount} = 0;
@@ -776,7 +858,15 @@ sub aiTick {
                         'c'     => 'move'
                     };
                     $self->send($msg);
+                    if ($debug) {
+                        print Dumper($msg);
+                    }
                     usleep(rand($self->{ai_delay}) + $self->{ai_min_delay});
+                } else {
+                    if ($debug) {
+                        print "no move\n";
+                    }
+
                 }
             }
         }

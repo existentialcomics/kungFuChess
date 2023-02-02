@@ -473,9 +473,12 @@ sub moveIfLegal {
         = KungFuChess::Bitboards::isLegalMove($move_fr_bb, $move_to_bb, $fr_rank, $fr_file, $to_rank, $to_file);
     my $usColor   = KungFuChess::Bitboards::occupiedColor($fr_bb);
     my $themColor = KungFuChess::Bitboards::occupiedColor($to_bb);
+
     ### capture
     if ($usColor && $themColor && ($usColor != $themColor)) {
         ### distance of one, we want to prevent quick captures here
+        #   quick capture is a piece that just landed, we wait half a beat
+        #   before allowing it
         if ($to_bb == KungFuChess::Bitboards::shift_BB($fr_bb, $moveDir) ) {
             my $isQuickCapture = (
                 ($self->{stopMoves}->{$to_bb}
@@ -486,6 +489,13 @@ sub moveIfLegal {
                 $moveType = 0;
             }
 
+            ### disallowing one square moving into sweep
+            #   mostly to protect AI from being stupid
+            #   probably should be legal but SUPER rare tactic
+            my $isOneSpaceMoving = exists($self->{activeMoves}->{$to_bb});
+            if ($isOneSpaceMoving) {
+                $moveType = 0;
+            }
         }
     }
 
@@ -567,7 +577,6 @@ sub moveIfLegal {
             } else {
                 $moving_to_bb = KungFuChess::Bitboards::shift_BB($fr_bb, $dir);
             }
-
 
             ### TODO replace this with a perfect hash of all 64 bb destinations
             ### only check this if the moving bitboard is occupied.
