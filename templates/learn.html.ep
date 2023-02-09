@@ -1,7 +1,7 @@
 %= include 'header'
 
-<div class="container bg-light" id='homeContent' style="overflow-y:scroll;">
-    <div style="overflow-y:scroll;">
+<div class="container bg-light" id='homeContent'>
+    <div>
         <p>KungFuChess has many tactics that are unique to it, due to the real time nature of the game. You have to always be aware of which pieces are recharging and which are not, because you can't rely on positions that are traditionally safe in chess to be unsafe when you opponent can move many pieces at the same time. Below are some of the most unque tactics explained, click on the tactic for more details and an example of how it can be used in a game.
         <br />
         <h4><b>Beginner</b></h4>

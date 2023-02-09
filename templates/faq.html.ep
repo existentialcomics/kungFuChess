@@ -1,7 +1,7 @@
 %= include 'header'
 
-<div class="container bg-light" id='homeContent' style="overflow-y:scroll;">
-    <div style="overflow-y:scroll;">
+<div class="container bg-light" id='homeContent'>
+    <div>
         <h3>FAQ</h5>
         <h4><b>What is KungFuChess?</b></h4>
         <p>A real time chess variant created around 2001 by Shizmoo games. It was shut down somewhere around 2007. All the pieces can move at once, but after you move a piece it must wait a little while before it can move again.</p>

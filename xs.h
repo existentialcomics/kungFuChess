@@ -615,3 +615,83 @@ void init_sqt() {
     }
   }
 }
+
+std::string move_human(Move m) {
+    return "not implemented";
+}
+
+std::string square_human(Square s) {
+    if (s == SQ_A1) return "a1";
+    if (s == SQ_A2) return "a2";
+    if (s == SQ_A3) return "a3";
+    if (s == SQ_A4) return "a4";
+    if (s == SQ_A5) return "a5";
+    if (s == SQ_A6) return "a6";
+    if (s == SQ_A7) return "a7";
+    if (s == SQ_A8) return "a8";
+
+    if (s == SQ_B1) return "b1";
+    if (s == SQ_B2) return "b2";
+    if (s == SQ_B3) return "b3";
+    if (s == SQ_B4) return "b4";
+    if (s == SQ_B5) return "b5";
+    if (s == SQ_B6) return "b6";
+    if (s == SQ_B7) return "b7";
+    if (s == SQ_B8) return "b8";
+
+    if (s == SQ_C1) return "c1";
+    if (s == SQ_C2) return "c2";
+    if (s == SQ_C3) return "c3";
+    if (s == SQ_C4) return "c4";
+    if (s == SQ_C5) return "c5";
+    if (s == SQ_C6) return "c6";
+    if (s == SQ_C7) return "c7";
+    if (s == SQ_C8) return "c8";
+
+    if (s == SQ_D1) return "d1";
+    if (s == SQ_D2) return "d2";
+    if (s == SQ_D3) return "d3";
+    if (s == SQ_D4) return "d4";
+    if (s == SQ_D5) return "d5";
+    if (s == SQ_D6) return "d6";
+    if (s == SQ_D7) return "d7";
+    if (s == SQ_D8) return "d8";
+
+    if (s == SQ_E1) return "e1";
+    if (s == SQ_E2) return "e2";
+    if (s == SQ_E3) return "e3";
+    if (s == SQ_E4) return "e4";
+    if (s == SQ_E5) return "e5";
+    if (s == SQ_E6) return "e6";
+    if (s == SQ_E7) return "e7";
+    if (s == SQ_E8) return "e8";
+
+    if (s == SQ_F1) return "f1";
+    if (s == SQ_F2) return "f2";
+    if (s == SQ_F3) return "f3";
+    if (s == SQ_F4) return "f4";
+    if (s == SQ_F5) return "f5";
+    if (s == SQ_F6) return "f6";
+    if (s == SQ_F7) return "f7";
+    if (s == SQ_F8) return "f8";
+
+    if (s == SQ_G1) return "g1";
+    if (s == SQ_G2) return "g2";
+    if (s == SQ_G3) return "g3";
+    if (s == SQ_G4) return "g4";
+    if (s == SQ_G5) return "g5";
+    if (s == SQ_G6) return "g6";
+    if (s == SQ_G7) return "g7";
+    if (s == SQ_G8) return "g8";
+
+    if (s == SQ_H1) return "h1";
+    if (s == SQ_H2) return "h2";
+    if (s == SQ_H3) return "h3";
+    if (s == SQ_H4) return "h4";
+    if (s == SQ_H5) return "h5";
+    if (s == SQ_H6) return "h6";
+    if (s == SQ_H7) return "h7";
+    if (s == SQ_H8) return "h8";
+
+    return "xx";
+}

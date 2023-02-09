@@ -16,7 +16,8 @@ int totalEvals = 0;
 Color aiColor = WHITE;
 
 int randomness = 0;
-int noMovePenalty = -100;
+int noMovePenalty = 100;
+int noMovePenaltyBase = 100;
 int longCapturePenalty = 300;
 int distancePenalty = 10;
 
@@ -24,14 +25,13 @@ void setRandomness(int randomnessSet) {
     randomness = randomnessSet;
 }
 void setNoMovePenalty(int no_move_pen) {
-    //std::cout << "no move penalty: " << no_move_pen << "\n";
-    noMovePenalty = no_move_pen;
+    noMovePenalty = no_move_pen + noMovePenaltyBase;
 }
 void setDistancePenalty(int penalty) {
     distancePenalty = penalty;
 }
 void setLongCapturePenalty(int penalty) {
-    distancePenalty = penalty;
+    longCapturePenalty = penalty;
 }
 
 namespace chess_xs {
@@ -508,7 +508,7 @@ using namespace chess_xs;
 //};
 
 Move make_move(Square from, Square to, MoveFlags flags) {
-    return (flags << 12) | (from << 6) | to;
+    return (flags << 12) | (from << 6) | (int) to;
 }
 MoveFlags flags(Move move) {
     return MoveFlags((move >> 12) & 0xf);
@@ -963,7 +963,8 @@ int ThreatBySafePawn    = S(173, 94);
 int TrappedRook         = S( 55, 13);
 int WeakQueenProtection = S( 14,  0);
 int WeakQueen           = S( 56, 15);
-int ChainedPawn         = S( 29, 16);
+//int ChainedPawn         = S( 29, 16);
+int ChainedPawn         = S( 39, 26);
 
 // sub evaluateThreats
 // copied as much as possible from Stockfish
@@ -1250,7 +1251,7 @@ int evaluate() {
         totalScore += (c == WHITE ? score : -score);
     }
 
-    int scoreValue = mg_value(totalScore);
+    int scoreValue = (is_endgame ? eg_value(totalScore) : mg_value(totalScore));
     if (debug) {
         std::cout << "score  : " << totalScore << "\n";
         std::cout << "score v: " << scoreValue << "\n";
@@ -1757,7 +1758,7 @@ Move anticipate(Square frSq, Square toSq, Color c) {
             Piece p_refute = do_move(refuteMove);
 
             // frozen ONLY the piece that moved
-            frozen = (0 & toSq);
+            frozen = ((Bitboard) 0x0 & toSq);
             resetAttacks();
             std::vector<Move> movesNext(0);
             movesNext = getAllMoves(c);
@@ -1817,6 +1818,11 @@ Move refuteBB(Bitboard frBB, Bitboard toBB, int intC) {
 
     return anticipate(fr, to, aiColor);
 }
+
+//Node* searchTreeRealTime(Move currentMove, int depth, int ply, int& alpha, int& beta, bool isMaximizingPlayer, Color c, std::string moveString = "") {
+    //srand(time(0));
+
+//}
 
 Node* searchTree(Move currentMove, int depth, int ply, int& alpha, int& beta, bool isMaximizingPlayer, Color c, std::string moveString = "") {
     srand(time(0));
@@ -1901,6 +1907,15 @@ Node* searchTree(Move currentMove, int depth, int ply, int& alpha, int& beta, bo
 
             Node* nextBestMove = searchTree(m, depth, ply, alpha, beta, nextIsMaximizingPlayer, nextColor, moveString);
 
+            if (debug) {
+                if (ply < 3) {
+                    for (int i = 0; i < ply; i++) {
+                        std::cout << "...";
+                    }
+                    std::cout << square_human(from_sq(nextBestMove->move)) << square_human(to_sq(nextBestMove->move))<< ": " << nextBestMove->score << "\n";
+                }
+            }
+
             //================ kung fu Move adjustments ================
             // these scores are INTs not middle/endgame ints
             MoveFlags moveFlag = flags(nextBestMove->move);
@@ -1916,7 +1931,6 @@ Node* searchTree(Move currentMove, int depth, int ply, int& alpha, int& beta, bo
             // only for the first set of moves
             if (ply < 3) {
                 if (! is_ok(nextBestMove->move)) { // i.e. no_move
-                    //std::cout << ply << " not ok\n";
                     if (isMaximizingPlayer) {
                         nextBestMove->score -= noMovePenalty;
                     } else {
@@ -1937,10 +1951,12 @@ Node* searchTree(Move currentMove, int depth, int ply, int& alpha, int& beta, bo
 
             //================ end kung fu chess adjustments ================
             if (debug) {
-                for (int i = 0; i <= ply; i++) {
-                    std::cout << "...";
+                if (ply < 3) {
+                    for (int i = 0; i < ply; i++) {
+                        std::cout << "---";
+                    }
+                    std::cout << square_human(from_sq(nextBestMove->move)) << square_human(to_sq(nextBestMove->move))<< ": " << nextBestMove->score << "\n";
                 }
-                std::cout << "newscore: " << nextBestMove->score << "\n";
             }
 
             ply--;
@@ -2049,9 +2065,10 @@ Move getBestMove() {
         return 0;
     }
     if (debug) {
-        std::cout << "best move move int " << bestMoveNode->move << "\n";
-        std::cout << "best move score " << bestMoveNode->score << "\n";
-        std::cout << pretty(bestMoveNode->move) << "\n";
+        std::cout << pretty() << "\n";
+        //std::cout << "best move move int: " << bestMoveNode->move << "\n";
+        std::cout << "best move move: " << square_human(from_sq(bestMoveNode->move)) << square_human(to_sq(bestMoveNode->move)) << "\n";
+        std::cout << "best move score: " << bestMoveNode->score << "\n";
     }
     
     return bestMoveNode->move;
@@ -2065,9 +2082,9 @@ Move getNextBestMove() {
         return 0;
     }
     if (debug) {
-        std::cout << "best move move int NEXT " << bestMoveNode->next->move << "\n";
-        std::cout << "best move score " << bestMoveNode->next->score << "\n";
-        std::cout << pretty(bestMoveNode->next->move) << "\n";
+        //std::cout << "best move move int NEXT " << bestMoveNode->next->move << "\n";
+        std::cout << "best move move 2: " << square_human(from_sq(bestMoveNode->next->move)) << square_human(to_sq(bestMoveNode->next->move)) << "\n";
+        std::cout << "best move score : " << bestMoveNode->next->score << "\n";
         //std::cout << "  best move node COUNTER " << bestMoveNode->next->next->move << "\n";
         //std::cout << pretty(bestMoveNode->next->next->move) << "\n";
         //std::cout << pretty(bestMoveNode->next->next->next->move) << "\n";
@@ -2083,3 +2100,4 @@ Bitboard fr_bb(Move m) {
 Bitboard to_bb(Move m) {
   return square_bb(to_sq(m));
 }
+

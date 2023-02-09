@@ -120,7 +120,7 @@ my $aiInterval = AnyEvent->timer(
             $url .= "?update-time=true";
             $mech->get($url);
             eval {
-                if (rand() < 0.05 && $globalMode eq 'normal') {
+                if (rand() < 0.25 && $globalMode eq 'normal') {
                     print "setting globalMode to pool\n";
                     $mode = 'pool';
                     return;

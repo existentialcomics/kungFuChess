@@ -17,6 +17,7 @@ use Data::Dumper;
 use KungFuChess::BBHash;
 
 $| = 1;
+my $minMemory = 150000;
 
 sub new {
 	my $class = shift;
@@ -440,7 +441,7 @@ sub setFrozen {
     my $time = time();
     $self->{timeoutSquares}->{$to_bb}->{'time'} = $time;
     KungFuChess::Bitboards::addFrozen($to_bb);
-    my $unsetTime = $self->{pieceRecharge} * 0.7; 
+    my $unsetTime = $self->{pieceRecharge} * 0.85; ### TODO variable 
     $self->{timeoutCBs}->{$to_bb} = AnyEvent->timer(
         after => $unsetTime,
         cb => sub {
@@ -544,13 +545,11 @@ sub handleMessage {
         $self->send($msg);
         $self->endGame();
 	} elsif ($msg->{c} eq 'spawn'){
-        print Dumper($msg);
         KungFuChess::Bitboards::_putPiece(
             $msg->{chr} + 0,
             KungFuChess::Bitboards::getBBfromSquare($msg->{square}),
         );
         KungFuChess::Bitboards::resetAiBoards($self->{color});
-        print KungFuChess::Bitboards::pretty_ai();
 	} elsif ($msg->{c} eq 'requestDraw'){
         #print "drawing...\n";
         #my $msg = {
@@ -691,6 +690,7 @@ sub aiTick {
     my $aiStartTime = time();
     my $debug = 0;
 
+    if (Sys::MemInfo::get("freeswap") < $minMemory) { exit; }
     if ($debug) {
         print "\naiTick() " . time() . "\n";
     }

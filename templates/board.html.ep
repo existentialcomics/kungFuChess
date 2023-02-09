@@ -217,7 +217,7 @@
     var initialMessages = JSON.parse('<%== ($positionGameMsgs ? $positionGameMsgs : '[]') %>');
     var gameLog = [];
     try {
-        gameLog = JSON.parse('<%== $gameLog %>');
+        gameLog = $gameLog;
     } catch (e) {
         gameLog = [];
     }
@@ -229,7 +229,7 @@
 </script>
 
 <script src="/pieces/pieces.js"></script>
-<script src="/game.js?cache=2022-12-22"></script>
+<script src="/game.js?cache=2023-02-09"></script>
 
 <script>
 $('input[type=radio]').on('change', function() {

@@ -30,15 +30,15 @@ sub setRandomness {
 }
 
 sub setNoMovePenalty {
-    xs::setNoMovePenalty($_);
+    xs::setNoMovePenalty($_[0]);
 }
 
 sub setDistancePenalty {
-    xs::setDistancePenalty($_);
+    xs::setDistancePenalty($_[0]);
 }
 
 sub setLongCapturePenalty {
-    xs::setLongCapturePenalty($_);
+    xs::setLongCapturePenalty($_[0]);
 }
 
 ### for alpha/beta pruning
