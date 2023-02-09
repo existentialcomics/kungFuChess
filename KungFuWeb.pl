@@ -102,7 +102,8 @@ if (-f 'jokes.txt') {
 }
 
 app->plugin('database', { 
-    dsn      => 'dbi:mysql:dbname=' . $cfg->param('database') .';host=' . $cfg->param('dbhost'),
+    dsn      => 'dbi:mysql:dbname=' . $cfg->param('database') .';host=' . $cfg->param('dbhost')
+    . ';mysql_ssl=1',
     username => $cfg->param('dbuser'),
     password => $cfg->param('dbpassword'),
     options  => {

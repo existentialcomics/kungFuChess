@@ -15,9 +15,10 @@ use Config::Simple;
 use Time::HiRes qw(time usleep);
 use Data::Dumper;
 use KungFuChess::BBHash;
+use Sys::MemInfo qw(totalmem freemem totalswap);
 
 $| = 1;
-my $minMemory = 150000;
+my $minMemory = 250000;
 
 sub new {
 	my $class = shift;
