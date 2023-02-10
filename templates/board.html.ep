@@ -217,7 +217,7 @@
     var initialMessages = JSON.parse('<%== ($positionGameMsgs ? $positionGameMsgs : '[]') %>');
     var gameLog = [];
     try {
-        gameLog = $gameLog;
+        gameLog = <%== $gameLog %>;
     } catch (e) {
         gameLog = [];
     }
