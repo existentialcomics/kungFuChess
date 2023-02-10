@@ -449,17 +449,31 @@ post '/ajax/createChallenge' => sub {
         if (! $user || ! %$user) {
             app->db()->do("UPDATE games SET black_anon_key = white_anon_key WHERE game_id = ?", {}, $gameId);
         }
-    } elsif ($gameMode eq 'ai-easy' || $gameMode eq 'ai-medium' || $gameMode eq 'ai-hard') {
+    } elsif ($gameMode eq 'ai-easy' || $gameMode eq 'ai-medium'
+        || $gameMode eq 'ai-hard' || $gameMode eq 'ai-berserk') {
+
         $options->{ai_difficulty} = ($gameMode eq 'ai-easy' ? 1 : ($gameMode eq 'ai-medium' ? 2 : 3));
         $options->{white_anon_key} = $user->{auth_token};
+        if ($gameMode eq 'ai-berserk') {
+            if ($gameSpeed eq 'standard') {
+                $options->{speed_advantage} = '1:0.6:0.6:0.6';
+            } else {
+                $options->{speed_advantage} = '1.6:1:1:1';
+            }
+        }
 
+        my $aiLevel = 
+            $gameMode eq 'ai-easy' ? AI_USER_EASY :
+            $gameMode eq 'ai-medium' ? AI_USER_MEDIUM : 
+            $gameMode eq 'ai-hard' ? AI_USER_HARD :
+            AI_USER_BERSERK;
         $gameId = createGame(
             undef, ## board id
             $gameType,
             $gameSpeed,
             0,
             ($user ? $user->{player_id} : ANON_USER),
-            ($gameMode eq 'ai-easy' ? AI_USER_EASY : ($gameMode eq 'ai-medium' ? AI_USER_MEDIUM : AI_USER_HARD)),
+            $aiLevel,
             $gameType eq '4way' ? AI_USER_EASY : undef,
             $gameType eq '4way' ? AI_USER_EASY : undef,
             $options
@@ -1332,6 +1346,7 @@ get '/open-json/ai' => sub {
                 ($game->{$playerCol} == AI_USER_EASY ? '1':
                  $game->{$playerCol} == AI_USER_MEDIUM ? '2':
                  $game->{$playerCol} == AI_USER_HARD ? '3':
+                 $game->{$playerCol} == AI_USER_BERSERK ? '4':
                  1);
 
                 push @openAiGames, {

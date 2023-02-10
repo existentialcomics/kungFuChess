@@ -87,17 +87,17 @@ const Bitboard MASK_ANTI_DIAGONAL[15] = {
 
 
 //Shifts a bitboard in a particular direction. There is no wrapping, so bits that are shifted of the edge are lost
-template<Direction D>
-Bitboard shift(Bitboard b) {
-    return D == NORTH ? b << 8 : D == SOUTH ? b >> 8
-        : D == NORTH + NORTH ? b << 16 : D == SOUTH + SOUTH ? b >> 16
-        : D == EAST ? (b & ~MASK_FILE[HFILE]) << 1 : D == WEST ? (b & ~MASK_FILE[AFILE]) >> 1
-        : D == NORTH_EAST ? (b & ~MASK_FILE[HFILE]) << 9
-        : D == NORTH_WEST ? (b & ~MASK_FILE[AFILE]) << 7
-        : D == SOUTH_EAST ? (b & ~MASK_FILE[HFILE]) >> 7
-        : D == SOUTH_WEST ? (b & ~MASK_FILE[AFILE]) >> 9
-        : 0;
-}
+//template<Direction D>
+//Bitboard shift(Bitboard b) {
+    //return D == NORTH ? b << 8 : D == SOUTH ? b >> 8
+        //: D == NORTH + NORTH ? b << 16 : D == SOUTH + SOUTH ? b >> 16
+        //: D == EAST ? (b & ~MASK_FILE[HFILE]) << 1 : D == WEST ? (b & ~MASK_FILE[AFILE]) >> 1
+        //: D == NORTH_EAST ? (b & ~MASK_FILE[HFILE]) << 9
+        //: D == NORTH_WEST ? (b & ~MASK_FILE[AFILE]) << 7
+        //: D == SOUTH_EAST ? (b & ~MASK_FILE[HFILE]) >> 7
+        //: D == SOUTH_WEST ? (b & ~MASK_FILE[AFILE]) >> 9
+        //: 0;
+//}
 
 //A lookup table for king move bitboards
 const Bitboard KING_ATTACKS[64] = {
@@ -625,22 +625,6 @@ inline Bitboard safe_destination(Square s, int step) {
 // www.chessprogramming.org/Magic_Bitboards. In particular, here we use the so
 // called "fancy" approach.
 
-constexpr Bitboard rank_bb(Rank r) {
-  return Rank1BB << (8 * r);
-}
-
-constexpr Bitboard rank_bb(Square s) {
-  return rank_bb(rank_of(s));
-}
-
-constexpr Bitboard file_bb(File f) {
-  return FileABB << f;
-}
-
-constexpr Bitboard file_bb(Square s) {
-  return file_bb(file_of(s));
-}
-
 Bitboard sliding_attack(PieceType pt, Square sq, Bitboard occupied) {
     Bitboard attacks = 0;
     Direction   RookDirections[4] = {NORTH, SOUTH, EAST, WEST};
@@ -685,8 +669,8 @@ Bitboard get_bishop_attacks(Square square, Bitboard occ) {
 
 //Returns a bitboard containing pawn attacks from all pawns in the given bitboard
 Bitboard pawn_attacks(Color C, Bitboard p) {
-    return C == WHITE ? shift<NORTH_WEST>(p) | shift<NORTH_EAST>(p) :
-        shift<SOUTH_WEST>(p) | shift<SOUTH_EAST>(p);
+    return C == WHITE ? shift(NORTH_WEST, p) | shift(NORTH_EAST, p) :
+        shift(SOUTH_WEST, p) | shift(SOUTH_EAST, p);
 }
 
 //Bitboard pawn_attacks(Color C) {
@@ -899,16 +883,6 @@ Move getNextMove() {
     }
 }
 
-//template<Direction D>
-Bitboard shift(Direction D, Bitboard b) {
-  return  D == NORTH      ?  b             << 8 : D == SOUTH      ?  b             >> 8
-        : D == NORTH+NORTH?  b             <<16 : D == SOUTH+SOUTH?  b             >>16
-        : D == EAST       ? (b & ~FileHBB) << 1 : D == WEST       ? (b & ~FileABB) >> 1
-        : D == NORTH_EAST ? (b & ~FileHBB) << 9 : D == NORTH_WEST ? (b & ~FileABB) << 7
-        : D == SOUTH_EAST ? (b & ~FileHBB) >> 7 : D == SOUTH_WEST ? (b & ~FileABB) >> 9
-        : 0;
-}
-
 const int NB_SQUARES = 64;
 const int NB_PIECES  = 8;
 
@@ -963,8 +937,7 @@ int ThreatBySafePawn    = S(173, 94);
 int TrappedRook         = S( 55, 13);
 int WeakQueenProtection = S( 14,  0);
 int WeakQueen           = S( 56, 15);
-//int ChainedPawn         = S( 29, 16);
-int ChainedPawn         = S( 39, 26);
+int ChainedPawn         = S( 29, 26);
 
 // sub evaluateThreats
 // copied as much as possible from Stockfish
@@ -1107,6 +1080,137 @@ void resetAttacks() {
     //kingAttackersWeight[3];
 }
 
+Bitboard fr_bb(Move m) {
+  return square_bb(from_sq(m));
+}
+
+Bitboard to_bb(Move m) {
+  return square_bb(to_sq(m));
+}
+
+// Pawn penalties
+constexpr int Backward      = S( 9, 22);
+constexpr int Doubled       = S(13, 51);
+constexpr int DoubledEarly  = S(20,  7);
+constexpr int Isolated      = S( 3, 15);
+constexpr int WeakLever     = S( 4, 58);
+constexpr int WeakUnopposed = S(13, 24);
+constexpr int BlockedPawn[2] = { S(-17, -6), S(-9, 2) };
+// Connected pawn bonus
+constexpr int Connected[RANK_NB] = { 0, 5, 7, 11, 23, 48, 87 };
+
+// TODO hash like in Stockfish
+int evaluatePawns(Color Us) {
+    Color     Them = ~Us;
+    Direction Up   = pawn_push(Us);
+    Direction Down = pawn_push(Them);
+
+    Bitboard neighbours, stoppers, support, phalanx, opposed;
+    Bitboard lever, leverPush, blocked;
+    Square s;
+    bool backward, passed, doubled;
+    int score = 0;
+    Bitboard b = pieces(Us, PAWN);
+
+    Bitboard ourPawns   = pieces(  Us, PAWN);
+    Bitboard theirPawns = pieces(Them, PAWN);
+
+    Bitboard doubleAttackThem = pawn_double_attacks_bb(Them, theirPawns);
+
+    //e->passedPawns[Us] = 0;
+    //e->kingSquares[Us] = SQ_NONE;
+    //e->pawnAttacks[Us] = e->pawnAttacksSpan[Us] = pawn_attacks(Us, ourPawns);
+    //e->blockedCount += popcount(shift(Up, ourPawns) & (theirPawns | doubleAttackThem));
+
+    // Loop through all pawns of the current color and score each pawn
+    while (b)
+    {
+        s = pop_lsb(b);
+
+        assert(pos.piece_on(s) == make_piece(Us, PAWN));
+
+        Rank r = relative_rank(Us, s);
+
+        // Flag the pawn
+        opposed    = theirPawns & forward_file_bb(Us, s);
+        blocked    = theirPawns & (s + Up);
+        stoppers   = theirPawns & passed_pawn_span(Us, s);
+        lever      = theirPawns & pawn_attacks(Us, s);
+        leverPush  = theirPawns & pawn_attacks(Us, s + Up);
+        doubled    = ourPawns   & (s - Up);
+        neighbours = ourPawns   & adjacent_files_bb(s);
+        phalanx    = neighbours & rank_bb(s);
+        support    = neighbours & rank_bb(s - Up);
+
+        if (doubled)
+        {
+            // Additional doubled penalty if none of their pawns is fixed
+            if (!(ourPawns & shift(Down, theirPawns | pawn_attacks(Them, theirPawns))))
+                score -= DoubledEarly;
+        }
+
+        // A pawn is backward when it is behind all pawns of the same color on
+        // the adjacent files and cannot safely advance.
+        backward =  !(neighbours & forward_ranks_bb(Them, s + Up))
+                  && (leverPush | blocked);
+
+        // Compute additional span if pawn is not backward nor blocked
+        //if (!backward && !blocked)
+            //e->pawnAttacksSpan[Us] |= pawn_attack_span(Us, s);
+
+
+        // A pawn is passed if one of the three following conditions is true:
+        // (a) there is no stoppers except some levers
+        // (b) the only stoppers are the leverPush, but we outnumber them
+        // (c) there is only one front stopper which can be levered.
+        //     (Refined in Evaluation::passed)
+        passed =   !(stoppers ^ lever)
+                || (   !(stoppers ^ leverPush)
+                    && popcount(phalanx) >= popcount(leverPush))
+                || (   stoppers == blocked && r >= RANK_5
+                    && (shift(Up, support) & ~(theirPawns | doubleAttackThem)));
+
+        passed &= !(forward_file_bb(Us, s) & ourPawns);
+
+        // Passed pawns will be properly scored later in evaluation when we have
+        // full attack info.
+        if (passed)
+            passedPawns[Us] |= s;
+
+        // Score this pawn
+        if (support | phalanx)
+        {
+            int v =  Connected[r] * (2 + bool(phalanx) - bool(opposed))
+                   + 22 * popcount(support);
+
+            score += make_score(v, v * (r - 2) / 4);
+        }
+
+        else if (!neighbours)
+        {
+            if (     opposed
+                &&  (ourPawns & forward_file_bb(Them, s))
+                && !(theirPawns & adjacent_files_bb(s)))
+                score -= Doubled;
+            else
+                score -=  Isolated
+                        + WeakUnopposed * !opposed;
+        }
+
+        else if (backward)
+            score -=  Backward
+                    + WeakUnopposed * !opposed * bool(~(FileABB | FileHBB) & s);
+
+        if (!support)
+            score -=  Doubled * doubled
+                    + WeakLever * more_than_one(lever);
+
+        if (blocked && r >= RANK_5)
+            score += BlockedPawn[r - RANK_5];
+    }
+    return score;
+}
+
 
 // call resetAttacks then setAllMoves() first
 void evalInit(Color Us) {
@@ -1122,7 +1226,7 @@ void evalInit(Color Us) {
     //Bitboard dblAttackByPawn = pawn_double_attacks_bb<Us>(pos.pieces(Us, PAWN));
 
     //// Find our pawns that are blocked or on the first two ranks
-    //Bitboard b = pos.pieces(Us, PAWN) & (shift<Down>(pos.pieces()) | LowRanks);
+    //Bitboard b = pos.pieces(Us, PAWN) & (shift(Down, pos.pieces()) | LowRanks);
     b = pieces(Us, PAWN) & (shift(Down, pieces()) | LowRanks);
 
     //// Squares occupied by those pawns, by our king or queen, by blockers to attacks on our king
@@ -1174,8 +1278,8 @@ int evaluate() {
         Bitboard b_bonus;
         //*********************** pawns
         b = pieces(c, PAWN);
-
         score += (ChainedPawn * popcount(b & attackedBy[Us][PAWN]));
+
         while (b) {
             Square sq = pop_lsb(b);
             Piece piece = make_piece(c, PAWN);
@@ -1183,6 +1287,7 @@ int evaluate() {
 
             pieceScore += PieceValue[PAWN];
         }
+        //score += evaluatePawns(c);
         
         //*********************** kings
         b = pieces(c, KING);
@@ -1312,9 +1417,9 @@ std::vector<Move> getAllMoves(Color wantColor) {
             if (wantColor == Us && ! (sq & frozen)) {
                 att_bb &= occupiedThem;
                 if (Up == NORTH) {
-                    att_bb |= (shift<NORTH>(square_bb(sq)) & (~occupied));
+                    att_bb |= (shift(NORTH, square_bb(sq)) & (~occupied));
                 } else {
-                    att_bb |= (shift<SOUTH>(square_bb(sq)) & (~occupied));
+                    att_bb |= (shift(SOUTH, square_bb(sq)) & (~occupied));
                 }
                 att_bb &= (~moving);
                 while (att_bb) {
@@ -2092,12 +2197,3 @@ Move getNextBestMove() {
     
     return bestMoveNode->next->move;
 }
-
-Bitboard fr_bb(Move m) {
-  return square_bb(from_sq(m));
-}
-
-Bitboard to_bb(Move m) {
-  return square_bb(to_sq(m));
-}
-

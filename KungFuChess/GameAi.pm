@@ -131,7 +131,7 @@ sub _init {
             $self->{ai_delay} = 800_000; 
             $self->{ai_min_delay} = 200_000;
             $self->{ai_interval} = 1_500_000;
-            $self->{randomness} = 150;
+            $self->{randomness} = 250;
             $self->{no_move_penalty} = 0.2; # multiplier
             $self->{long_capture_penalty} = 100; # centipawns
             $self->{distance_penalty} = 10; # centipawns
@@ -141,12 +141,24 @@ sub _init {
             $self->{ai_simul_moves} = 1;
             $self->{ai_simul_depth} = 2;
             $self->{ai_delay} = 50_000; 
-            $self->{ai_min_delay} = 0;
-            $self->{ai_interval} = 500_000;
+            $self->{ai_min_delay} = 50_000;
+            $self->{ai_interval} = 600_000;
             $self->{randomness} = 30;
             $self->{no_move_penalty} = 0.2; # multiplier
             $self->{long_capture_penalty} = 200; # centipawns
             $self->{distance_penalty} = 15; # centipawns
+        } elsif ($difficulty eq '4') {
+            $self->{ai_thinkTime} = 2.0;
+            $self->{ai_depth} = 4;
+            $self->{ai_simul_moves} = 1;
+            $self->{ai_simul_depth} = 2;
+            $self->{ai_delay} = 50_000; 
+            $self->{ai_min_delay} = 50_000;
+            $self->{ai_interval} = 400_000;
+            $self->{randomness} = 30;
+            $self->{no_move_penalty} = 0.2; # multiplier
+            $self->{long_capture_penalty} = 150; # centipawns
+            $self->{distance_penalty} = 12; # centipawns
         } elsif ($difficulty eq 'human_a') {
             $self->{ai_thinkTime} = 2.0;
             $self->{ai_depth} = 4;
@@ -168,7 +180,7 @@ sub _init {
             $self->{ai_delay} = 1_500_000; 
             $self->{ai_min_delay} = 450_000;
             $self->{ai_interval} = 500_000;
-            $self->{randomness} = 50;
+            $self->{randomness} = 40;
             $self->{ai_human} = 1;
             $self->{no_move_penalty} = 0.2; # multiplier
             $self->{long_capture_penalty} = 200; # centipawns
@@ -238,6 +250,18 @@ sub _init {
             $self->{no_move_penalty} = 0.5; # multiplier
             $self->{long_capture_penalty} = 0; # centipawns
             $self->{distance_penalty} = 5; # centipawns
+        } elsif ($difficulty eq '4') {
+            $self->{ai_thinkTime} = 1.0;
+            $self->{ai_depth} = 2;
+            $self->{ai_simul_moves} = 2;
+            $self->{ai_simul_depth} = 2;
+            $self->{ai_delay} = 100_000; 
+            $self->{ai_min_delay} = 50_000;
+            $self->{ai_interval} = 150_000;
+            $self->{randomness} = 500;
+            $self->{no_move_penalty} = 0.9; # multiplier
+            $self->{long_capture_penalty} = 0; # centipawns
+            $self->{distance_penalty} = 0; # centipawns
         } elsif ($difficulty eq 'human_a') {
             $self->{ai_thinkTime} = 1.0;
             $self->{ai_depth} = 2;

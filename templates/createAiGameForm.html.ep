@@ -21,6 +21,8 @@
                     <label class="btn btn-outline-primary" for="ai-medium">Medium</label>
                     <input type="radio" class="btn-check text-light" name="gameMode" id="ai-hard" autocomplete="off" value="ai-hard">
                     <label class="btn btn-outline-primary" for="ai-hard">Hard</label>
+                    <input type="radio" class="btn-check text-light" name="gameMode" id="ai-berserk" autocomplete="off" value="ai-berserk">
+                    <label class="btn btn-outline-primary" for="ai-berserk">Berserk</label>
                 </div>
 
                 <label for="gameType" class="col col-form-label col-form-label-lg">Number of Players</label>
