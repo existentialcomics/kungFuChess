@@ -715,7 +715,7 @@ sub aiTick {
     my $aiStartTime = time();
     my $debug = 0;
 
-    if (Sys::MemInfo::get("freeswap") < $minMemory) { exit; }
+    #if (Sys::MemInfo::get("freeswap") < $minMemory) { exit; }
     if ($debug) {
         print "\naiTick() " . time() . "\n";
     }
