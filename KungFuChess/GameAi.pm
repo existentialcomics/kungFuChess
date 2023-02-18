@@ -655,11 +655,11 @@ sub handleMessage {
             }
         } else {
             if ($rand < 0.3) {
-                @moves = qw(c7c5 f7f5 b7b6 g7g6 f8g7);
+                @moves = qw(c7c5 f7f5 b7b6 g7g6 f8g7 g8f6 e8g8);
             } elsif ($rand < 0.6) {
-                @moves = qw(c7c5 e7e5 b7b6 f7f6 g7g6 f8g7);
+                @moves = qw(c7c5 e7e5 b7b6 f7f5 g7g6 f8g7 g8f6 e8g8);
             } else {
-                @moves = qw(d7d5 g7g5 h7h6 e7e6);
+                @moves = qw(d7d5 g7g5 h7h6 e7e6 b7b6 c8b7 d8d7 e8c8);
             }
         }
 
@@ -930,12 +930,6 @@ sub aiTick {
             #$self->aiTick();
         #}
     #);
-}
-
-sub doOpeningAndStart {
-    my $self = shift;
-    my $startTime = shift;
-    #print "do opening...\n";
 }
 
 sub checkForForceDraw {

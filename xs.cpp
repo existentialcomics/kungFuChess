@@ -359,6 +359,15 @@ inline Square pop_lsb(Bitboard& b) {
   return s;
 }
 
+/// frontmost_sq() returns the most advanced square for the given color,
+/// requires a non-zero bitboard.
+inline Square frontmost_sq(Color c, Bitboard b) {
+  assert(b);
+  return c == WHITE ? msb(b) : lsb(b);
+}
+
+
+
 //Returns the index of the least significant bit in the bitboard, and removes the bit from the bitboard
 //inline Square pop_lsb(Bitboard& b) {
     //int lsb = bitScanForward(b);
@@ -653,6 +662,7 @@ Bitboard get_rook_attacks(Square square, Bitboard occ) {
 		>> ROOK_ATTACK_SHIFTS[square]];
 }
 
+
 //Returns the 'x-ray attacks' for a rook at a given square. X-ray attacks cover squares that are not immediately
 //accessible by the rook, but become available when the immediate blockers are removed from the board 
 Bitboard get_xray_rook_attacks(Square square, Bitboard occ, Bitboard blockers) {
@@ -699,7 +709,6 @@ Bitboard get_xray_bishop_attacks(Square square, Bitboard occ, Bitboard blockers)
 	blockers &= attacks;
 	return attacks ^ get_bishop_attacks(square, occ ^ blockers);
 }
-
 
 void init_magics(PieceType pt, Bitboard table[], Magic magics[]) {
 
@@ -891,6 +900,7 @@ int mobility[2];
 int threats [2];
 
 Bitboard attackedBy[3][NB_PIECES];
+Bitboard attackedBy2[3];
 Bitboard kingRing[3];
 Bitboard mobilityArea[3];
 int kingAttackersCount[3];
@@ -915,7 +925,7 @@ int ThreatByRookXray[PIECE_TYPE_NB] = {
 };
 
 int PieceValue[PIECE_TYPE_NB] = {
-    S(0,0), S(150, 200), S(300, 300), S(300, 300), S(430, 450), S(700, 700), S(10000, 10000)
+    S(0,0), S(140, 140), S(300, 300), S(300, 300), S(430, 450), S(700, 700), S(10000, 10000)
 };
   // Assorted bonuses and penalties
 int UncontestedOutpost  = S(  1, 10);
@@ -937,7 +947,7 @@ int ThreatBySafePawn    = S(173, 94);
 int TrappedRook         = S( 55, 13);
 int WeakQueenProtection = S( 14,  0);
 int WeakQueen           = S( 56, 15);
-int ChainedPawn         = S( 29, 26);
+int ChainedPawn         = S( 19, 16);
 
 // sub evaluateThreats
 // copied as much as possible from Stockfish
@@ -1005,7 +1015,7 @@ int evaluateThreats(Color Us) {
         //while (b)
             //score += ThreatByRookXray[type_of(piece_on(pop_lsb(b)))];
 
-        //b = get_xray_biship_attacks();
+        //b = get_xray_bishop_attacks();
         //while (b)
             //score += ThreatByPieceXray[type_of(piece_on(pop_lsb(b)))];
 
@@ -1067,7 +1077,7 @@ void resetAttacks() {
     for (int i = 0; i < 65; i++) {
         board[i] = NO_PIECE;
     }
-    //attackedBy2[3];
+    attackedBy2[3] = 0;
     kingRing[1] = 0;
     kingRing[2] = 0;
     mobilityArea[0] = 0;
@@ -1088,6 +1098,38 @@ Bitboard to_bb(Move m) {
   return square_bb(to_sq(m));
 }
 
+
+// KingAttackWeights[PieceType] contains king attack weights by piece type
+constexpr int KingAttackWeights[PIECE_TYPE_NB] = { 0, 0, 81, 52, 44, 10 };
+
+// SafeCheck[PieceType][single/multiple] contains safe check bonus by piece type,
+// higher if multiple safe checks are possible for that piece type.
+constexpr int SafeCheck[][2] = {
+    {}, {}, {803, 1292}, {639, 974}, {1087, 1878}, {759, 1132}
+};
+
+Square kingSquares[COLOR_NB];
+
+// Strength of pawn shelter for our king by [distance from edge][rank].
+// RANK_1 = 0 is used for files where we have no pawn, or pawn is behind our king.
+constexpr int ShelterStrength[int(FILE_NB / 2)][RANK_NB] = {
+{  -5,  82,  92,  54,  36,  22,   28 },
+{ -44,  63,  33, -50, -30, -12,  -62 },
+{ -11,  77,  22,  -6,  31,   8,  -45 },
+{ -39, -12, -29, -50, -43, -68, -164 }
+};
+
+// Danger of enemy pawns moving toward our king by [distance from edge][rank].
+// RANK_1 = 0 is used for files where the enemy has no pawn, or their pawn
+// is behind our king. Note that UnblockedStorm[0][1-2] accommodate opponent pawn
+// on edge, likely blocked by our king.
+constexpr int UnblockedStorm[int(FILE_NB / 2)][RANK_NB] = {
+{  87, -288, -168,  96,  47,  44,  46 },
+{  42,  -25,  120,  45,  34,  -9,  24 },
+{  -8,   51,  167,  35,  -4, -16, -12 },
+{ -17,  -13,  100,   4,   9, -16, -31 }
+};
+
 // Pawn penalties
 constexpr int Backward      = S( 9, 22);
 constexpr int Doubled       = S(13, 51);
@@ -1098,6 +1140,155 @@ constexpr int WeakUnopposed = S(13, 24);
 constexpr int BlockedPawn[2] = { S(-17, -6), S(-9, 2) };
 // Connected pawn bonus
 constexpr int Connected[RANK_NB] = { 0, 5, 7, 11, 23, 48, 87 };
+
+constexpr int BlockedStorm[RANK_NB] = {
+    S(0, 0), S(0, 0), S(75, 78), S(-8, 16), S(-6, 10), S(-6, 6), S(0, 2)
+};
+
+int evaluate_shelter(Color Us, Square ksq) {
+    Color Them = ~Us;
+
+    Bitboard b = pieces(PAWN) & ~forward_ranks_bb(Them, ksq);
+    Bitboard ourPawns = b & pieces(Us) & ~attackedBy[Them][PAWN];
+    Bitboard theirPawns = b & pieces(Them);
+
+    int bonus = make_score(5, 5);
+
+    //File center = std::clamp(file_of(ksq), BFILE, GFILE);
+    File center = file_of(ksq);
+    if (center == AFILE) { center = BFILE; }
+    if (center == HFILE) { center = GFILE; }
+    for (File f = File(center - 1); f <= File(center + 1); ++f)
+    {
+        b = ourPawns & file_bb(f);
+        int ourRank = b ? relative_rank(Us, frontmost_sq(Them, b)) : 0;
+
+        b = theirPawns & file_bb(f);
+        int theirRank = b ? relative_rank(Us, frontmost_sq(Them, b)) : 0;
+
+        int d = edge_distance(f);
+        bonus += make_score(ShelterStrength[d][ourRank], 0);
+
+        if (ourRank && (ourRank == theirRank - 1))
+            bonus -= BlockedStorm[theirRank];
+        else
+            bonus -= make_score(UnblockedStorm[d][theirRank], 0);
+    }
+
+    // King On File
+    //bonus -= KingOnFile[pos.is_on_semiopen_file(Us, ksq)][pos.is_on_semiopen_file(Them, ksq)];
+
+    return bonus;
+}
+
+int king_safety(Color Us, Square ksq) {
+    kingSquares[Us] = ksq;
+
+    int shelter = evaluate_shelter(Us, ksq);
+
+    // In endgame we like to bring our king near our closest pawn
+    Bitboard pawns = pieces(Us, PAWN);
+    int minPawnDist = 6;
+
+    if (pawns & attacks_bb(KING, ksq))
+        minPawnDist = 1;
+    else while (pawns)
+        minPawnDist = std::min(minPawnDist, distanceSquare(ksq, pop_lsb(pawns)));
+
+    return shelter - make_score(0, 16 * minPawnDist);
+}
+
+int evaluateKing(Color Us, Square ksq) {
+    Color    Them = ~Us;
+    Bitboard Camp = (Us == WHITE ? AllSquares ^ Rank6BB ^ Rank7BB ^ Rank8BB
+                                           : AllSquares ^ Rank1BB ^ Rank2BB ^ Rank3BB);
+
+    Bitboard weak, b1, b2, b3, safe, unsafeChecks = 0;
+    Bitboard rookChecks, queenChecks, bishopChecks, knightChecks;
+    int kingDanger = 0;
+
+    // Init the score with king shelter and enemy pawns storm
+    int score = king_safety(Us, ksq);
+
+    // Attacked squares defended at most once by our queen or king
+    weak =  attackedBy[Them][ALL_PIECES]
+          & ~attackedBy2[Us]
+          & (~attackedBy[Us][ALL_PIECES] | attackedBy[Us][KING] | attackedBy[Us][QUEEN]);
+
+    // Analyse the safe enemy's checks which are possible on next move
+    safe  = pieces(Them);
+    safe &= ~attackedBy[Us][ALL_PIECES] | (weak & attackedBy2[Them]);
+
+    b1 = attacks_bb(ROOK, ksq, pieces() ^ pieces(Us, QUEEN));
+    b2 = attacks_bb(ROOK, ksq, pieces() ^ pieces(Us, QUEEN));
+
+    // Enemy rooks checks
+    rookChecks = b1 & attackedBy[Them][ROOK] & safe;
+    if (rookChecks)
+        kingDanger += SafeCheck[ROOK][more_than_one(rookChecks)];
+    else
+        unsafeChecks |= b1 & attackedBy[Them][ROOK];
+
+    // Enemy queen safe checks: count them only if the checks are from squares from
+    // which opponent cannot give a rook check, because rook checks are more valuable.
+    queenChecks =  (b1 | b2) & attackedBy[Them][QUEEN] & safe
+                 & ~(attackedBy[Us][QUEEN] | rookChecks);
+    if (queenChecks)
+        kingDanger += SafeCheck[QUEEN][more_than_one(queenChecks)];
+
+    // Enemy bishops checks: count them only if they are from squares from which
+    // opponent cannot give a queen check, because queen checks are more valuable.
+    bishopChecks =  b2 & attackedBy[Them][BISHOP] & safe
+                  & ~queenChecks;
+    if (bishopChecks)
+        kingDanger += SafeCheck[BISHOP][more_than_one(bishopChecks)];
+
+    else
+        unsafeChecks |= b2 & attackedBy[Them][BISHOP];
+
+    // Enemy knights checks
+    knightChecks = attacks_bb(KNIGHT, ksq) & attackedBy[Them][KNIGHT];
+    if (knightChecks & safe)
+        kingDanger += SafeCheck[KNIGHT][more_than_one(knightChecks & safe)];
+    else
+        unsafeChecks |= knightChecks;
+
+    // Find the squares that opponent attacks in our king flank, the squares
+    // which they attack twice in that flank, and the squares that we defend.
+    b1 = attackedBy[Them][ALL_PIECES] & KingFlank[file_of(ksq)] & Camp;
+    b2 = b1 & attackedBy2[Them];
+    b3 = attackedBy[Us][ALL_PIECES] & KingFlank[file_of(ksq)] & Camp;
+
+    int kingFlankAttack  = popcount(b1) + popcount(b2);
+    int kingFlankDefense = popcount(b3);
+
+    kingDanger +=        kingAttackersCount[Them] * kingAttackersWeight[Them] // (~10 Elo)
+                 + 183 * popcount(kingRing[Us] & weak)                        // (~15 Elo)
+                 + 148 * popcount(unsafeChecks)                               // (~4 Elo)
+                 //+  98 * popcount(pos.blockers_for_king(Us))                  // (~2 Elo)
+                 +  69 * kingAttacksCount[Them]                               // (~0.5 Elo)
+                 +   3 * kingFlankAttack * kingFlankAttack / 8                // (~0.5 Elo)
+                 //+       mg_value(mobility[Them] - mobility[Us])              // (~0.5 Elo)
+                 //- 873 * ! pos.count<QUEEN>(Them)                              // (~24 Elo)
+                 - 100 * bool(attackedBy[Us][KNIGHT] & attackedBy[Us][KING])  // (~5 Elo)
+                 -   6 * mg_value(score) / 8                                  // (~8 Elo)
+                 -   4 * kingFlankDefense                                     // (~5 Elo)
+                 +  37;                                                       // (~0.5 Elo)
+
+    // Transform the kingDanger units into a Score, and subtract it from the evaluation
+    if (kingDanger > 100)
+        score -= make_score(kingDanger * kingDanger / 4096, kingDanger / 16);
+
+    // Penalty when our king is on a pawnless flank
+    if (!(pieces(PAWN) & KingFlank[file_of(ksq)]))
+        score -= PawnlessFlank;
+
+    // Penalty if king flank is under attack, potentially moving toward the king
+    score -= FlankAttacks * kingFlankAttack;
+
+    return score;
+}
+
 
 // TODO hash like in Stockfish
 int evaluatePawns(Color Us) {
@@ -1262,6 +1453,8 @@ int evaluate() {
         int threatScore = 0;
         int pieceScore = 0;
         int sqScore = 0;
+        int pawnScore = 0;
+        int kingScore = 0;
 
         threatScore = evaluateThreats(c);
 
@@ -1278,7 +1471,8 @@ int evaluate() {
         Bitboard b_bonus;
         //*********************** pawns
         b = pieces(c, PAWN);
-        score += (ChainedPawn * popcount(b & attackedBy[Us][PAWN]));
+        pawnScore += (ChainedPawn * popcount(b & attackedBy[Us][PAWN]));
+        pawnScore += evaluatePawns(c);
 
         while (b) {
             Square sq = pop_lsb(b);
@@ -1287,7 +1481,6 @@ int evaluate() {
 
             pieceScore += PieceValue[PAWN];
         }
-        //score += evaluatePawns(c);
         
         //*********************** kings
         b = pieces(c, KING);
@@ -1297,6 +1490,7 @@ int evaluate() {
             sqScore += psq[piece][sq];
 
             pieceScore += PieceValue[KING];
+            kingScore += evaluateKing(c, sq);
         }
         
         //*********************** knights
@@ -1339,7 +1533,7 @@ int evaluate() {
             pieceScore += PieceValue[QUEEN];
         }
 
-        score = threatScore + pieceScore + sqScore;
+        score = threatScore + pieceScore + sqScore + pawnScore + kingScore;
 
         if (debug) {
             std::cout << "---------- " << "\n";
@@ -1451,10 +1645,13 @@ std::vector<Move> getAllMoves(Color wantColor) {
                     moveArrayTmp.push_back(m);
                 }
             }
+            kingRing[Us] = attacks_bb(KING, sq) | sq;
         }
 
         //*********************** knights
         b = pieces(c, KNIGHT);
+        int mob = popcount(b & mobilityArea[Us]);
+        mobility[Us] += MobilityBonus[KNIGHT - 2][mob];
         while (b) {
             Square sq = pop_lsb(b);
             Bitboard att_bb = knight_attacks(sq);
@@ -1478,6 +1675,8 @@ std::vector<Move> getAllMoves(Color wantColor) {
         
         //*********************** bishops
         b = pieces(c, BISHOP);
+        mob = popcount(b & mobilityArea[Us]);
+        mobility[Us] += MobilityBonus[BISHOP - 2][mob];
         while (b) {
             Square sq = pop_lsb(b);
             Bitboard att_bb = get_bishop_attacks(sq, occupied);
@@ -1523,6 +1722,8 @@ std::vector<Move> getAllMoves(Color wantColor) {
         
         //*********************** rooks
         b = pieces(c, ROOK);
+        mob = popcount(b & mobilityArea[Us]);
+        mobility[Us] += MobilityBonus[ROOK - 2][mob];
         while (b) {
             Square sq = pop_lsb(b);
             Bitboard att_bb = get_rook_attacks(sq, occupied);
@@ -1565,6 +1766,8 @@ std::vector<Move> getAllMoves(Color wantColor) {
     
         //*********************** queens
         b = pieces(c, QUEEN);
+        mob = popcount(b & mobilityArea[Us]);
+        mobility[Us] += MobilityBonus[QUEEN - 2][mob];
         while (b) {
             Square sq = pop_lsb(b);
             Bitboard att_bb = get_rook_attacks(sq, occupied) | get_bishop_attacks(sq, occupied);
@@ -1611,6 +1814,16 @@ std::vector<Move> getAllMoves(Color wantColor) {
                                      attackedBy[Us][ROOK] |
                                      attackedBy[Us][QUEEN] |
                                      attackedBy[Us][KING];
+
+        Bitboard dblAttackByPawn = pawn_double_attacks_bb(Us, pieces(Us, PAWN));
+        attackedBy2[Us] = dblAttackByPawn | (attackedBy[Us][KING] & attackedBy[Us][PAWN]);
+        
+
+        kingAttackersCount[Them] = popcount(kingRing[Us] & attackedBy[Them][PAWN]);
+        kingAttacksCount[Them] = kingAttackersWeight[Them] = 0;
+
+        // Remove from kingRing[] the squares defended by two pawns
+        kingRing[Us] &= ~dblAttackByPawn;
     }
     return moveArrayTmp;
 }
@@ -1736,6 +1949,7 @@ void setBBs(
         std::cout << pretty(moving) << "\n";
     }
     int pieceCount = pop_count(byTypeBB[ALL_PIECES]);
+    std::cout << "piece count: " << pieceCount << "\n";
     is_endgame = (pieceCount < 12);
 }
 
@@ -1924,10 +2138,20 @@ Move refuteBB(Bitboard frBB, Bitboard toBB, int intC) {
     return anticipate(fr, to, aiColor);
 }
 
-//Node* searchTreeRealTime(Move currentMove, int depth, int ply, int& alpha, int& beta, bool isMaximizingPlayer, Color c, std::string moveString = "") {
-    //srand(time(0));
+Node* searchTreeRealTime(Move currentMove, int depth, int ply, int& alpha, int& beta, bool isMaximizingPlayer, Color c, std::string moveString = "") {
+    srand(time(0));
 
-//}
+    Node *highNode = new Node;
+    Node *lowNode = new Node;
+    highNode->score = -999999;
+    lowNode->score  =  999999;
+
+    Node *currentNode = new Node;
+    currentNode->move = currentMove;
+    Color Them = ~c;
+
+    return currentNode;
+}
 
 Node* searchTree(Move currentMove, int depth, int ply, int& alpha, int& beta, bool isMaximizingPlayer, Color c, std::string moveString = "") {
     srand(time(0));

@@ -2506,17 +2506,11 @@ websocket '/ws' => sub {
             $msg->{'color'} = $color;
             $game->serverBroadcast($msg);
         } elsif ($msg->{'c'} eq 'move'){
-            app->log->debug('moving, ready to auth');
             return 0 if (!$game->gameBegan());
-            app->log->debug('game has begun');
 
-            app->log->debug($msg->{auth});
             my $color = $game->authMove($msg);
-            app->log->debug("moving $color");
-
             return 0 if (!$color);
 
-            app->log->debug('move authed for ' . $color);
             $msg->{color} = $color;
 
             # pass the move request to the server

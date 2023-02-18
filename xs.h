@@ -56,6 +56,16 @@ enum Color {
   WHITE, BLACK, COLOR_NB = 2
 };
 
+enum Rank : int {
+  RANK_1, RANK_2, RANK_3, RANK_4, RANK_5, RANK_6, RANK_7, RANK_8, RANK_NB
+};
+
+enum File : int {
+    AFILE, BFILE, CFILE, DFILE, EFILE, FFILE, GFILE, HFILE, FILE_NB
+};	
+
+
+constexpr Bitboard AllSquares = ~Bitboard(0);
 constexpr Bitboard DarkSquares = 0xAA55AA55AA55AA55ULL;
 
 constexpr Bitboard FileABB = 0x0101010101010101ULL;
@@ -75,6 +85,19 @@ constexpr Bitboard Rank5BB = Rank1BB << (8 * 4);
 constexpr Bitboard Rank6BB = Rank1BB << (8 * 5);
 constexpr Bitboard Rank7BB = Rank1BB << (8 * 6);
 constexpr Bitboard Rank8BB = Rank1BB << (8 * 7);
+
+constexpr Bitboard QueenSide   = FileABB | FileBBB | FileCBB | FileDBB;
+constexpr Bitboard CenterFiles = FileCBB | FileDBB | FileEBB | FileFBB;
+constexpr Bitboard KingSide    = FileEBB | FileFBB | FileGBB | FileHBB;
+constexpr Bitboard Center      = (FileDBB | FileEBB) & (Rank4BB | Rank5BB);
+
+constexpr Bitboard KingFlank[FILE_NB] = {
+  QueenSide ^ FileDBB, QueenSide, QueenSide,
+  CenterFiles, CenterFiles,
+  KingSide, KingSide, KingSide ^ FileEBB
+};
+
+
 
 Bitboard passedPawns[COLOR_NB];
 
@@ -106,15 +129,6 @@ Piece board[65];
 //enum File : int {
   //FILE_A, FILE_B, FILE_C, FILE_D, FILE_E, FILE_F, FILE_G, FILE_H, FILE_NB
 //};
-
-enum Rank : int {
-  RANK_1, RANK_2, RANK_3, RANK_4, RANK_5, RANK_6, RANK_7, RANK_8, RANK_NB
-};
-
-enum File : int {
-    AFILE, BFILE, CFILE, DFILE, EFILE, FFILE, GFILE, HFILE, FILE_NB
-};	
-
 enum Square : int {
   SQ_A1, SQ_B1, SQ_C1, SQ_D1, SQ_E1, SQ_F1, SQ_G1, SQ_H1,
   SQ_A2, SQ_B2, SQ_C2, SQ_D2, SQ_E2, SQ_F2, SQ_G2, SQ_H2,
@@ -202,6 +216,24 @@ constexpr int PBonus[RANK_NB][FILE_NB] =
 
 int psq[PIECE_NB][SQUARE_NB];
 
+// MobilityBonus[PieceType-2][attacked] contains bonuses for middle and end game,
+// indexed by piece type and number of attacked squares in the mobility area.
+constexpr int MobilityBonus[][32] = {
+    { S(-62,-79), S(-53,-57), S(-12,-31), S( -3,-17), S(  3,  7), S( 12, 13), // Knight
+        S( 21, 16), S( 28, 21), S( 37, 26) },
+    { S(-47,-59), S(-20,-25), S( 14, -8), S( 29, 12), S( 39, 21), S( 53, 40), // Bishop
+        S( 53, 56), S( 60, 58), S( 62, 65), S( 69, 72), S( 78, 78), S( 83, 87),
+        S( 91, 88), S( 96, 98) },
+    { S(-60,-82), S(-24,-15), S(  0, 17) ,S(  3, 43), S(  4, 72), S( 14,100), // Rook
+        S( 20,102), S( 30,122), S( 41,133), S(41 ,139), S( 41,153), S( 45,160),
+        S( 57,165), S( 58,170), S( 67,175) },
+    { S(-29,-49), S(-16,-29), S( -8, -8), S( -8, 17), S( 18, 39), S( 25, 54), // Queen
+        S( 23, 59), S( 37, 73), S( 41, 76), S( 54, 95), S( 65, 95) ,S( 68,101),
+        S( 69,124), S( 70,128), S( 70,132), S( 70,133) ,S( 71,136), S( 72,140),
+        S( 74,147), S( 76,149), S( 90,153), S(104,169), S(105,171), S(106,171),
+        S(112,178), S(114,185), S(114,187), S(119,221) }
+};
+
 
 enum Direction : int {
   NORTH =  8,
@@ -261,7 +293,6 @@ constexpr bool opposite_colors(Square s1, Square s2) {
   return (s1 + rank_of(s1) + s2 + rank_of(s2)) & 1;
 }
 
-/*
 #define ENABLE_BASE_OPERATORS_ON(T)                                \
 constexpr T operator+(T d1, int d2) { return T(int(d1) + d2); }    \
 constexpr T operator-(T d1, int d2) { return T(int(d1) - d2); }    \
@@ -282,16 +313,17 @@ constexpr int operator/(T d1, T d2) { return int(d1) / int(d2); }  \
 inline T& operator*=(T& d, int i) { return d = T(int(d) * i); }    \
 inline T& operator/=(T& d, int i) { return d = T(int(d) / i); }
 
-ENABLE_FULL_OPERATORS_ON(Value)
+//ENABLE_FULL_OPERATORS_ON(Value)
 ENABLE_FULL_OPERATORS_ON(Direction)
 
 ENABLE_INCR_OPERATORS_ON(Piece)
 ENABLE_INCR_OPERATORS_ON(PieceType)
-ENABLE_INCR_OPERATORS_ON(Square)
+//ENABLE_INCR_OPERATORS_ON(Square)
 ENABLE_INCR_OPERATORS_ON(File)
-ENABLE_INCR_OPERATORS_ON(T)
+//ENABLE_INCR_OPERATORS_ON(T)
 
-ENABLE_BASE_OPERATORS_ON(Score)
+//ENABLE_BASE_OPERATORS_ON(Score)
+/*
 
 #undef ENABLE_FULL_OPERATORS_ON
 #undef ENABLE_INCR_OPERATORS_ON
