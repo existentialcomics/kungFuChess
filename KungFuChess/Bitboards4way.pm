@@ -69,6 +69,7 @@ use constant ({
     ROOK   => 004,
     KING   => 005,
     QUEEN  => 006,
+    DRAGON => 007,
 
     ### array of a move
     MOVE_FR         => 0,
@@ -89,6 +90,7 @@ use constant ({
     WHITE_ROOK   => 104,
     WHITE_KING   => 105,
     WHITE_QUEEN  => 106,
+    WHITE_DRAGON => 107,
 
     BLACK_PAWN   => 201,
     BLACK_KNIGHT => 202,
@@ -96,6 +98,7 @@ use constant ({
     BLACK_ROOK   => 204,
     BLACK_KING   => 205,
     BLACK_QUEEN  => 206,
+    BLACK_DRAGON => 207,
 
     RED_PAWN   => 301,
     RED_KNIGHT => 302,
@@ -103,6 +106,7 @@ use constant ({
     RED_ROOK   => 304,
     RED_KING   => 305,
     RED_QUEEN  => 306,
+    RED_DRAGON => 307,
 
     GREEN_PAWN   => 401,
     GREEN_KNIGHT => 402,
@@ -110,6 +114,7 @@ use constant ({
     GREEN_ROOK   => 404,
     GREEN_KING   => 405,
     GREEN_QUEEN  => 406,
+    GREEN_DRAGON => 407,
 
 # binary number for file 1 (12x12)
 #     10000000
@@ -285,6 +290,7 @@ my $bishops  = string_to_uint128('0x00000000000000000000000000000000', 16);
 my $rooks    = string_to_uint128('0x00000000000000000000000000000000', 16);
 my $queens   = string_to_uint128('0x00000000000000000000000000000000', 16);
 my $kings    = string_to_uint128('0x00000000000000000000000000000000', 16);
+my $dragons  = string_to_uint128('0x00000000000000000000000000000000', 16);
 
 ### colors
 my $white    = string_to_uint128('0x00000000000000000000000000000000', 16);
@@ -1246,6 +1252,25 @@ sub isLegalMove {
         }
         return @noMove;
     }
+    if ($fr_bb & $dragons) {
+        if ( shift_BB($fr_bb, NORTH + NORTH) &
+             (shift_BB($to_bb, WEST) | shift_BB($to_bb, EAST)) ){
+            return ($color, MOVE_KNIGHT, DIR_NONE, $fr_bb, $to_bb);
+        }
+        if ( shift_BB($fr_bb, SOUTH + SOUTH) &
+             (shift_BB($to_bb, WEST) | shift_BB($to_bb, EAST)) ){
+            return ($color, MOVE_KNIGHT, DIR_NONE, $fr_bb, $to_bb);
+        }
+        if ( shift_BB(shift_BB($fr_bb, WEST), WEST) &
+             (shift_BB($to_bb, NORTH) | shift_BB($to_bb, SOUTH)) ){
+            return ($color, MOVE_KNIGHT, DIR_NONE, $fr_bb, $to_bb);
+        }
+        if ( shift_BB(shift_BB($fr_bb, EAST), EAST) &
+             (shift_BB($to_bb, NORTH) | shift_BB($to_bb, SOUTH)) ){
+            return ($color, MOVE_KNIGHT, DIR_NONE, $fr_bb, $to_bb);
+        }
+        return (NO_COLOR, MOVE_NONE, DIR_NONE);
+    }
     if ($fr_bb & $knights) {
         if ( shift_BB($fr_bb, NORTH + NORTH) &
              (shift_BB($to_bb, WEST) | shift_BB($to_bb, EAST)) ){
@@ -2028,6 +2053,42 @@ sub evaluate {
                     }
                 }
             } elsif ($pieceType == KNIGHT) {
+                $material[$color] += 300;
+                foreach my $to (
+                   shift_BB(shift_BB($fr, NORTH), NORTH_EAST),
+                   shift_BB(shift_BB($fr, NORTH), NORTH_WEST),
+                   shift_BB(shift_BB($fr, SOUTH), SOUTH_EAST),
+                   shift_BB(shift_BB($fr, SOUTH), SOUTH_WEST),
+                   shift_BB(shift_BB($fr, EAST) , NORTH_EAST),
+                   shift_BB(shift_BB($fr, EAST) , SOUTH_EAST),
+                   shift_BB(shift_BB($fr, WEST) , NORTH_WEST),
+                   shift_BB(shift_BB($fr, WEST) , SOUTH_WEST),
+                ) {
+                    if (($to != 0) && !($to & $ai_movingBB) ) {
+                        $attackedBy[$color]->[$pieceType] |= $to;
+                        $attackedBy[$color]->[ALL_PIECES]      |= $to;
+                        $attackedBy2[$color] |= ($to & $attackedBy[$color]->[ALL_PIECES]);
+                        if ($frozen) {
+                            $attackedByFrozen[$color]->[$pieceType] |= $to;
+                            $attackedByFrozen[$color]->[ALL_PIECES] |= $to;
+                        } else {
+                            $attackedByUnFrozen[$color]->[$pieceType] |= $to;
+                            $attackedByUnFrozen[$color]->[ALL_PIECES] |= $to;
+                        }
+                        $mobilityBonus[$color] += 15;
+                        if (! ($to & $us) && ! $frozen) {
+                            push @{$moves[$color]}, [
+                                $fr,
+                                $to,
+                                undef, # score
+                                2.5,
+                                undef, # children moves
+                                undef, # attackedBy
+                            ];
+                        }
+                    }
+                }
+            } elsif ($pieceType == DRAGON) {
                 $material[$color] += 300;
                 foreach my $to (
                    shift_BB(shift_BB($fr, NORTH), NORTH_EAST),

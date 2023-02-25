@@ -111,7 +111,7 @@ sub _init {
     if ($speed eq 'standard') {
         $self->{pieceSpeed} = 1;
         $self->{pieceRecharge} = 10;
-        if ($difficulty eq '1') {
+        if ($difficulty eq '1' || $difficulty eq 'ai-easy') {
             $self->{ai_thinkTime} = 1;
             $self->{ai_depth} = 1;
             $self->{ai_simul_moves} = 1;
@@ -123,7 +123,7 @@ sub _init {
             $self->{no_move_penalty} = 0.2; # multiplier
             $self->{long_capture_penalty} = 0; # centipawns
             $self->{distance_penalty} = 0; # centipawns
-        } elsif ($difficulty eq '2') {
+        } elsif ($difficulty eq '2' || $difficulty eq 'ai-medium') {
             $self->{ai_thinkTime} = 1;
             $self->{ai_depth} = 2;
             $self->{ai_simul_moves} = 1;
@@ -135,7 +135,7 @@ sub _init {
             $self->{no_move_penalty} = 0.2; # multiplier
             $self->{long_capture_penalty} = 100; # centipawns
             $self->{distance_penalty} = 10; # centipawns
-        } elsif ($difficulty eq '3') {
+        } elsif ($difficulty eq '3' || $difficulty eq 'ai-hard') {
             $self->{ai_thinkTime} = 2.0;
             $self->{ai_depth} = 4;
             $self->{ai_simul_moves} = 1;
@@ -147,7 +147,14 @@ sub _init {
             $self->{no_move_penalty} = 0.2; # multiplier
             $self->{long_capture_penalty} = 200; # centipawns
             $self->{distance_penalty} = 15; # centipawns
-        } elsif ($difficulty eq '4') {
+        } elsif (
+            $difficulty eq '4' || $difficulty eq 'ai-berserk'
+            || $difficulty eq '5' || $difficulty eq 'ai-crane'
+            || $difficulty eq '6' || $difficulty eq 'ai-turtle'
+            || $difficulty eq '7' || $difficulty eq 'ai-centipede'
+            || $difficulty eq '8' || $difficulty eq 'ai-dragon'
+            || $difficulty eq '9' || $difficulty eq 'ai-master'
+        ) {
             $self->{ai_thinkTime} = 2.0;
             $self->{ai_depth} = 4;
             $self->{ai_simul_moves} = 1;
@@ -214,7 +221,7 @@ sub _init {
     } elsif ($speed eq 'lightning') {
         $self->{pieceSpeed} = 0.1;
         $self->{pieceRecharge} = 1;
-        if ($difficulty eq '1') {
+        if ($difficulty eq '1' || $difficulty eq 'ai-easy') {
             $self->{ai_thinkTime} = 1.0;
             $self->{ai_depth} = 2;
             $self->{ai_simul_moves} = 1;
@@ -226,7 +233,7 @@ sub _init {
             $self->{no_move_penalty} = 0.1; # multiplier
             $self->{long_capture_penalty} = 0; # centipawns
             $self->{distance_penalty} = 0; # centipawns
-        } elsif ($difficulty eq '2') {
+        } elsif ($difficulty eq '2' || $difficulty eq 'ai-medium') {
             $self->{ai_thinkTime} = 1.0;
             $self->{ai_depth} = 2;
             $self->{ai_simul_moves} = 1;
@@ -238,7 +245,7 @@ sub _init {
             $self->{no_move_penalty} = 0.3; # multiplier
             $self->{long_capture_penalty} = 0; # centipawns
             $self->{distance_penalty} = 0; # centipawns
-        } elsif ($difficulty eq '3') {
+        } elsif ($difficulty eq '3' || $difficulty eq 'ai-hard') {
             $self->{ai_thinkTime} = 1.0;
             $self->{ai_depth} = 2;
             $self->{ai_simul_moves} = 2;
@@ -250,7 +257,7 @@ sub _init {
             $self->{no_move_penalty} = 0.5; # multiplier
             $self->{long_capture_penalty} = 0; # centipawns
             $self->{distance_penalty} = 5; # centipawns
-        } elsif ($difficulty eq '4') {
+        } elsif ($difficulty eq '4' || $difficulty eq 'ai-berserk') {
             $self->{ai_thinkTime} = 1.0;
             $self->{ai_depth} = 2;
             $self->{ai_simul_moves} = 2;
@@ -260,6 +267,66 @@ sub _init {
             $self->{ai_interval} = 150_000;
             $self->{randomness} = 500;
             $self->{no_move_penalty} = 0.9; # multiplier
+            $self->{long_capture_penalty} = 0; # centipawns
+            $self->{distance_penalty} = 0; # centipawns
+        } elsif ($difficulty eq '5' || $difficulty eq 'ai-crane') {
+            $self->{ai_thinkTime} = 1.0;
+            $self->{ai_depth} = 2;
+            $self->{ai_simul_moves} = 2;
+            $self->{ai_simul_depth} = 2;
+            $self->{ai_delay} = 100_000; 
+            $self->{ai_min_delay} = 50_000;
+            $self->{ai_interval} = 150_000;
+            $self->{randomness} = 500;
+            $self->{no_move_penalty} = 0.9; # multiplier
+            $self->{long_capture_penalty} = 0; # centipawns
+            $self->{distance_penalty} = 0; # centipawns
+        } elsif ($difficulty eq '6' || $difficulty eq 'ai-turtle') {
+            $self->{ai_thinkTime} = 1.0;
+            $self->{ai_depth} = 2;
+            $self->{ai_simul_moves} = 2;
+            $self->{ai_simul_depth} = 2;
+            $self->{ai_delay} = 100_000; 
+            $self->{ai_min_delay} = 50_000;
+            $self->{ai_interval} = 350_000;
+            $self->{randomness} = 500;
+            $self->{no_move_penalty} = 0.9; # multiplier
+            $self->{long_capture_penalty} = 0; # centipawns
+            $self->{distance_penalty} = 0; # centipawns
+        } elsif ($difficulty eq '7' || $difficulty eq 'ai-centipede') {
+            $self->{ai_thinkTime} = 1.0;
+            $self->{ai_depth} = 2;
+            $self->{ai_simul_moves} = 2;
+            $self->{ai_simul_depth} = 2;
+            $self->{ai_delay} = 100_000; 
+            $self->{ai_min_delay} = 50_000;
+            $self->{ai_interval} = 250_000;
+            $self->{randomness} = 500;
+            $self->{no_move_penalty} = 0.9; # multiplier
+            $self->{long_capture_penalty} = 0; # centipawns
+            $self->{distance_penalty} = 0; # centipawns
+        } elsif ($difficulty eq '8' || $difficulty eq 'ai-dragon') {
+            $self->{ai_thinkTime} = 1.0;
+            $self->{ai_depth} = 2;
+            $self->{ai_simul_moves} = 2;
+            $self->{ai_simul_depth} = 2;
+            $self->{ai_delay} = 100_000; 
+            $self->{ai_min_delay} = 30_000;
+            $self->{ai_interval} = 130_000;
+            $self->{randomness} = 500;
+            $self->{no_move_penalty} = 0.9; # multiplier
+            $self->{long_capture_penalty} = 0; # centipawns
+            $self->{distance_penalty} = 0; # centipawns
+        } elsif ($difficulty eq '9' || $difficulty eq 'ai-master') {
+            $self->{ai_thinkTime} = 1.0;
+            $self->{ai_depth} = 1;
+            $self->{ai_simul_moves} = 1;
+            $self->{ai_simul_depth} = 1;
+            $self->{ai_delay} = 0; 
+            $self->{ai_min_delay} = 0;
+            $self->{ai_interval} = 1_000;
+            $self->{randomness} = 50;
+            $self->{no_move_penalty} = 1.9; # multiplier
             $self->{long_capture_penalty} = 0; # centipawns
             $self->{distance_penalty} = 0; # centipawns
         } elsif ($difficulty eq 'human_a') {
@@ -315,13 +382,23 @@ sub _init {
     } else {
         warn "unknown game speed $speed\n";
     }
+    if (
+        $difficulty eq '5' || $difficulty eq 'ai-crane'
+        || $difficulty eq '6' || $difficulty eq 'ai-turtle'
+        || $difficulty eq '7' || $difficulty eq 'ai-centipede'
+        || $difficulty eq '8' || $difficulty eq 'ai-dragon'
+        || $difficulty eq '9' || $difficulty eq 'ai-master'
+    ) {
+        $self->{skipOpenings} = 1;
+    }
 
-    ### reduce CPU load of 4way AI
+    ### reduce CPU load of 4way AI, skipp openings
     if ($self->{mode} eq '4way') {
         $self->{ai_depth} = $self->{ai_depth} < 3 ? $self->{ai_depth} : 2;
         $self->{ai_delay} *= 2; 
         $self->{ai_min_delay} *= 2;
         $self->{ai_interval} *= 2;
+        $self->{skipOpenings} = 1;
     }
 
 
@@ -443,8 +520,6 @@ sub _init {
                     'userAuthToken' => $self->{authkey},
                 };
                 $self->send($msgMain);
-            } else {
-                print "IS NOT AI HUMAN\n";
             }
         }
     );
@@ -663,17 +738,23 @@ sub handleMessage {
             }
         }
 
-        if ($self->{mode} ne '4way') {
+        if ($self->{skipOpenings}) {
             $self->{movesQueue} = \@moves;
         }
 
         my $w2; 
+
+        my $aiIntervalDecimal = 0.5;
+        if (exists($self->{ai_interval})) {
+            $aiIntervalDecimal = ($self->{ai_interval} / 1_000_000);
+        }
+        print "aiIntervalDecical: $aiIntervalDecimal\n";
         # Start a timer that, at most once every 0.5 seconds, sleeps
         # for 1 second, and then prints "timer":
         my $w1; $w1 = deferred_interval(
             after => 3.1,
             reference => \$w2,  
-            interval => 0.5,
+            interval => $aiIntervalDecimal,
             cb => sub {
                 $self->aiTick();
                 #sleep 1; # Simulated blocking operation.
@@ -716,7 +797,7 @@ sub aiTick {
     my $debug = 0;
 
     #if (Sys::MemInfo::get("freeswap") < $minMemory) { exit; }
-    if ($debug) {
+    if (1) {
         print "\naiTick() " . time() . "\n";
     }
     my $handle = $self->{conn}->{handle};

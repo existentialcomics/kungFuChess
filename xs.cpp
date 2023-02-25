@@ -139,6 +139,26 @@ const Bitboard KNIGHT_ATTACKS[64] = {
 	0x44280000000000, 0x0088500000000000, 0x0010a00000000000, 0x20400000000000
 };
 
+//A lookup table for knight move bitboards
+const Bitboard DRAGON_ATTACKS[64] = {
+    0x2020c00, 0x5051800, 0xa0a3100, 0x14146300,
+    0x2828c600, 0x50508c00, 0xa0a01800, 0x40403000,
+    0x2020c000c, 0x505180018, 0xa0a310031, 0x1414630063,
+    0x2828c600c6, 0x50508c008c, 0xa0a0180018, 0x4040300030,
+    0x2020c000c02, 0x50518001805, 0xa0a3100310a, 0x141463006314,
+    0x2828c600c628, 0x50508c008c50, 0xa0a0180018a0, 0x404030003040,
+    0x2020c000c0202, 0x5051800180505, 0xa0a3100310a0a, 0x14146300631414,
+    0x2828c600c62828, 0x50508c008c5050, 0xa0a0180018a0a0, 0x40403000304040,
+    0x2020c000c020200, 0x505180018050500, 0xa0a3100310a0a00, 0x1414630063141400,
+    0x2828c600c6282800, 0x50508c008c505000, 0xa0a0180018a0a000, 0x4040300030404000,
+    0x20c000c02020000, 0x518001805050000, 0xa3100310a0a0000, 0x1463006314140000,
+    0x28c600c628280000, 0x508c008c50500000, 0xa0180018a0a00000, 0x4030003040400000,
+    0xc000c0202000000, 0x1800180505000000, 0x3100310a0a000000, 0x6300631414000000,
+    0xc600c62828000000, 0x8c008c5050000000, 0x180018a0a0000000, 0x3000304040000000,
+    0xc020200000000, 0x18050500000000, 0x310a0a00000000, 0x63141400000000,
+    0xc6282800000000, 0x8c505000000000, 0x18a0a000000000, 0x30404000000000
+};
+
 //A lookup table for white pawn move bitboards
 const Bitboard WHITE_PAWN_ATTACKS[64] = {
 	0x200, 0x500, 0xa00, 0x1400,
@@ -626,7 +646,7 @@ int distanceSquare(Square x, Square y) { return SquareDistance[x][y]; }
 
 inline Bitboard safe_destination(Square s, int step) {
     Square to = Square(s + step);
-    return is_ok(to) && distanceSquare(s, to) <= 2 ? square_bb(to) : Bitboard(0);
+    return is_ok(to) && distanceSquare(s, to) <= 3 ? square_bb(to) : Bitboard(0);
 }
 
 // init_magics() computes all rook and bishop attacks at startup. Magic
@@ -695,6 +715,11 @@ Bitboard pawn_attacks(Color C, Square s) {
 //Returns a bitboard containing pawn attacks from the pawn on the given square
 Bitboard knight_attacks(Square s) {
     return KNIGHT_ATTACKS[s];
+}
+
+//Returns a bitboard containing pawn attacks from the pawn on the given square
+Bitboard dragon_attacks(Square s) {
+    return DRAGON_ATTACKS[s];
 }
 
 //Returns a bitboard containing pawn attacks from the pawn on the given square
@@ -821,11 +846,22 @@ void initialise_bitboard() {
       PawnAttacks[WHITE][s1] = pawn_attacks(WHITE, square_bb(s1));
       PawnAttacks[BLACK][s1] = pawn_attacks(BLACK, square_bb(s1));
 
-      for (int step : {-9, -8, -7, -1, 1, 7, 8, 9} )
+      for (int step : {-9, -8, -7, -1, 1, 7, 8, 9} ) {
          PseudoAttacks[KING][s1] |= safe_destination(s1, step);
+      }
 
-      for (int step : {-17, -15, -10, -6, 6, 10, 15, 17} )
+      for (int step : {-17, -15, -10, -6, 6, 10, 15, 17} ) {
          PseudoAttacks[KNIGHT][s1] |= safe_destination(s1, step);
+      }
+
+      // knight
+      for (int step : {-17, -15, -10, -6, 6, 10, 15, 17} ) {
+         PseudoAttacks[DRAGON][s1] |= safe_destination(s1, step);
+      }
+      // dragon
+      for (int step : {-25, -23, -11, -5, 5, 11, 23, 25} ) {
+         PseudoAttacks[DRAGON][s1] |= safe_destination(s1, step);
+      }
 
       PseudoAttacks[QUEEN][s1]  = PseudoAttacks[BISHOP][s1] = attacks_bb(BISHOP, s1, 0);
       PseudoAttacks[QUEEN][s1] |= PseudoAttacks[  ROOK][s1] = attacks_bb(ROOK, s1, 0);
@@ -1047,15 +1083,24 @@ int evaluateThreats(Color Us) {
     }
 
     // Bonus for attacking enemy pieces with our relatively safe pawns
-    //b = pieces(Us, PAWN) & safe;
-    //b = pieces(Us, PAWN);
-    b = attackedBy[Us][PAWN] & nonPawnEnemies;
+    b = pieces(Us, PAWN) & safe;
+    b = pawn_attacks_bb(Us, b) & nonPawnEnemies;
 
     score += ThreatBySafePawn * popcount(b);
 
-    // we can attack
-    b = shift(Up, attackedBy[Us][PAWN]) & nonPawnEnemies;
+    Bitboard  TRank3BB = (Us == WHITE ? Rank3BB : Rank6BB);
+
+    // Find squares where our pawns can push on the next move
+    b  = shift(Up, pieces(Us, PAWN)) & ~pieces();
+    b |= shift(Up, b & TRank3BB) & ~pieces();
+
+    // Keep only the squares which are relatively safe
+    b &= ~attackedBy[Them][PAWN] & safe;
+
+    //// Bonus for safe pawn threats on the next move
+    b = pawn_attacks_bb(Us, b) & nonPawnEnemies;
     score += ThreatByPawnPush * popcount(b);
+
 
     if (debug) {
         std::cout << "eval threats for " << Us << ": " << score << "\n";
@@ -1202,7 +1247,6 @@ int evaluateKing(Color Us, Square ksq) {
     Color    Them = ~Us;
     Bitboard Camp = (Us == WHITE ? AllSquares ^ Rank6BB ^ Rank7BB ^ Rank8BB
                                            : AllSquares ^ Rank1BB ^ Rank2BB ^ Rank3BB);
-
     Bitboard weak, b1, b2, b3, safe, unsafeChecks = 0;
     Bitboard rookChecks, queenChecks, bishopChecks, knightChecks;
     int kingDanger = 0;
@@ -1673,6 +1717,30 @@ std::vector<Move> getAllMoves(Color wantColor) {
             }
         }
         
+        //*********************** knights
+        b = pieces(c, DRAGON);
+        mobility[Us] += MobilityBonus[KNIGHT - 2][mob];
+        while (b) {
+            Square sq = pop_lsb(b);
+            Bitboard att_bb = dragon_attacks(sq);
+            attackedBy[Us][KING] |= att_bb;
+
+            Piece piece = make_piece(c, DRAGON);
+            board[sq] = piece;
+
+            // don't need to actually generate moves for frozen pieces
+            if (wantColor == Us && ! (sq & frozen)) {
+                // TODO disallow attacking yourself yes? probably for the best for now
+                att_bb &= (~occupiedMe);
+                att_bb &= (~moving);
+                while (att_bb) {
+                    Square sq_to = pop_lsb(att_bb);
+                    Move m = make_move(sq, sq_to, QUIET);
+                    moveArrayTmp.push_back(m);
+                }
+            }
+        }
+        
         //*********************** bishops
         b = pieces(c, BISHOP);
         mob = popcount(b & mobilityArea[Us]);
@@ -1923,6 +1991,7 @@ void setBBs(
     Bitboard bb_rooks,
     Bitboard bb_queens,
     Bitboard bb_kings,
+    Bitboard bb_dragons,
     Bitboard bb_white,
     Bitboard bb_black,
     Bitboard bb_frozen,
@@ -1935,6 +2004,7 @@ void setBBs(
     byTypeBB[ROOK] = bb_rooks;
     byTypeBB[QUEEN] = bb_queens;
     byTypeBB[KING] = bb_kings;
+    byTypeBB[DRAGON] = bb_dragons;
     byTypeBB[ALL_PIECES] = bb_white | bb_black;
 
     byColorBB[WHITE] = bb_white;

@@ -1061,7 +1061,7 @@ var handleMessage = function(msg) {
 }
 
 var setPlayers = function() {
-    $('#sit').style.visibility = "hidden";
+    $('#sit').hide();
     if (whitePlayer) {
         $('#whitePlayerName').text(whitePlayer.screenname);
         if (gameSpeed == 'standard') {
@@ -1072,7 +1072,7 @@ var setPlayers = function() {
     } else {
         $('#whitePlayerName').text("(empty seat)");
         $('#whitePlayerRating').text("");
-        $('#sit').style.visibility = "visible";
+        $('#sit').show();
     }
     if (blackPlayer) {
         $('#blackPlayerName').text(blackPlayer.screenname);
@@ -1084,11 +1084,10 @@ var setPlayers = function() {
     } else {
         $('#blackPlayerName').text("(empty seat)");
         $('#blackPlayerRating').text("");
-        $('#sit').style.visibility = "visible";
+        $('#sit').show();
     }
 
     if (gameType == '4way') {
-        console.log('4way players');
         if (redPlayer) {
             $('#redPlayerName').text(redPlayer.screenname);
             if (gameSpeed == 'standard') {
@@ -1099,7 +1098,7 @@ var setPlayers = function() {
         } else {
             $('#redPlayerName').text("(empty seat)");
             $('#redPlayerRating').text("");
-            $('#sit').style.visibility = "visible";
+            $('#sit').show();
         }
         if (greenPlayer) {
             $('#greenPlayerName').text(greenPlayer.screenname);
@@ -1111,7 +1110,7 @@ var setPlayers = function() {
         } else {
             $('#greenPlayerName').text("(empty seat)");
             $('#greenPlayerRating').text("");
-            $('#sit').style.visibility = "visible";
+            $('#sit').show();
         }
     }
 }
@@ -1171,6 +1170,8 @@ var spawn = function(chr, square) {
                 piece = getKnight(x, y, color);
             } else if (type % 100 == 1){
                 piece = getPawn(x, y, color);
+            } else if (type % 100 == 7){
+                piece = getDragon(x, y, color);
             } 
             piece.id = maxPieceId++;
             piece.image.on('click', (e) => {
@@ -1403,6 +1404,30 @@ var getPawn = function(x, y, color){
             return ((y == yDir || y == yDir * 2) && x <= Math.abs(1));
         }
         return (y == yDir && x <= Math.abs(1));
+    }
+    return piece;
+}
+
+var getDragon = function(x, y, color){
+    var dragonImage;
+    if (color == "white"){
+        dragonImage = whiteDragon;
+    } else if (color == 'red') {
+        dragonImage = redDragon;
+    } else if (color == 'green') {
+        dragonImage = greenDragon;
+    } else {
+        dragonImage = blackDragon;
+    }
+    var piece = getPiece(x, y, color, dragonImage);
+    piece.type = 'dragon';
+    piece.killSound = new Audio('/sound/Roundhouse Kick-SoundBible.com-1663225804.mp3');
+
+    piece.legalMove = function(x, y){
+        if (x == 0){ return true; }
+        else if (y == 0){ return true; }
+        else if (Math.abs(x) == Math.abs(y)){ return true; }
+        return false;
     }
     return piece;
 }

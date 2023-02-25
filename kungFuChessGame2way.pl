@@ -6,6 +6,7 @@ my $authKey = shift;
 my $pieceSpeed = shift;
 my $pieceRecharge = shift;
 my $speedAdj = shift;
+my $fen = shift;
 
 use Cwd qw( abs_path );
 use File::Basename qw( dirname );
@@ -22,5 +23,5 @@ my $kfc = KungFuChess::GameServer->new(
     $pieceRecharge,
     $speedAdj,
     '2way',
-    0
+    $fen
 );

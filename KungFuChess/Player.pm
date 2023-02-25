@@ -370,7 +370,7 @@ sub _loadAiUser {
     my $authToken = shift;
 
     $self->{player_id} = -2;
-    $self->{screenname} = 'ai';
+    $self->{screenname} = 'AI';
     $self->{rating_standard} = 0;
     $self->{rating_lighting} = 0;
     $self->{rating_standard_4way} = 0;
@@ -385,9 +385,6 @@ sub _loadById {
     my $anonToken = shift;
     if ($userId == ANON_USER) {
         return $self->_loadAnonymousUser($anonToken);
-    }
-    if ($userId == AI_USER) {
-        return $self->_loadAiUser();
     }
 
     my $profileRows = $self->{dbh}->selectall_arrayref('

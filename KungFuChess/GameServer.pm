@@ -125,6 +125,7 @@ sub _init {
     my $pieceRecharge = shift;
     my $speedAdj = shift;
     my $gameType = shift;
+    my $fen = shift;
 
     print "game key: $gameKey, authkey: $authKey, speed: $pieceSpeed/$pieceRecharge, adj: $speedAdj, gameType: $gameType\n";
     
@@ -196,7 +197,11 @@ sub _init {
         };
         $self->send($msg);
 
-        $self->setupInitialBoard();
+        if ($fen) {
+            KungFuChess::Bitboards::loadFENstring($fen);
+        } else {
+            $self->setupInitialBoard();
+        }
 
         # recieve message from the websocket...
         $connection->on(each_message => sub {

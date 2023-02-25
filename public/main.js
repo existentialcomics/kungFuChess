@@ -214,6 +214,29 @@ function checkPool(originalThread = false) {
 
 //$(document).ready(function () {
 $(function () {
+    $("#ai-2wayRadio").click(function() {
+        $("#ai-crane").prop("disabled", false);
+        $("#ai-turtle").prop("disabled", false);
+        $("#ai-centipede").prop("disabled", false);
+        $("#ai-dragon").prop("disabled", false);
+    });
+    $("#ai-4wayRadio").click(function() {
+        $("#ai-crane").prop("disabled", true);
+        $("#ai-turtle").prop("disabled", true);
+        $("#ai-centipede").prop("disabled", true);
+        $("#ai-dragon").prop("disabled", true);
+        if ($("#ai-crane").prop("checked") == true ||
+            $("#ai-turtle").prop("checked") == true ||
+            $("#ai-centipede").prop("checked") == true ||
+            $("#ai-dragon").prop("checked") == true
+        ) {
+          $("#ai-easy").prop("checked", true);
+          $("#ai-crane").prop("checked", false);
+          $("#ai-turtle").prop("checked", false);
+          $("#ai-centipede").prop("checked", false);
+          $("#ai-dragon").prop("checked", false);
+        }
+    });
     $("#lightningRadio").click(function() {
         document.querySelector("#pieceSpeedRange").value = 1;
         $("#pieceSpeedLabel").text('Lightning 1/0.1');

@@ -102,16 +102,16 @@ constexpr Bitboard KingFlank[FILE_NB] = {
 Bitboard passedPawns[COLOR_NB];
 
 enum PieceType {
-  NO_PIECE_TYPE, PAWN, KNIGHT, BISHOP, ROOK, QUEEN, KING,
+  NO_PIECE_TYPE, PAWN, KNIGHT, BISHOP, ROOK, QUEEN, KING, DRAGON,
   ALL_PIECES = 0,
-  PIECE_TYPE_NB = 8
+  PIECE_TYPE_NB = 9
 };
 
 enum Piece {
   NO_PIECE,
-  W_PAWN = PAWN,     W_KNIGHT, W_BISHOP, W_ROOK, W_QUEEN, W_KING,
-  B_PAWN = PAWN + 8, B_KNIGHT, B_BISHOP, B_ROOK, B_QUEEN, B_KING,
-  PIECE_NB = 16
+  W_PAWN = PAWN,     W_KNIGHT, W_BISHOP, W_ROOK, W_QUEEN, W_KING, W_DRAGON,
+  B_PAWN = PAWN + 9, B_KNIGHT, B_BISHOP, B_ROOK, B_QUEEN, B_KING, B_DRAGON,
+  PIECE_NB = 18
 };
 
 constexpr Piece operator~(Piece pc) {
@@ -768,7 +768,7 @@ constexpr Bitboard file_bb(Square s) {
 
 
 //template<Direction D>
-Bitboard shift(Direction D, Bitboard b) {
+constexpr Bitboard shift(Direction D, Bitboard b) {
   return  D == NORTH      ?  b             << 8 : D == SOUTH      ?  b             >> 8
         : D == NORTH+NORTH?  b             <<16 : D == SOUTH+SOUTH?  b             >>16
         : D == EAST       ? (b & ~FileHBB) << 1 : D == WEST       ? (b & ~FileABB) >> 1
@@ -780,10 +780,25 @@ Bitboard shift(Direction D, Bitboard b) {
 /// pawn_double_attacks_bb() returns the squares doubly attacked by pawns of the
 /// given color from the squares in the given bitboard.
 
-Bitboard pawn_double_attacks_bb(Color c, Bitboard b) {
+constexpr Bitboard pawn_double_attacks_bb(Color c, Bitboard b) {
   return c == WHITE ? shift(NORTH_WEST, b) & shift(NORTH_EAST, b)
                     : shift(SOUTH_WEST, b) & shift(SOUTH_EAST, b);
 }
+
+/// pawn_attacks_bb() returns the squares attacked by pawns of the given color
+/// from the squares in the given bitboard.
+
+constexpr Bitboard pawn_attacks_bb(Color c, Bitboard b) {
+  return c == WHITE ? shift(NORTH_WEST, b) | shift(NORTH_EAST, b)
+                    : shift(SOUTH_WEST, b) | shift(SOUTH_EAST, b);
+}
+
+inline Bitboard pawn_attacks_bb(Color c, Square s) {
+
+  assert(is_ok(s));
+  return PawnAttacks[c][s];
+}
+
 
 /// adjacent_files_bb() returns a bitboard representing all the squares on the
 /// adjacent files of a given square.

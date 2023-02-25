@@ -35,6 +35,11 @@ use constant {
     AI_USER_MEDIUM => -3,
     AI_USER_HARD => -4,
     AI_USER_BERSERK => -5,
+    AI_USER_CRANE => -6,
+    AI_USER_TURTLE => -7,
+    AI_USER_CENTIPEDE => -8,
+    AI_USER_DRAGON => -9,
+    AI_USER_MASTER => -10,
     SYSTEM_USER => -99,
     GAME_ERROR_AI_FULL => -1,
     MAX_AI_GAMES => 2,
@@ -449,24 +454,86 @@ post '/ajax/createChallenge' => sub {
         if (! $user || ! %$user) {
             app->db()->do("UPDATE games SET black_anon_key = white_anon_key WHERE game_id = ?", {}, $gameId);
         }
-    } elsif ($gameMode eq 'ai-easy' || $gameMode eq 'ai-medium'
-        || $gameMode eq 'ai-hard' || $gameMode eq 'ai-berserk') {
+    } elsif ($gameMode eq 'ai-easy' || $gameMode eq 'ai-medium' || $gameMode eq 'ai-hard' ||
+        $gameMode eq 'ai-berserk' || $gameMode eq 'ai-crane' || $gameMode eq 'ai-turtle' ||
+        $gameMode eq 'ai-dragon' || $gameMode eq 'ai-centipede' || $gameMode eq 'ai-master'
+    ) {
+        my $aiLevel = 
+            $gameMode eq 'ai-easy' ? AI_USER_EASY :
+            $gameMode eq 'ai-medium' ? AI_USER_MEDIUM : 
+            $gameMode eq 'ai-hard' ? AI_USER_HARD :
+            $gameMode eq 'ai-berserk' ? AI_USER_BERSERK :
+            $gameMode eq 'ai-crane' ? AI_USER_CRANE :
+            $gameMode eq 'ai-turtle' ? AI_USER_TURTLE :
+            $gameMode eq 'ai-centipede' ? AI_USER_CENTIPEDE :
+            $gameMode eq 'ai-dragon' ? AI_USER_DRAGON :
+            $gameMode eq 'ai-master' ? AI_USER_MASTER :
+            AI_USER_MEDIUM;
 
-        $options->{ai_difficulty} = ($gameMode eq 'ai-easy' ? 1 : ($gameMode eq 'ai-medium' ? 2 : 3));
+        #$options->{ai_difficulty} = $gameMode;
         $options->{white_anon_key} = $user->{auth_token};
         if ($gameMode eq 'ai-berserk') {
             if ($gameSpeed eq 'standard') {
                 $options->{speed_advantage} = '1:0.6:0.6:0.6';
             } else {
+                $options->{speed_advantage} = '1:0.6:0.6:0.6';
+            }
+        }
+        if ($gameMode eq 'ai-crane') {
+            if ($gameSpeed eq 'standard') {
+                $options->{fen} = 'nnnnknnn/pnnppnnp/8/8/8/8/PPPPPPPP/RNBQKBNR';
+                #$options->{speed_advantage} = '1:0.6:0.6:0.6';
+            } else {
+                $options->{fen} = 'nnnnknnn/pnnppnnp/8/8/8/8/PPPPPPPP/RNBQKBNR';
+                #$options->{speed_advantage} = '1.6:1:1:1';
+            }
+        }
+        if ($gameMode eq 'ai-crane') {
+            if ($gameSpeed eq 'standard') {
+                $options->{fen} = 'nnnnknnn/pnnppnnp/8/8/8/8/PPPPPPPP/RNBQKBNR';
+                $options->{speed_advantage} = '1:0.6:0.6:0.6';
+            } else {
+                $options->{fen} = 'nnnnknnn/pnnppnnp/8/8/8/8/PPPPPPPP/RNBQKBNR';
                 $options->{speed_advantage} = '1.6:1:1:1';
             }
         }
+        if ($gameMode eq 'ai-turtle') {
+            if ($gameSpeed eq 'standard') {
+                $options->{fen} = 'rrrrkrrr/prr11rrp/8/8/8/8/PPPPPPPP/RNBQKBNR';
+                $options->{speed_advantage} = '1:1.3:1.3:1.3';
+            } else {
+                $options->{fen} = 'rrrrkrrr/prrpprrp/8/8/8/8/PPPPPPPP/RNBQKBNR';
+                $options->{speed_advantage} = '1:1.3:1.3:1.3';
+            }
+        }
+        if ($gameMode eq 'ai-centipede') {
+            if ($gameSpeed eq 'standard') {
+                $options->{fen} = 'ppppkppp/pppppppp/pppppppp/8/8/8/PPPPPPPP/RNBQKBNR';
+                #$options->{speed_advantage} = '1:0.6:0.6:0.6';
+            } else {
+                $options->{fen} = 'ppppkppp/pppppppp/pppppppp/8/8/8/PPPPPPPP/RNBQKBNR';
+                #$options->{speed_advantage} = '1.6:1:1:1';
+            }
+        }
+        if ($gameMode eq 'ai-dragon') {
+            if ($gameSpeed eq 'standard') {
+                $options->{fen} = 'ddddkddd/8/8/8/8/8/PPPPPPPP/RNBQKBNR';
+                $options->{speed_advantage} = '1:0.6:0.6:0.6';
+            } else {
+                $options->{fen} = 'ddddkddd/8/8/8/8/8/PPPPPPPP/RNBQKBNR';
+                $options->{speed_advantage} = '1:0.6:0.6:0.6';
+            }
+        }
+        if ($gameMode eq 'ai-master') {
+            if ($gameSpeed eq 'standard') {
+                $options->{fen} = '4k3/8/8/8/8/8/PPPPPPPP/RNBQKBNR';
+                $options->{speed_advantage} = '1:0.1:0.1:0.1';
+            } else {
+                $options->{fen} = '4k3/8/8/8/8/8/PPPPPPPP/RNBQKBNR';
+                $options->{speed_advantage} = '1:0.1:0.1:0.1';
+            }
+        }
 
-        my $aiLevel = 
-            $gameMode eq 'ai-easy' ? AI_USER_EASY :
-            $gameMode eq 'ai-medium' ? AI_USER_MEDIUM : 
-            $gameMode eq 'ai-hard' ? AI_USER_HARD :
-            AI_USER_BERSERK;
         $gameId = createGame(
             undef, ## board id
             $gameType,
@@ -474,8 +541,8 @@ post '/ajax/createChallenge' => sub {
             0,
             ($user ? $user->{player_id} : ANON_USER),
             $aiLevel,
-            $gameType eq '4way' ? AI_USER_EASY : undef,
-            $gameType eq '4way' ? AI_USER_EASY : undef,
+            $gameType eq '4way' ? $aiLevel : undef,
+            $gameType eq '4way' ? $aiLevel : undef,
             $options
         );
     } else {
@@ -1342,12 +1409,7 @@ get '/open-json/ai' => sub {
                 && $game->{$playerCol} < 0
                 && ! defined($game->{$color . '_anon_key'}))
             {
-                my $level =
-                ($game->{$playerCol} == AI_USER_EASY ? '1':
-                 $game->{$playerCol} == AI_USER_MEDIUM ? '2':
-                 $game->{$playerCol} == AI_USER_HARD ? '3':
-                 $game->{$playerCol} == AI_USER_BERSERK ? '4':
-                 1);
+                my $level = getAiLevel($game->{$playerCol});
 
                 push @openAiGames, {
                     'level' => $level,
@@ -1363,6 +1425,7 @@ get '/open-json/ai' => sub {
             }
         }
     }
+    print Dumper(@openAiGames);
     $c->render('json' => \@openAiGames);
 };
 
@@ -1730,6 +1793,7 @@ sub createRematchGame {
                 'teams'     => $gameRow->{teams},
                 'piece_speed' => $gameRow->{piece_speed},
                 'piece_recharge' => $gameRow->{piece_recharge},
+                'fen' => $gameRow->{starting_fen},
             },
         )
     }
@@ -1739,18 +1803,25 @@ sub isAiUser {
     my $playerId = shift;
 
     if (! defined($playerId)) { return 0; }
-    return ($playerId == AI_USER_EASY
-         || $playerId == AI_USER_MEDIUM
-         || $playerId == AI_USER_HARD
-         || $playerId == AI_USER_BERSERK);
+    return ($playerId <= AI_USER_EASY && $playerId >= AI_USER_MASTER);
+    #return ($playerId == AI_USER_EASY
+         #|| $playerId == AI_USER_MEDIUM
+         #|| $playerId == AI_USER_HARD
+         #|| $playerId == AI_USER_BERSERK
+     #);
 }
 
 sub getAiLevel {
     my $playerId = shift;
-    if ($playerId == AI_USER_EASY)   { return 1; }
-    if ($playerId == AI_USER_MEDIUM) { return 2; }
-    if ($playerId == AI_USER_HARD)   { return 3; }
-    if ($playerId == AI_USER_BERSERK){ return 4; }
+    if ($playerId == AI_USER_EASY)   { return 'ai-easy'; }
+    if ($playerId == AI_USER_MEDIUM) { return 'ai-medium'; }
+    if ($playerId == AI_USER_HARD)   { return 'ai-hard'; }
+    if ($playerId == AI_USER_BERSERK){ return 'ai-berserk'; }
+    if ($playerId == AI_USER_CRANE)  { return 'ai-crane'; }
+    if ($playerId == AI_USER_TURTLE) { return 'ai-turtle'; }
+    if ($playerId == AI_USER_CENTIPEDE) { return 'ai-centipede'; }
+    if ($playerId == AI_USER_DRAGON) { return 'ai-dragon'; }
+    if ($playerId == AI_USER_MASTER) { return 'ai-master'; }
 
     return 1;
 }
@@ -1821,8 +1892,29 @@ sub createGame {
             $boardId = $sthBoard->{mysql_insertid};
         };
     }
-    my $sth = app->db()->prepare("INSERT INTO games (game_id, board_id, game_speed, game_type, white_player, black_player, red_player, green_player, rated, white_anon_key, black_anon_key, red_anon_key, green_anon_key, ws_server, server_auth_key, speed_advantage, teams, piece_speed, piece_recharge)
-        VALUES (NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+    my $sth = app->db()->prepare("INSERT INTO games (
+         game_id,
+         board_id,
+         game_speed,
+         game_type,
+         white_player,
+         black_player,
+         red_player,
+         green_player,
+         rated,
+         white_anon_key,
+         black_anon_key,
+         red_anon_key,
+         green_anon_key,
+         ws_server,
+         server_auth_key,
+         speed_advantage,
+         teams,
+         piece_speed,
+         piece_recharge,
+         starting_fen
+         )
+        VALUES (NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
     $sth->execute(
         $boardId,
         $speed,
@@ -1841,7 +1933,8 @@ sub createGame {
         $speedAdvantage,
         $teams,
         $pieceSpeed,
-        $pieceRecharge
+        $pieceRecharge,
+        $options->{fen} // undef
     );
 
     my $gameId = $sth->{mysql_insertid};
@@ -1860,13 +1953,14 @@ sub createGame {
     # spin up game server, wait for it to send authjoin
     app->log->debug( "starting game client $gameId, $auth" );
     # spin up game server, wait for it to send authjoin
-    my $cmd = sprintf('/usr/bin/perl ./kungFuChessGame%s.pl %s %s %s %s %s >%s 2>%s &',
+    my $cmd = sprintf('/usr/bin/perl ./kungFuChessGame%s.pl %s %s %s %s %s %s >%s 2>%s &',
         $type,
         $gameId,
         $auth,
         $pieceSpeed,
         $pieceRecharge,
         $speedAdvantage // "1:1:1:1",
+        $options->{fen} // "",
         '/var/log/kungfuchess/' . $gameId . '-game.log',
         '/var/log/kungfuchess/' . $gameId . '-error.log'
     );
@@ -2331,10 +2425,10 @@ websocket '/ws' => sub {
                         (exists($rematches{$gameId}->{black}) || $gameRow->{black_player} == ANON_USER || isAiUser($gameRow->{black_player}))
                     ) || 
                     (   ($gameRow->{game_type} eq '4way') &&
-                        exists($rematches{$gameId}->{white}) && 
-                        exists($rematches{$gameId}->{black}) && 
-                        exists($rematches{$gameId}->{red}) && 
-                        exists($rematches{$gameId}->{green})
+                        exists($rematches{$gameId}->{white}) || isAiUser($gameRow->{white_player}) && 
+                        exists($rematches{$gameId}->{black}) || isAiUser($gameRow->{black_player}) && 
+                        exists($rematches{$gameId}->{red}) || isAiUser($gameRow->{red_player}) && 
+                        exists($rematches{$gameId}->{green}) || isAiUser($gameRow->{green_player})
                     )
                 ) {
                     my $rematchGameId = createRematchGame($gameId);
@@ -2385,14 +2479,14 @@ websocket '/ws' => sub {
         }
 
         if ($msg->{'c'} eq 'join'){
-            my ($color, $gameRow, $successAuth) = authGameColor($msg->{auth}, $msg->{uid}, $msg->{gameId});
+            my ($color, $gameRow, $successAuth, $playerId) = authGameColor($msg->{auth}, $msg->{uid}, $msg->{gameId});
             $game->addConnection($connId, $self);
             $gameConnections{$msg->{gameId}}->{$connId} = $self;
             $playerGamesByServerConn{$connId} = $msg->{gameId};
 
             if ($color) {
                 my $auth = $msg->{userAuthToken} ? $msg->{userAuthToken} : $msg->{auth};
-                my $player = new KungFuChess::Player({auth_token => $auth}, app->db());
+                my $player = new KungFuChess::Player({userId => $playerId, auth_token => $auth}, app->db());
                 $game->addPlayer($successAuth, $color, $player);
             } else {
                 my $auth = $msg->{userAuthToken} ? $msg->{userAuthToken} : $msg->{auth};
@@ -3781,21 +3875,26 @@ sub authGameColor {
         }
     }
     if (! $anonAuth) { $anonAuth = $playerAuth; } 
+    my $playerId = ANON_USER;
     if ($anonAuth) {
         if (defined($gameRow->{white_anon_key}) && $anonAuth eq $gameRow->{white_anon_key}) {
             $authColor = 'white';
+            $playerId = $gameRow->{white_player};
         }
         if (defined($gameRow->{black_anon_key}) && $anonAuth eq $gameRow->{black_anon_key}) {
             $authColor = ($authColor ? 'both' : 'black'); 
+            $playerId = $gameRow->{black_player};
         }
         if (defined($gameRow->{red_anon_key}) && $anonAuth eq $gameRow->{red_anon_key}) {
             $authColor = ($authColor ? 'both' : 'red'); 
+            $playerId = $gameRow->{red_player};
         }
         if (defined($gameRow->{green_anon_key}) && $anonAuth eq $gameRow->{green_anon_key}) {
             $authColor = ($authColor ? 'both' : 'green'); 
+            $playerId = $gameRow->{green_player};
         }
         if ($authColor) {
-            return ($authColor, $gameRow, $playerAuth, ANON_USER);
+            return ($authColor, $gameRow, $playerAuth, $playerId);
         }
     }
     return (undef, $gameRow, undef, undef);

@@ -7,24 +7,39 @@
             <div class="form-group">
                 <label for="gameSpeed" class="col col-form-label col-form-label-lg">Game Speed</label>
                 <div class="btn-group d-flex" role="group" aria-label="Game Speed">
-                    <input type="radio" class="btn-check" name="gameSpeed" id="aiStandardRadio" autocomplete="off" value="standard" checked>
+                    <input type="radio" class="btn-check" name="gameSpeed" id="aiStandardRadio" autocomplete="off" value="standard">
                     <label class="btn btn-outline-primary" for="aiStandardRadio">Standard</label>
-                    <input type="radio" class="btn-check" name="gameSpeed" id="aiLightningRadio" autocomplete="off" value="lightning">
+                    <input type="radio" class="btn-check" name="gameSpeed" id="aiLightningRadio" autocomplete="off" value="lightning" checked>
                     <label class="btn btn-outline-primary" for="aiLightningRadio">Lightning</label>
                 </div>
 
                 <label for="gameMode" class="col col-form-label col-form-label-lg">AI Difficulty</label>
-                <div class="btn-group d-flex" role="group" aria-label="AI Difficulty">
-                    <input type="radio" class="btn-check text-light" name="gameMode" id="ai-easy" autocomplete="off" value="ai-easy">
+                <div class="btn-group flex-wrap" role="group" aria-label="AI Difficulty">
+
+                    <input type="radio" class="btn-check text-light" name="gameMode" id="ai-easy" autocomplete="off" value="ai-easy" checked>
                     <label class="btn btn-outline-primary" for="ai-easy">Easy</label>
-                    <input type="radio" class="btn-check text-light" name="gameMode" id="ai-medium" autocomplete="off" value="ai-medium" checked>
+
+                    <input type="radio" class="btn-check text-light" name="gameMode" id="ai-medium" autocomplete="off" value="ai-medium">
                     <label class="btn btn-outline-primary" for="ai-medium">Medium</label>
+
                     <input type="radio" class="btn-check text-light" name="gameMode" id="ai-hard" autocomplete="off" value="ai-hard">
                     <label class="btn btn-outline-primary" for="ai-hard">Hard</label>
+
                     <input type="radio" class="btn-check text-light" name="gameMode" id="ai-berserk" autocomplete="off" value="ai-berserk">
                     <label class="btn btn-outline-primary" for="ai-berserk">Berserk</label>
-                </div>
 
+                    <input type="radio" class="btn-check text-light" name="gameMode" id="ai-crane" autocomplete="off" value="ai-crane">
+                    <label class="btn btn-outline-primary" for="ai-crane">Crane Style</label>
+
+                    <input type="radio" class="btn-check text-light" name="gameMode" id="ai-turtle" autocomplete="off" value="ai-turtle">
+                    <label class="btn btn-outline-primary" for="ai-turtle">Turtle Style</label>
+
+                    <input type="radio" class="btn-check text-light" name="gameMode" id="ai-centipede" autocomplete="off" value="ai-centipede">
+                    <label class="btn btn-outline-primary" for="ai-centipede">Centipede Style</label>
+
+                    <input type="radio" class="btn-check text-light" name="gameMode" id="ai-dragon" autocomplete="off" value="ai-dragon">
+                    <label class="btn btn-outline-primary" for="ai-dragon">Dragon Style</label>
+                </div>
                 <label for="gameType" class="col col-form-label col-form-label-lg">Number of Players</label>
                 <div class="btn-group d-flex" role="group" aria-label="Board type">
                     <input type="radio" class="btn-check" name="gameType" id="ai-2wayRadio" autocomplete="off" value="2way" checked>

@@ -87,6 +87,7 @@ use constant ({
     ROOK   => 004,
     KING   => 005,
     QUEEN  => 006,
+    DRAGON => 007,
 
     ### array of a move for AI
     MOVE_FR         => 0,
@@ -107,6 +108,7 @@ use constant ({
     WHITE_ROOK   => 104,
     WHITE_KING   => 105,
     WHITE_QUEEN  => 106,
+    WHITE_DRAGON => 107,
 
     BLACK_PAWN   => 201,
     BLACK_KNIGHT => 202,
@@ -114,6 +116,7 @@ use constant ({
     BLACK_ROOK   => 204,
     BLACK_KING   => 205,
     BLACK_QUEEN  => 206,
+    BLACK_DRAGON => 207,
 
     FILES => [ 
         0x0101010101010101,
@@ -424,6 +427,7 @@ my $bishops  = 0x0000000000000000;
 my $rooks    = 0x0000000000000000;
 my $queens   = 0x0000000000000000;
 my $kings    = 0x0000000000000000;
+my $dragons  = 0x0000000000000000;
 my $white     = 0x0000000000000000;
 my $black     = 0x0000000000000000;
 my $occupied  = 0x0000000000000000;
@@ -451,6 +455,7 @@ my $ai_bishops  = 0x0000000000000000;
 my $ai_rooks    = 0x0000000000000000;
 my $ai_queens   = 0x0000000000000000;
 my $ai_kings    = 0x0000000000000000;
+my $ai_dragons  = 0x0000000000000000;
 my $ai_white     = 0x0000000000000000;
 my $ai_black     = 0x0000000000000000;
 my $ai_occupied  = 0x0000000000000000;
@@ -712,6 +717,7 @@ sub _removePiece {
     $knights  &= ~$pieceBB;
     $kings    &= ~$pieceBB;
     $queens   &= ~$pieceBB;
+    $dragons  &= ~$pieceBB;
 
     $frozenBB &= ~$pieceBB;
     $movingBB &= ~$pieceBB;
@@ -746,6 +752,7 @@ sub _removePiece_ai {
     $ai_rooks    &= ~$_[0];
     $ai_bishops  &= ~$_[0];
     $ai_knights  &= ~$_[0];
+    $ai_dragons  &= ~$_[0];
     $ai_kings    &= ~$_[0];
     $ai_queens   &= ~$_[0];
 
@@ -1050,6 +1057,43 @@ sub isLegalMove {
         }
         return @noMove;
     }
+    if ($fr_bb & $dragons) {
+        if ( shift_BB($fr_bb, NORTH + NORTH) &
+             (shift_BB($to_bb, WEST) | shift_BB($to_bb, EAST)) ){
+            return ($color, MOVE_KNIGHT, DIR_NONE, $fr_bb, $to_bb);
+        }
+        if ( shift_BB($fr_bb, SOUTH + SOUTH) &
+             (shift_BB($to_bb, WEST) | shift_BB($to_bb, EAST)) ){
+            return ($color, MOVE_KNIGHT, DIR_NONE, $fr_bb, $to_bb);
+        }
+        if ( shift_BB(shift_BB($fr_bb, WEST), WEST) &
+             (shift_BB($to_bb, NORTH) | shift_BB($to_bb, SOUTH)) ){
+            return ($color, MOVE_KNIGHT, DIR_NONE, $fr_bb, $to_bb);
+        }
+        if ( shift_BB(shift_BB($fr_bb, EAST), EAST) &
+             (shift_BB($to_bb, NORTH) | shift_BB($to_bb, SOUTH)) ){
+            return ($color, MOVE_KNIGHT, DIR_NONE, $fr_bb, $to_bb);
+        }
+        ### dragon moves
+        if ( shift_BB(shift_BB($fr_bb, NORTH), NORTH + NORTH) &
+             (shift_BB($to_bb, WEST) | shift_BB($to_bb, EAST)) ){
+            return ($color, MOVE_KNIGHT, DIR_NONE, $fr_bb, $to_bb);
+        }
+        if ( shift_BB(shift_BB($fr_bb, SOUTH), SOUTH + SOUTH) &
+             (shift_BB($to_bb, WEST) | shift_BB($to_bb, EAST)) ){
+            return ($color, MOVE_KNIGHT, DIR_NONE, $fr_bb, $to_bb);
+        }
+        if ( shift_BB(shift_BB(shift_BB($fr_bb, WEST), WEST), WEST) &
+             (shift_BB($to_bb, NORTH) | shift_BB($to_bb, SOUTH)) ){
+            return ($color, MOVE_KNIGHT, DIR_NONE, $fr_bb, $to_bb);
+        }
+        if ( shift_BB(shift_BB(shift_BB($fr_bb, EAST), EAST), EAST) &
+             (shift_BB($to_bb, NORTH) | shift_BB($to_bb, SOUTH)) ){
+            return ($color, MOVE_KNIGHT, DIR_NONE, $fr_bb, $to_bb);
+        }
+        
+        return (NO_COLOR, MOVE_NONE, DIR_NONE);
+    }
     if ($fr_bb & $knights) {
         if ( shift_BB($fr_bb, NORTH + NORTH) &
              (shift_BB($to_bb, WEST) | shift_BB($to_bb, EAST)) ){
@@ -1230,6 +1274,14 @@ sub _putPiece_ai {
         $ai_queens |= $BB;
         $ai_white  |= $BB;
     }
+    elsif ($p == BLACK_DRAGON) {
+        $ai_dragons |= $BB;
+        $ai_black  |= $BB;
+    }
+    elsif ($p == WHITE_DRAGON) {
+        $ai_dragons |= $BB;
+        $ai_white  |= $BB;
+    }
 }
 
 ### TODO this is only used once, get rid of it
@@ -1277,6 +1329,13 @@ sub _getBBsForPiece {
         return (\$occupied, \$queens, \$white);
     }
 
+    if ($p == BLACK_DRAGON) {
+        return (\$occupied, \$dragons, \$black);
+    }
+    if ($p == WHITE_DRAGON) {
+        return (\$occupied, \$dragons, \$white);
+    }
+
     return ();
 }
 
@@ -1298,6 +1357,8 @@ sub _getPieceBB {
         $chr = WHITE_QUEEN;
     } elsif ($kings & $_[0]) {
         $chr = WHITE_KING;
+    } elsif ($dragons & $_[0]) {
+        $chr = WHITE_DRAGON;
     }
 
     if ($black & $_[0]) {
@@ -1324,6 +1385,8 @@ sub _getPieceBB_ai {
         $chr = WHITE_QUEEN;
     } elsif ($ai_kings & $_[0]) {
         $chr = WHITE_KING;
+    } elsif ($ai_dragons & $_[0]) {
+        $chr = WHITE_DRAGON;
     }
 
     if ($ai_black & $_[0]) {
@@ -1492,6 +1555,9 @@ sub getPieceDisplay {
     if ($piece % 100 == KING) {
         return $color . 'K' . $normal;
     }
+    if ($piece % 100 == DRAGON) {
+        return $color . 'D' . $normal;
+    }
     return ' ';
 }
 
@@ -1533,7 +1599,9 @@ sub getPieceFromFENchr {
         'q' => BLACK_QUEEN,
         'Q' => WHITE_QUEEN,
         'k' => BLACK_KING,
-        'K' => WHITE_KING
+        'K' => WHITE_KING,
+        'd' => BLACK_DRAGON,
+        'D' => WHITE_DRAGON,
     );
     return $chrs{$p};
 }
@@ -1546,6 +1614,7 @@ sub setPosXS {
         $rooks   ,
         $queens  ,
         $kings   ,
+        $dragons ,
         $white   ,
         $black   ,
         $frozenBB ,
@@ -1778,6 +1847,42 @@ sub evaluate {
                     }
                 }
             } elsif ($pieceType == KNIGHT) {
+                $material[$color] += 300;
+                foreach my $to (
+                   shift_BB(shift_BB($fr, NORTH), NORTH_EAST),
+                   shift_BB(shift_BB($fr, NORTH), NORTH_WEST),
+                   shift_BB(shift_BB($fr, SOUTH), SOUTH_EAST),
+                   shift_BB(shift_BB($fr, SOUTH), SOUTH_WEST),
+                   shift_BB(shift_BB($fr, EAST) , NORTH_EAST),
+                   shift_BB(shift_BB($fr, EAST) , SOUTH_EAST),
+                   shift_BB(shift_BB($fr, WEST) , NORTH_WEST),
+                   shift_BB(shift_BB($fr, WEST) , SOUTH_WEST),
+                ) {
+                    if (($to != 0) && !($to & $ai_movingBB) ) {
+                        $attackedBy[$color]->[$pieceType] |= $to;
+                        $attackedBy[$color]->[ALL_PIECES]      |= $to;
+                        $attackedBy2[$color] |= ($to & $attackedBy[$color]->[ALL_PIECES]);
+                        if ($frozen) {
+                            $attackedByFrozen[$color]->[$pieceType] |= $to;
+                            $attackedByFrozen[$color]->[ALL_PIECES] |= $to;
+                        } else {
+                            $attackedByUnFrozen[$color]->[$pieceType] |= $to;
+                            $attackedByUnFrozen[$color]->[ALL_PIECES] |= $to;
+                        }
+                        $mobilityBonus[$color] += 15;
+                        if (! ($to & $us) && ! $frozen) {
+                            push @{$moves[$color]}, [
+                                $fr,
+                                $to,
+                                undef, # score
+                                2.5,
+                                undef, # children moves
+                                undef, # attackedBy
+                            ];
+                        }
+                    }
+                }
+            } elsif ($pieceType == DRAGON) {
                 $material[$color] += 300;
                 foreach my $to (
                    shift_BB(shift_BB($fr, NORTH), NORTH_EAST),
@@ -2507,6 +2612,7 @@ sub loadFENstring {
     $rooks    = 0x0000000000000000;
     $queens   = 0x0000000000000000;
     $kings    = 0x0000000000000000;
+    $dragons  = 0x0000000000000000;
     $white     = 0x0000000000000000;
     $black     = 0x0000000000000000;
     $occupied  = 0x0000000000000000;
@@ -2561,6 +2667,5 @@ sub pop_lsb {
 sub strToInt {
     $_[0] += 0;
 }
-
 
 1;
