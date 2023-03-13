@@ -491,19 +491,19 @@ post '/ajax/createChallenge' => sub {
         if ($gameMode eq 'ai-crane') {
             if ($gameSpeed eq 'standard') {
                 $options->{fen} = 'nnnnknnn/pnnppnnp/8/8/8/8/PPPPPPPP/RNBQKBNR';
-                $options->{speed_advantage} = '1:0.6:0.6:0.6';
+                $options->{speed_advantage} = '1:0.5:0.5:0.5';
             } else {
                 $options->{fen} = 'nnnnknnn/pnnppnnp/8/8/8/8/PPPPPPPP/RNBQKBNR';
-                $options->{speed_advantage} = '1.6:1:1:1';
+                $options->{speed_advantage} = '1:1:1:1';
             }
         }
         if ($gameMode eq 'ai-turtle') {
             if ($gameSpeed eq 'standard') {
                 $options->{fen} = 'rrrrkrrr/prr11rrp/8/8/8/8/PPPPPPPP/RNBQKBNR';
-                $options->{speed_advantage} = '1:1.3:1.3:1.3';
+                #$options->{speed_advantage} = '1:1.4:1.3:1.3';
             } else {
                 $options->{fen} = 'rrrrkrrr/prrpprrp/8/8/8/8/PPPPPPPP/RNBQKBNR';
-                $options->{speed_advantage} = '1:1.3:1.3:1.3';
+                $options->{speed_advantage} = '1:1.4:1.4:1.4';
             }
         }
         if ($gameMode eq 'ai-centipede') {
@@ -518,10 +518,10 @@ post '/ajax/createChallenge' => sub {
         if ($gameMode eq 'ai-dragon') {
             if ($gameSpeed eq 'standard') {
                 $options->{fen} = 'ddddkddd/8/8/8/8/8/PPPPPPPP/RNBQKBNR';
-                $options->{speed_advantage} = '1:0.6:0.6:0.6';
+                $options->{speed_advantage} = '1:0.4:0.4:0.4';
             } else {
                 $options->{fen} = 'ddddkddd/8/8/8/8/8/PPPPPPPP/RNBQKBNR';
-                $options->{speed_advantage} = '1:0.6:0.6:0.6';
+                $options->{speed_advantage} = '1:0.7:0.7:0.7';
             }
         }
         if ($gameMode eq 'ai-master') {

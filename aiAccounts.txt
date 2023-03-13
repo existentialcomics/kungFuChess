@@ -1,5 +1,6 @@
 BRUCE_LEE human_a human_a
 Pharoah human_a human_a
+Octagon human_a human_a
 anon human_a human_a
 anon human_a human_a
 anon human_a human_a
@@ -20,8 +21,6 @@ anon human_b human_b
 anon human_b human_b
 anon human_b human_b
 anon human_b human_b
-anon human_b human_b
-anon human_b human_b
 Samba_Master human_b human_b
 Morgoth human_b human_b
 KingOfTheWest human_b human_b
@@ -38,8 +37,6 @@ anon human_c human_c
 anon human_c human_c
 anon human_c human_c
 anon human_c human_c
-anon human_c human_c
-anon human_c human_c
 Lightning_Wizard human_c human_c
 Red_Mage human_c human_c
 Naga_Queen human_c human_c
@@ -49,4 +46,6 @@ Ali_Babba human_c human_c
 OnceUponAKnight human_c human_c
 DragonFire human_c human_c
 Orah1313 human_c human_c
+Oracle human_c human_c
+Stonemason human_c human_c
 LegendOfDragon human_c human_c

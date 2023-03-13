@@ -276,7 +276,7 @@ sub _init {
             $self->{ai_simul_depth} = 2;
             $self->{ai_delay} = 100_000; 
             $self->{ai_min_delay} = 50_000;
-            $self->{ai_interval} = 150_000;
+            $self->{ai_interval} = 250_000;
             $self->{randomness} = 500;
             $self->{no_move_penalty} = 0.9; # multiplier
             $self->{long_capture_penalty} = 0; # centipawns
@@ -311,8 +311,8 @@ sub _init {
             $self->{ai_simul_moves} = 2;
             $self->{ai_simul_depth} = 2;
             $self->{ai_delay} = 100_000; 
-            $self->{ai_min_delay} = 30_000;
-            $self->{ai_interval} = 130_000;
+            $self->{ai_min_delay} = 50_000;
+            $self->{ai_interval} = 175_000;
             $self->{randomness} = 500;
             $self->{no_move_penalty} = 0.9; # multiplier
             $self->{long_capture_penalty} = 0; # centipawns
@@ -738,7 +738,7 @@ sub handleMessage {
             }
         }
 
-        if ($self->{skipOpenings}) {
+        if (! $self->{skipOpenings}) {
             $self->{movesQueue} = \@moves;
         }
 

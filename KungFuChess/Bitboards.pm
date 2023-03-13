@@ -2497,6 +2497,7 @@ sub pretty {
         $board .= "\n   +---+---+---+---+---+---+---+----\n";
     }
     $board .= "     a   b   c   d   e   f   g   h  \n";
+    $board .= "\033[0m";
     return $board;
 }
 
@@ -2514,6 +2515,7 @@ sub pretty_ai {
         $board .= "\n   +---+---+---+---+---+---+---+----\n";
     }
     $board .= "     a   b   c   d   e   f   g   h  \n";
+    $board .= "\033[0m";
     return $board;
 }
 

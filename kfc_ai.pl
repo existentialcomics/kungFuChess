@@ -113,14 +113,19 @@ my $aiInterval = AnyEvent->timer(
         if (time > $timeToExit) { exit; }
         if (Sys::MemInfo::get("freeswap") < $minMemory) { exit; }
 
-        if ($mode eq 'searchForGame') {
+        if ($mode eq 'searchForGame' or $mode eq 'chill') {
             print "interval searchForGame\n";
             #$mech->get('/activePlayers?ratingType=standard');
             my $url = '/ajax/openGames/json';
             $url .= "?update-time=true";
             $mech->get($url);
             eval {
-                if (rand() < 0.25 && $globalMode eq 'normal') {
+                if (rand() < 0.05 && $globalMode eq 'normal') {
+                    print "setting globalMode to pool\n";
+                    $mode = 'pool';
+                    return;
+                }
+                if (rand() < 0.02 && $globalMode eq 'chill') {
                     print "setting globalMode to pool\n";
                     $mode = 'pool';
                     return;
@@ -159,7 +164,7 @@ my $aiInterval = AnyEvent->timer(
                                 print "adding to hash++\n";
                                 $uidHashCount{$pool->{private_game_key}}++;
                             }
-                            if ($uidHashCount{$pool->{private_game_key}} > 3) {
+                            if ($uidHashCount{$pool->{private_game_key}} > ($mode eq 'normal' ? 3 : 10)) {
                                 print "GET: " . '/ajax/matchGame/' . $pool->{private_game_key} . "\n";
                                 $mech->get('/ajax/matchGame/' . $pool->{private_game_key});
                                 my $poolMatch = decode_json($mech->content());
@@ -267,7 +272,7 @@ my $aiInterval = AnyEvent->timer(
                 if ($mech->content() =~ m/var wsGameDomain\s+=\s*"(.+?)"/) {
                     print $mech->content();
                     my $d = $1;
-                    if ($d =~ m/localhost|127/) {
+                    if ($d =~ m/localhost|127|dragon/) {
                         $wsdomain = "ws://" . $d . "/ws";
                     } else {
                         $wsdomain = "wss://" . $d . "/ws";

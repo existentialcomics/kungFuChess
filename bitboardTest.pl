@@ -97,14 +97,14 @@ while ($go) {
         my ($eval, $moves, $material, $attacks) = KungFuChess::Bitboards::evaluate(1);
         # depth time color
         print "colorIn: $colorIn\n";
-        my $m_bb = KungFuChess::Bitboards::parseSquare('g4');
-        $m_bb |= KungFuChess::Bitboards::parseSquare('h5');
-        $m_bb |= KungFuChess::Bitboards::parseSquare('f3');
+        #my $m_bb = KungFuChess::Bitboards::parseSquare('g4');
+        #$m_bb |= KungFuChess::Bitboards::parseSquare('h5');
+        #$m_bb |= KungFuChess::Bitboards::parseSquare('f3');
         #KungFuChess::Bitboards::setMoving($m_bb);
-        KungFuChess::Bitboards::aiThink(3, 9999, $colorIn);
+        KungFuChess::Bitboards::aiThink(1, 9999, $colorIn);
         my $bestMove = xs::getBestMove();
         #print "best: $bestMove\n";
-        print "best: " . xs::to_bb($bestMove) . "\n";
+        #print "best: " . xs::to_bb($bestMove) . "\n";
         my $nextMove = xs::getNextBestMove();
         #print "next best: $nextMove\n";
         exit;

@@ -111,7 +111,7 @@ enum Piece {
   NO_PIECE,
   W_PAWN = PAWN,     W_KNIGHT, W_BISHOP, W_ROOK, W_QUEEN, W_KING, W_DRAGON,
   B_PAWN = PAWN + 9, B_KNIGHT, B_BISHOP, B_ROOK, B_QUEEN, B_KING, B_DRAGON,
-  PIECE_NB = 18
+  PIECE_NB = 18 // TODO 16?
 };
 
 constexpr Piece operator~(Piece pc) {
@@ -201,7 +201,6 @@ int Bonus[][RANK_NB][int(FILE_NB) / 2] = {
    { S( 59, 11), S( 89, 59), S( 45, 73), S( -1, 78) }
   }
 };
-
 
 constexpr int PBonus[RANK_NB][FILE_NB] =
   { // Pawn (asymmetric distribution)
@@ -415,24 +414,49 @@ std::string pretty(Bitboard b) {
 
 std::string prettyBB() {
 
-  std::string s = "+---+---+---+---+---+---+---+---+\n";
+  std::string s = "prettyBB()\n";
+  s += "+---+---+---+---+---+---+---+---+\n";
 
   for (Rank r = RANK_8; r >= RANK_1; r = r - 1)
   {
       for (File f = AFILE; f <= HFILE; f = f + 1) {
           Square sq = make_square(f, r);
           if (sq & byTypeBB[PAWN]) {
-              s += "| p ";
+              if (sq & byColorBB[WHITE]) {
+                  s += "| P ";
+              } else {
+                  s += "| p ";
+              }
           } else if (sq & byTypeBB[ROOK]) {
-              s += "| r ";
+              if (sq & byColorBB[WHITE]) {
+                  s += "| R ";
+              } else {
+                  s += "| r ";
+              }
           } else if (sq & byTypeBB[QUEEN]) {
-              s += "| q ";
+              if (sq & byColorBB[WHITE]) {
+                  s += "| Q ";
+              } else {
+                  s += "| q ";
+              }
           } else if (sq & byTypeBB[KING]) {
-              s += "| k ";
+              if (sq & byColorBB[WHITE]) {
+                  s += "| K ";
+              } else {
+                  s += "| k ";
+              }
           } else if (sq & byTypeBB[BISHOP]) {
-              s += "| b ";
+              if (sq & byColorBB[WHITE]) {
+                  s += "| B ";
+              } else {
+                  s += "| b ";
+              }
           } else if (sq & byTypeBB[KNIGHT]) {
-              s += "| n ";
+              if (sq & byColorBB[WHITE]) {
+                  s += "| N ";
+              } else {
+                  s += "| n ";
+              }
           } else {
               s += "|   ";
           }
@@ -447,7 +471,8 @@ std::string prettyBB() {
 
 std::string pretty() {
 
-  std::string s = "+---+---+---+---+---+---+---+---+\n";
+  std::string s = "prettySq()\n";
+  s += "+---+---+---+---+---+---+---+---+\n";
 
   for (Rank r = RANK_8; r >= RANK_1; r = r - 1)
   {
@@ -622,12 +647,24 @@ constexpr Square flip_rank(Square s) { // Swap A1 <-> A8
   //return Square(s ^ SQ_H1);
 //}
 
-constexpr PieceType type_of(Piece pc) {
-  return PieceType(pc & 7);
+constexpr PieceType type_of(Piece p) {
+    if (p == W_PAWN   || p == B_PAWN)   return PAWN;
+    if (p == W_KNIGHT || p == B_KNIGHT) return KNIGHT;
+    if (p == W_BISHOP || p == B_BISHOP) return BISHOP;
+    if (p == W_ROOK   || p == B_ROOK)   return ROOK;
+    if (p == W_QUEEN  || p == B_QUEEN)  return QUEEN;
+    if (p == W_KING   || p == W_KING)   return KING;
+    if (p == W_DRAGON || p == B_DRAGON) return DRAGON;
+
+    return NO_PIECE_TYPE;
 }
 
+//constexpr MoveType type_of(Move m) {
+  //return MoveType(m & (3 << 14));
+//}
+
 inline Color color_of(Piece pc) {
-  return Color(pc >> 3);
+  return Color(pc > W_DRAGON ? BLACK : WHITE);
 }
 
 // PSQT::init() initializes piece-square tables: the white halves of the tables are
@@ -650,8 +687,35 @@ void init_sqt() {
   }
 }
 
-std::string move_human(Move m) {
-    return "not implemented";
+std::string human(Piece p) {
+    if (p == W_PAWN)   return "P";
+    if (p == W_KNIGHT) return "N";
+    if (p == W_BISHOP) return "B";
+    if (p == W_ROOK)   return "R";
+    if (p == W_QUEEN)  return "Q";
+    if (p == W_KING)   return "K";
+    if (p == W_DRAGON) return "D";
+
+    if (p == B_PAWN)   return "p";
+    if (p == B_KNIGHT) return "n";
+    if (p == B_BISHOP) return "b";
+    if (p == B_ROOK)   return "r";
+    if (p == B_QUEEN)  return "q";
+    if (p == B_KING)   return "k";
+    if (p == B_DRAGON) return "d";
+
+    return "x";
+}
+std::string human(PieceType pt) {
+    if (pt == PAWN)   return "P";
+    if (pt == KNIGHT) return "N";
+    if (pt == BISHOP) return "B";
+    if (pt == ROOK)   return "R";
+    if (pt == QUEEN)  return "Q";
+    if (pt == KING)   return "K";
+    if (pt == DRAGON) return "D";
+
+    return "x";
 }
 
 std::string square_human(Square s) {
@@ -729,6 +793,11 @@ std::string square_human(Square s) {
 
     return "xx";
 }
+
+std::string move_human(Move m) {
+    return square_human(from_sq(m)) + square_human(to_sq(m));
+}
+
 
 constexpr Rank relative_rank(Color c, Rank r) {
   return Rank(r ^ (c * 7));
