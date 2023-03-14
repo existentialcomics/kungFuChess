@@ -2075,8 +2075,13 @@ void setBBs(
 
     frozen  = bb_frozen;
     moving  = bb_moving;
+
+    // sets the Sq board, not really needed probably
+    getAllMoves(WHITE);
+    //getAllMoves(BLACK);
     if (debug) {
-        std::cout << "\n\n\nboard:" << "\n";
+        std::cout << "\n\n\nboard after setBBs:" << "\n";
+        std::cout << pretty() << "\n";
         std::cout << prettyBB() << "\n";
         //std::cout << "done set BBs cpp MOVING:\n" << "\n";
         //std::cout << pretty(moving) << "\n";

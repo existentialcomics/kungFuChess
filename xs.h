@@ -653,7 +653,7 @@ constexpr PieceType type_of(Piece p) {
     if (p == W_BISHOP || p == B_BISHOP) return BISHOP;
     if (p == W_ROOK   || p == B_ROOK)   return ROOK;
     if (p == W_QUEEN  || p == B_QUEEN)  return QUEEN;
-    if (p == W_KING   || p == W_KING)   return KING;
+    if (p == W_KING   || p == B_KING)   return KING;
     if (p == W_DRAGON || p == B_DRAGON) return DRAGON;
 
     return NO_PIECE_TYPE;
