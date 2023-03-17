@@ -718,7 +718,7 @@ std::string human(PieceType pt) {
     return "x";
 }
 
-std::string square_human(Square s) {
+std::string human(Square s) {
     if (s == SQ_A1) return "a1";
     if (s == SQ_A2) return "a2";
     if (s == SQ_A3) return "a3";
@@ -794,8 +794,8 @@ std::string square_human(Square s) {
     return "xx";
 }
 
-std::string move_human(Move m) {
-    return square_human(from_sq(m)) + square_human(to_sq(m));
+std::string human(Move m) {
+    return human(from_sq(m)) + human(to_sq(m));
 }
 
 

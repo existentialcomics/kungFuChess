@@ -1010,24 +1010,6 @@ int evaluateThreats(Color Us) {
     weak = byColorBB[Them] & ~stronglyProtected & attackedBy[Us][ALL_PIECES];
     //weak = byColorBB[Them] & attackedBy[Us][ALL_PIECES];
 
-    if (debug > 1) {
-        std::cout << "\n\n------------ attacked by us / def / weak -----------------\n\n";
-        std::cout << pretty(attackedBy[Us][PAWN]);
-        std::cout << pretty(attackedBy[Them][PAWN]);
-        std::cout << "\n\n --defended\n";
-        std::cout << pretty(defended);
-        std::cout << "\n\n --weak\n";
-        std::cout << pretty(weak);
-        std::cout << "\n\n----------------------------------------------------------\n\n";
-    }
-    if (debug > 1) {
-        std::cout << "\n\n------------ pieces them/us -----------------\n\n";
-        std::cout << pretty(byColorBB[Them]);
-        std::cout << pretty(byColorBB[Us]);
-        std::cout << "\n\n----------------------------------------------------------\n\n";
-    }
-
-
     // Bonus according to the kind of attacking pieces
     if (defended | weak)
     {
@@ -1073,12 +1055,6 @@ int evaluateThreats(Color Us) {
 
     // Protected or unattacked squares
     safe = ~attackedBy[Them][ALL_PIECES] | attackedBy[Us][ALL_PIECES];
-
-    if (debug > 1) {
-        std::cout << "\n\n------------ SAFE -----------------\n\n";
-        std::cout << pretty(safe);
-        //std::cout << pretty(occupiedMe);
-    }
 
     // Bonus for attacking enemy pieces with our relatively safe pawns
     b = pieces(Us, PAWN) & safe;
@@ -1503,8 +1479,6 @@ int evaluate() {
         Color Us   = c;
         Color Them = ~c;
 
-        //std::cout << "eval for " << Us << ":" << Them << "\n";
-
         Bitboard OutpostRanks =
             (Us == WHITE ? Rank4BB | Rank5BB | Rank6BB
                          : Rank5BB | Rank4BB | Rank3BB);
@@ -1585,8 +1559,8 @@ int evaluate() {
                 std::cout << "      BLACK: " << score << "\n";
             }
             std::cout << "threatScore:  " << mg_value(threatScore) << "\n";
-            std::cout << "piece Score:  " << mg_value(pieceScore) << "\n";
-            std::cout << "square Score: " << mg_value(sqScore) << "\n";
+            std::cout << "pieceScore:  " << mg_value(pieceScore) << "\n";
+            std::cout << "squareScore: " << mg_value(sqScore) << "\n";
             std::cout << "---------- " << "\n";
         }
         totalScore += (c == WHITE ? score : -score);
@@ -1628,14 +1602,9 @@ std::vector<Move> getAllMoves(Color wantColor) {
         Direction Up   = pawn_push(Us);
         Direction Down = pawn_push(Them);
 
-        if (debug > 1) {
-            std::cout << "frozen:\n";
-            std::cout << pretty(frozen);
-        }
-
         if (wantColor == Us) {
-            //Move m_none = make_move(SQ_A1, SQ_A1, NO_MOVE);
-            //moveArrayTmp.push_back(m_none);
+            Move m_none = make_move(SQ_A1, SQ_A1, NO_MOVE);
+            moveArrayTmp.push_back(m_none);
         }
 
         //*********************** pawns
@@ -1936,11 +1905,6 @@ std::vector<Move> getAllMoves(Color wantColor) {
         // Remove from kingRing[] the squares defended by two pawns
         kingRing[Us] &= ~dblAttackByPawn;
     }
-    if (debug) {
-        std::cout << "AFTER getallmoves()\n";
-        std::cout << pretty();
-        std::cout << prettyBB();
-    }
     return moveArrayTmp;
 }
 
@@ -2079,12 +2043,12 @@ void setBBs(
     // sets the Sq board, not really needed probably
     getAllMoves(WHITE);
     //getAllMoves(BLACK);
-    if (debug) {
+    if (debug > 1) {
         std::cout << "\n\n\nboard after setBBs:" << "\n";
         std::cout << pretty() << "\n";
         std::cout << prettyBB() << "\n";
-        //std::cout << "done set BBs cpp MOVING:\n" << "\n";
-        //std::cout << pretty(moving) << "\n";
+        std::cout << "done set BBs cpp MOVING:\n" << "\n";
+        std::cout << pretty(moving) << "\n";
     }
     int pieceCount = pop_count(byTypeBB[ALL_PIECES]);
     is_endgame = (pieceCount < 12);
@@ -2294,13 +2258,13 @@ Node* searchTree(Move currentMove, int depth, int ply, int& alpha, int& beta, bo
     srand(time(0));
     if (debug) {
         if (ply == 1) {
-            moveString = move_human(currentMove);
+            moveString = human(currentMove);
         } else {
-            moveString = moveString + " " + move_human(currentMove); 
+            moveString = moveString + " " + human(currentMove); 
         }
-        if (ply == 1) {
-            std::cout << "ply 1 begin search move: " << moveString << "\n";
-        }
+        //if (ply == 1) {
+            std::cout << "searchTree ply " << ply << " begin search move: " << moveString << "\n";
+        //}
     }
 
     Node *highNode = new Node;
@@ -2325,7 +2289,7 @@ Node* searchTree(Move currentMove, int depth, int ply, int& alpha, int& beta, bo
         std::cout << "search tree for : " << c << "\n";
         std::cout << "moves: " << moves.size() << "\n";
         std::cout << "cur m: " << currentNode->move << "\n";
-        std::cout << square_human(from_sq(currentNode->move)) << square_human(to_sq(currentNode->move)) << "\n";
+        std::cout << human(from_sq(currentNode->move)) << human(to_sq(currentNode->move)) << "\n";
     }
     if (ply > depth) {
         int score = evaluate();
@@ -2355,7 +2319,7 @@ Node* searchTree(Move currentMove, int depth, int ply, int& alpha, int& beta, bo
 
             if (debug && ply < 2) {
                 if (ply == 0 && debug) {
-                    std::cout << "\n ++++++++++++++++ move: " << m << " , ply: " << ply << " , spot" << moveSpot << " color: " << c << " +++++++++++++++\n" << pretty(m) << "\n";
+                    std::cout << "\n ++++++++++++++++ move: " << human(m) << " , ply: " << ply << " , spot" << moveSpot << " color: " << c << " +++++++++++++++\n" << pretty(m) << "\n";
                 } else if (debug > 1) {
                     std::cout << "\n    ---------------- move: " << m << " , ply: " << ply << " , spot" << moveSpot << " color: " << c <<  " ---------------\n" << pretty(m) << "\n";
                 }
@@ -2363,19 +2327,8 @@ Node* searchTree(Move currentMove, int depth, int ply, int& alpha, int& beta, bo
             //***************
             Bitboard old_frozen = frozen;
             Bitboard old_moving = moving;
-            //***************
-            if (debug && ply < 3) {
-                std::cout << "before move" << "\n";
-                std::cout << pretty() << "\n";
-            }
+
             Piece p = do_move(m);
-            //***************
-            if (debug && ply < 3) {
-                std::cout << "after move" << "\n";
-                std::cout << pretty(m) << "\n";
-                std::cout << pretty() << "\n";
-                std::cout << prettyBB() << "\n";
-            }
             ply++;
 
             Node* nextBestMove = searchTree(m, depth, ply, alpha, beta, nextIsMaximizingPlayer, nextColor, moveString);
@@ -2385,7 +2338,7 @@ Node* searchTree(Move currentMove, int depth, int ply, int& alpha, int& beta, bo
                     for (int i = 0; i < ply; i++) {
                         std::cout << "...";
                     }
-                    std::cout << square_human(from_sq(nextBestMove->move)) << square_human(to_sq(nextBestMove->move))<< ": " << nextBestMove->score << "\n";
+                    std::cout << human(from_sq(nextBestMove->move)) << human(to_sq(nextBestMove->move))<< ": " << nextBestMove->score << "\n";
                 }
             }
 
@@ -2428,33 +2381,24 @@ Node* searchTree(Move currentMove, int depth, int ply, int& alpha, int& beta, bo
                     for (int i = 0; i < ply; i++) {
                         std::cout << "---";
                     }
-                    std::cout << square_human(from_sq(nextBestMove->move)) << square_human(to_sq(nextBestMove->move))<< ": " << nextBestMove->score << "\n";
+                    std::cout << human(from_sq(nextBestMove->move)) << human(to_sq(nextBestMove->move))<< ": " << nextBestMove->score << "\n";
                 }
             }
 
             ply--;
-            //***************
-            if (debug && ply < 3) {
-                std::cout << "before undo_move" << "\n";
-                std::cout << pretty() << "\n";
-            }
+
             undo_move(m, p);
-            //***************
-            if (debug && ply < 3) {
-                std::cout << "after undo_move" << "\n";
-                std::cout << pretty(m) << "\n";
-                std::cout << pretty() << "\n";
-            }
+
             frozen = old_frozen;
             moving = old_moving;
             //***************
 
             if (ply == 1 && debug) {
-                std::cout << "\n ++++++++++++++++ move: " << m << " , ply: " << ply << " , spot" << moveSpot << " color: " << c << " +++++++++++++++\n" << pretty(m) << "\n";
+                std::cout << "\n ++++++++++++++++ move: " << human(m) << " , ply: " << ply << " , spot" << moveSpot << " color: " << c << " +++++++++++++++\n" << "\n";
                 std::cout << "newscore: " << nextBestMove->score << "\n";
             }
             if (ply == 2 && debug) {
-                std::cout << "\n ---------------- counter: " << m << " , ply: " << ply << " , spot" << moveSpot << " color: " << c << " ---------------\n" << pretty(m) << "\n";
+                std::cout << "\n ---------------- counter: " << human(m) << " , ply: " << ply << " , spot" << moveSpot << " color: " << c << " ---------------\n" << "\n";
                 std::cout << "newscore: " << nextBestMove->score << "\n";
             }
             if (debug && ply == 0) {
@@ -2551,7 +2495,7 @@ Move getBestMove() {
     if (debug) {
         std::cout << pretty() << "\n";
         //std::cout << "best move move int: " << bestMoveNode->move << "\n";
-        std::cout << "best move move: " << square_human(from_sq(bestMoveNode->move)) << square_human(to_sq(bestMoveNode->move)) << "\n";
+        std::cout << "best move move: " << human(from_sq(bestMoveNode->move)) << human(to_sq(bestMoveNode->move)) << "\n";
         std::cout << "best move score: " << bestMoveNode->score << "\n";
     }
     
@@ -2567,7 +2511,7 @@ Move getNextBestMove() {
     }
     if (debug) {
         //std::cout << "best move move int NEXT " << bestMoveNode->next->move << "\n";
-        std::cout << "best move move 2: " << square_human(from_sq(bestMoveNode->next->move)) << square_human(to_sq(bestMoveNode->next->move)) << "\n";
+        std::cout << "best move move 2: " << human(from_sq(bestMoveNode->next->move)) << human(to_sq(bestMoveNode->next->move)) << "\n";
         std::cout << "best move score : " << bestMoveNode->next->score << "\n";
         std::cout << "  best move node COUNTER " << bestMoveNode->next->next->move << "\n";
         //std::cout << pretty(bestMoveNode->next->next->move) << "\n";
