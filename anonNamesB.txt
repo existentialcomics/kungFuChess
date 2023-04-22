@@ -16,3 +16,4 @@ Fist
 Check
 EnPassant
 Castle
+Battle

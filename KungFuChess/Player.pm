@@ -321,6 +321,46 @@ sub getGamesPlayed {
     #return $self->{'games_played_' . $gameSpeed};
 }
 
+############ achievements
+sub getAchievements {
+    my $self = shift;
+    
+    if (defined($self->{achievements})) { return $self->{achievements}; }
+
+    my $rows = $self->{dbh}->selectall_arrayref(
+        'select * from achievements WHERE player_id = ?',
+        { 'Slice' => {} },
+        $self->{player_id}
+    );
+    $self->{achievements} = {};
+    foreach my $row (@$rows) {
+        $self->{achievements}->{$row->{achievement_type_id}} = $row;
+    }
+    return $self->{achievements};
+}
+
+sub hasAchievement {
+    my $self = shift;
+    my $id = shift;
+    if (! defined($self->{achievements})) {
+        $self->getAchievements();
+    }
+
+    return defined($self->{achievements}->{$id});
+}
+
+sub grantAchievement {
+    my $self = shift;
+    my $achievementId = shift;
+
+    if ($self->hasAchievement($achievementId)) { return undef; }
+
+    my $sth = $self->{dbh}->prepare('INSERT INTO achievements (player_id, achievement_type_id, time_created) VALUES (?, ?, NOW())');
+    $sth->execute($self->{player_id}, $achievementId);
+    return $achievementId;
+}
+
+############# private functions
 sub _loadByRow {
     my $self = shift;
     my $row = shift;

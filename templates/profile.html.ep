@@ -125,6 +125,14 @@
             <h5>Highest Rating: <%= $player->getHighestRating('lightning') %></h5><br />
             <h5>Worst Defeat: <%= $player->getWorstDefeat('lightning') %></h5><br />
             <h5>Lowest Rating: <%= $player->getLowestRating('lightning') %></h5><br />
+            
+        </div>
+        <div>
+        <h6>Achievements:</h6>
+        <% foreach my $achieve (@{$achievementTypes}) { %>
+            <span class="<%= (!$player->hasAchievement($achieve->{achievement_type_id}) ? 'text-muted' : 'text') %>">
+            <%= $achieve->{name} %></span>&nbsp;•&nbsp;
+        <% } %>
         </div>
     </div>
 

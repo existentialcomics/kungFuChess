@@ -52,7 +52,7 @@ while($run) {
                 $uid,
                 $gameRow->{piece_speed},
                 $gameRow->{piece_recharge},
-                $gameRow->{piece_advantage} // "1:1:1:1",
+                $gameRow->{speed_advantage} // "1:1:1:1",
                 $gameRow->{level},
                 $aiColor,
                 ($secure ? "wss://" : "ws://") . $gameRow->{ws_server} . "/ws",

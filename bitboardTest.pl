@@ -34,7 +34,9 @@ if ($frozenIn) {
 print KungFuChess::Bitboards::pretty();
 #print KungFuChess::Bitboards::pretty_ai();
 #print "XS evaluate:\n";
-#print KungFuChess::Bitboards::evaluateXS();
+print KungFuChess::Bitboards::evaluateXS();
+print "\n";
+exit;
 #print "\nmoves:\n";
 #my @moves = KungFuChess::Bitboards::getMovesXS();
 #print Dumper @moves;

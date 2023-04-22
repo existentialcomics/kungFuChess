@@ -120,7 +120,7 @@ sub _init {
             $self->{ai_min_delay} = 1_000_000;
             $self->{ai_interval} = 2_500_000;
             $self->{randomness} = 300;
-            $self->{no_move_penalty} = 0.2; # multiplier
+            $self->{no_move_penalty} = 0.1; # multiplier
             $self->{long_capture_penalty} = 0; # centipawns
             $self->{distance_penalty} = 0; # centipawns
         } elsif ($difficulty eq '2' || $difficulty eq 'ai-medium') {
@@ -128,23 +128,35 @@ sub _init {
             $self->{ai_depth} = 2;
             $self->{ai_simul_moves} = 1;
             $self->{ai_simul_depth} = 1;
-            $self->{ai_delay} = 800_000; 
-            $self->{ai_min_delay} = 200_000;
+            $self->{ai_delay} = 1800_000; 
+            $self->{ai_min_delay} = 250_000;
             $self->{ai_interval} = 1_500_000;
             $self->{randomness} = 250;
-            $self->{no_move_penalty} = 0.2; # multiplier
+            $self->{no_move_penalty} = 0.1; # multiplier
             $self->{long_capture_penalty} = 100; # centipawns
             $self->{distance_penalty} = 10; # centipawns
         } elsif ($difficulty eq '3' || $difficulty eq 'ai-hard') {
+            #$self->{ai_thinkTime} = 2.0;
+            #$self->{ai_depth} = 4;
+            #$self->{ai_simul_moves} = 1;
+            #$self->{ai_simul_depth} = 2;
+            #$self->{ai_delay} = 50_000; 
+            #$self->{ai_min_delay} = 50_000;
+            #$self->{ai_interval} = 600_000;
+            #$self->{randomness} = 30;
+            #$self->{no_move_penalty} = 0.1; # multiplier
+            #$self->{long_capture_penalty} = 200; # centipawns
+            #$self->{distance_penalty} = 15; # centipawns
+
             $self->{ai_thinkTime} = 2.0;
             $self->{ai_depth} = 4;
             $self->{ai_simul_moves} = 1;
             $self->{ai_simul_depth} = 2;
-            $self->{ai_delay} = 50_000; 
-            $self->{ai_min_delay} = 50_000;
-            $self->{ai_interval} = 600_000;
-            $self->{randomness} = 30;
-            $self->{no_move_penalty} = 0.2; # multiplier
+            $self->{ai_delay} = 1_500_000; 
+            $self->{ai_min_delay} = 150_000;
+            $self->{ai_interval} = 500_000;
+            $self->{randomness} = 20;
+            $self->{no_move_penalty} = 0.1; # multiplier
             $self->{long_capture_penalty} = 200; # centipawns
             $self->{distance_penalty} = 15; # centipawns
         } elsif (
@@ -391,6 +403,9 @@ sub _init {
     ) {
         $self->{skipOpenings} = 1;
     }
+    $self->setAdjustedSpeed($self->{pieceSpeed}, $self->{pieceRecharge}, $speedAdj);
+    print "Difficulty: $difficulty\n";
+    print "AI human: " . ($self->{ai_human} ? 'true' : 'false') . "\n";
 
     ### reduce CPU load of 4way AI, skipp openings
     if ($self->{mode} eq '4way') {
@@ -1178,4 +1193,31 @@ sub getPieces {
 
     return @pieces;
 }
+
+sub setAdjustedSpeed {
+    my ($self, $pieceSpeed, $pieceRecharge, $speedAdj) = @_;
+
+    my $whiteAdj = 1;
+    my $blackAdj = 1;
+    my $redAdj = 1;
+    my $greenAdj = 1;
+    if ($speedAdj) {
+        ($whiteAdj, $blackAdj, $redAdj, $greenAdj) = split(':', $speedAdj);
+    }
+
+    if ($self->{color} == 1) {
+        $self->{pieceSpeed} = $pieceSpeed * $whiteAdj;
+        $self->{pieceRecharge} = $pieceRecharge * $whiteAdj;
+    } elsif($self->{color} == 2) {
+        $self->{pieceSpeed} = $pieceSpeed * $blackAdj;
+        $self->{pieceRecharge} = $pieceRecharge * $blackAdj;
+    } elsif($self->{color} == 3) {
+        $self->{pieceSpeed} = $pieceSpeed * $redAdj;
+        $self->{pieceRecharge} = $pieceRecharge * $redAdj;
+    } elsif($self->{color} == 4) {
+        $self->{pieceSpeed} = $pieceSpeed * $greenAdj;
+        $self->{pieceRecharge} = $pieceRecharge * $greenAdj;
+    }
+}
+
 1;

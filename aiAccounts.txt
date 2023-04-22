@@ -1,51 +1,51 @@
-BRUCE_LEE human_a human_a
-Pharoah human_a human_a
-Octagon human_a human_a
-anon human_a human_a
-anon human_a human_a
-anon human_a human_a
-anon human_a human_a
-anon human_a human_a
-anon human_a human_a
-KungFuLegend human_a human_a
-PandaStyle human_a human_a
-Mantis human_a human_a
-SaberToothBishop human_a human_a
-OragamiKing human_a human_a
-Teraform human_a human_a
-ChessWizard human_a human_a
-MantisStyle human_a human_a
-DragonKnight human_a human_a
-TrickyKnights human_a human_a
-anon human_b human_b
-anon human_b human_b
-anon human_b human_b
-anon human_b human_b
-Samba_Master human_b human_b
-Morgoth human_b human_b
-KingOfTheWest human_b human_b
-KarateKing human_b human_b
-KickInTheBishop human_b human_b
-Borgami human_b human_b
-Tucan69 human_b human_b
-SaberToothDragon human_b human_b
-Power_of_Fire human_b human_b
-Rage_Keeper human_b human_b
-Flower_of_Time human_b human_b
-Combo_Breaker human_b human_b
-anon human_c human_c
-anon human_c human_c
-anon human_c human_c
-anon human_c human_c
-Lightning_Wizard human_c human_c
-Red_Mage human_c human_c
-Naga_Queen human_c human_c
-Speed_Kills human_c human_c
-BattleKnight human_c human_c
-Ali_Babba human_c human_c
-OnceUponAKnight human_c human_c
-DragonFire human_c human_c
-Orah1313 human_c human_c
-Oracle human_c human_c
-Stonemason human_c human_c
-LegendOfDragon human_c human_c
+BRUCE_LEE human_a human_a lightning 2way
+Pharoah human_a human_a standard 2way
+Octagon human_a human_a lightning 2way
+anon human_a human_a lightning 2way
+anon human_a human_a standard 2way
+SaberToothDragon human_b human_b lightning 2way
+anon human_a human_a standard 2way
+SaberToothBishop human_a human_a lightning 2way
+OragamiKing human_a human_a standard 2way
+Teraform human_a human_a standard 2way
+ChessWizard human_a human_a standard 2way
+MantisStyle human_a human_a standard 2way
+anon human_a human_a standard 2way
+DragonKnight human_a human_a standard 2way
+anon human_a human_a standard 2way
+TrickyKnights human_a human_a lightning 2way
+anon human_b human_b lightning 2way
+PandaStyle human_a human_a standard 2way
+Mantis human_a human_a standard 2way
+anon human_b human_b standard 2way
+KarateKing human_b human_b standard 2way
+KickInTheBishop human_b human_b standard 2way
+Borgami human_b human_b standard 2way
+Tucan69 human_b human_b standard 2way
+KingOfTheWest human_b human_b standard 2way
+anon human_b human_b standard 2way
+Samba_Master human_b human_b lightning 2way
+anon human_a human_a standard 2way
+KungFuLegend human_a human_a standard 2way
+anon human_b human_b standard 2way
+Power_of_Fire human_b human_b lightning 2way
+Rage_Keeper human_b human_b lightning 2way
+Flower_of_Time human_b human_b standard 2way
+Combo_Breaker human_b human_b lightning 2way
+anon human_c human_c standard 2way
+anon human_c human_c standard 2way
+Lightning_Wizard human_c human_c lightning 2way
+Red_Mage human_c human_c standard 2way
+Naga_Queen human_c human_c standard 2way
+Morgoth human_b human_b standard 2way
+anon human_c human_c standard 2way
+Speed_Kills human_c human_c lightning 2way
+BattleKnight human_c human_c standard 2way
+Ali_Babba human_c human_c standard 2way
+anon human_c human_c standard 2way
+OnceUponAKnight human_c human_c standard 2way
+DragonFire human_c human_c standard 2way
+Orah1313 human_c human_c standard 2way
+Oracle human_c human_c standard 2way
+Stonemason human_c human_c lightning 2way
+LegendOfDragon human_c human_c standard 2way

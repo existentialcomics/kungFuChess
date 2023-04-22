@@ -1,0 +1,45 @@
+need a xs concept of enemy attacks
+
+// -------------- on move
+Dodge - 
+ move_to of attack as you move_from
+
+Zen -
+ dodge with one square attack within 1/10th of second
+
+Block
+  stop a piece that moved before you
+  on a piece STOP command
+
+Anticipate - 
+ attacks on enemy move_to, then kill
+ on KILL, we anticipated if we started moving last move after them
+
+Cutoff -
+ Take move_to and remove attacked_to
+
+// --------------------- on capture
+Diversion -
+ x moves in x seconds then grab a movable piece
+
+Combo -
+ take a gaurded piece with x seconds of making it ungaurded
+ within quickcapture speed
+
+Punch through -
+  capture a piece after enemy removes blocker
+
+Self kill -
+
+Peekaboo - 
+ capture a piece after removing blocker
+
+// on capture / i.e. sweep
+sweep -
+ 
+// on enemy move
+Fient - 
+  cause a piece to move on your path
+
+
+Beat all AI types on standard lightning

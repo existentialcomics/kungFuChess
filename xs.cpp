@@ -982,6 +982,8 @@ int TrappedRook         = S( 55, 13);
 int WeakQueenProtection = S( 14,  0);
 int WeakQueen           = S( 56, 15);
 int ChainedPawn         = S( 19, 16);
+int AttackedUnguardedPawn = S( 40, 40);
+int AttackedUnguardedPawnFrozen = S( 40, 40); // in addition to above
 
 // sub evaluateThreats
 // copied as much as possible from Stockfish
@@ -1000,7 +1002,7 @@ int evaluateThreats(Color Us) {
 
     // Squares strongly protected by the enemy, either because they defend the
     // square with a pawn, or because they defend the square twice and we don't.
-    stronglyProtected =  attackedBy[Them][PAWN];
+    stronglyProtected =  attackedBy[Them][ALL_PIECES];
                        //| (attackedBy2[Them] & ~attackedBy2[Us]);
 
     // Non-pawn enemies, strongly protected
@@ -1017,6 +1019,10 @@ int evaluateThreats(Color Us) {
         while (b)
             score += ThreatByMinor[type_of(piece_on(pop_lsb(b)))];
 
+        if (debug > 1) {
+            std::cout << " after threats by minor: " << (is_endgame ? eg_value(score) : mg_value(score) ) << "\n";
+        }
+
         //// frozen pieces count twice
         //b = (defended | weak) & (attackedBy[Us][KNIGHT] | attackedBy[Us][BISHOP]) & frozen;
         //while (b)
@@ -1026,6 +1032,9 @@ int evaluateThreats(Color Us) {
         while (b)
             score += ThreatByRook[type_of(piece_on(pop_lsb(b)))];
 
+        if (debug > 1) {
+            std::cout << " after threats by rook: " << (is_endgame ? eg_value(score) : mg_value(score) ) << "\n";
+        }
         // xrays
         //b = get_xray_rook_attacks();
         //while (b)
@@ -1038,13 +1047,22 @@ int evaluateThreats(Color Us) {
         if (weak & attackedBy[Us][KING])
             score += ThreatByKing;
 
+        if (debug > 1) {
+            std::cout << " after threats by king: " << (is_endgame ? eg_value(score) : mg_value(score) ) << "\n";
+        }
         b =  ~attackedBy[Them][ALL_PIECES]
            | (nonPawnEnemies & attackedBy[Us][ALL_PIECES]);
 
         score += (Hanging * popcount(weak & b));
+        if (debug > 1) {
+            std::cout << " after hanging        : " << (is_endgame ? eg_value(score) : mg_value(score) ) << "\n";
+        }
 
         // Additional bonus if weak piece is only protected by a queen
         score += WeakQueenProtection * popcount(weak & attackedBy[Them][QUEEN]);
+        if (debug > 1) {
+            std::cout << " after weak queen     : " << (is_endgame ? eg_value(score) : mg_value(score) ) << "\n";
+        }
     }
 
     // Bonus for restricting their piece moves
@@ -1052,9 +1070,12 @@ int evaluateThreats(Color Us) {
        & ~stronglyProtected
        &  attackedBy[Us][ALL_PIECES];
     score += RestrictedPiece * popcount(b);
+    if (debug > 1) {
+        std::cout << " after restricted     : " << (is_endgame ? eg_value(score) : mg_value(score) ) << "\n";
+    }
 
     // Protected or unattacked squares
-    safe = ~attackedBy[Them][ALL_PIECES] | attackedBy[Us][ALL_PIECES];
+    safe = (~attackedBy[Them][ALL_PIECES] | attackedBy[Us][ALL_PIECES]) & ~attackedBy[Them][PAWN];
 
     // Bonus for attacking enemy pieces with our relatively safe pawns
     b = pieces(Us, PAWN) & safe;
@@ -1062,10 +1083,15 @@ int evaluateThreats(Color Us) {
 
     score += ThreatBySafePawn * popcount(b);
 
+    if (debug > 1) {
+        std::cout << " after safe pawns    : " << (is_endgame ? eg_value(score) : mg_value(score) ) << "\n";
+    }
+
     Bitboard  TRank3BB = (Us == WHITE ? Rank3BB : Rank6BB);
 
     // Find squares where our pawns can push on the next move
-    b  = shift(Up, pieces(Us, PAWN)) & ~pieces();
+    // only safe pawns count here
+    b  = shift(Up, pieces(Us, PAWN) & safe) & ~pieces();
     b |= shift(Up, b & TRank3BB) & ~pieces();
 
     // Keep only the squares which are relatively safe
@@ -1074,6 +1100,10 @@ int evaluateThreats(Color Us) {
     //// Bonus for safe pawn threats on the next move
     b = pawn_attacks_bb(Us, b) & nonPawnEnemies;
     score += ThreatByPawnPush * popcount(b);
+
+    if (debug > 1) {
+        std::cout << " after push pawns    : " << (is_endgame ? eg_value(score) : mg_value(score) ) << "\n";
+    }
 
 
     if (debug) {
@@ -1488,6 +1518,8 @@ int evaluate() {
         //*********************** pawns
         b = pieces(c, PAWN);
         pawnScore += (ChainedPawn * popcount(b & attackedBy[Us][PAWN]));
+
+        // stockfish pawn scores (backwards pawns, etc)
         pawnScore += evaluatePawns(c);
 
         while (b) {
@@ -1497,6 +1529,11 @@ int evaluate() {
 
             pieceScore += PieceValue[PAWN];
         }
+
+        // pawns attacked by enemy pawns not guarded by our pawns
+        b = pieces(c, PAWN) & ~attackedBy[Us][PAWN] & attackedBy[Them][PAWN];
+        pawnScore -= AttackedUnguardedPawnFrozen * popcount(b & frozen);
+        pawnScore -= AttackedUnguardedPawn * popcount(b);
         
         //*********************** kings
         b = pieces(c, KING);
@@ -1552,15 +1589,30 @@ int evaluate() {
         score = threatScore + pieceScore + sqScore + pawnScore + kingScore;
 
         if (debug) {
-            std::cout << "---------- " << "\n";
+            std::cout << "--- mid ------- " << "\n";
             if (c == WHITE) {
-                std::cout << "      WHITE: " << score << "\n";
+                std::cout << "      WHITE: " << mg_value(score) << "\n";
             } else {
-                std::cout << "      BLACK: " << score << "\n";
+                std::cout << "      BLACK: " << mg_value(score) << "\n";
             }
             std::cout << "threatScore:  " << mg_value(threatScore) << "\n";
             std::cout << "pieceScore:  " << mg_value(pieceScore) << "\n";
+            std::cout << "pawnScore:  " << mg_value(pawnScore) << "\n";
+            std::cout << "kingScore:  " << mg_value(kingScore) << "\n";
             std::cout << "squareScore: " << mg_value(sqScore) << "\n";
+            std::cout << "---------- " << "\n";
+
+            std::cout << "--- end ---- " << "\n";
+            if (c == WHITE) {
+                std::cout << "      WHITE e: " << eg_value(score) << "\n";
+            } else {
+                std::cout << "      BLACK e: " << eg_value(score) << "\n";
+            }
+            std::cout << "threatScore:  " << eg_value(threatScore) << "\n";
+            std::cout << "pieceScore:  " << eg_value(pieceScore) << "\n";
+            std::cout << "pawnScore:  " << eg_value(pawnScore) << "\n";
+            std::cout << "kingScore:  " << eg_value(kingScore) << "\n";
+            std::cout << "squareScore: " << eg_value(sqScore) << "\n";
             std::cout << "---------- " << "\n";
         }
         totalScore += (c == WHITE ? score : -score);
@@ -1568,8 +1620,10 @@ int evaluate() {
 
     int scoreValue = (is_endgame ? eg_value(totalScore) : mg_value(totalScore));
     if (debug) {
-        std::cout << "score  : " << totalScore << "\n";
-        std::cout << "score v: " << scoreValue << "\n";
+        std::cout << "score raw : " << totalScore << "\n";
+        std::cout << "score val : " << scoreValue << "\n";
+        std::cout << "score mid : " << mg_value(totalScore) << "\n";
+        std::cout << "score end : " << eg_value(totalScore) << "\n";
     }
 
     if (randomness > 0) {
@@ -1602,10 +1656,10 @@ std::vector<Move> getAllMoves(Color wantColor) {
         Direction Up   = pawn_push(Us);
         Direction Down = pawn_push(Them);
 
-        if (wantColor == Us) {
+        //if (wantColor == Us) {
             Move m_none = make_move(SQ_A1, SQ_A1, NO_MOVE);
             moveArrayTmp.push_back(m_none);
-        }
+        //}
 
         //*********************** pawns
         b = pieces(Us, PAWN);

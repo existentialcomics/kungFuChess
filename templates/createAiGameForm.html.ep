@@ -7,9 +7,9 @@
             <div class="form-group">
                 <label for="gameSpeed" class="col col-form-label col-form-label-lg">Game Speed</label>
                 <div class="btn-group d-flex" role="group" aria-label="Game Speed">
-                    <input type="radio" class="btn-check" name="gameSpeed" id="aiStandardRadio" autocomplete="off" value="standard">
+                    <input type="radio" class="btn-check" name="gameSpeed" id="aiStandardRadio" autocomplete="off" value="standard" checked>
                     <label class="btn btn-outline-primary" for="aiStandardRadio">Standard</label>
-                    <input type="radio" class="btn-check" name="gameSpeed" id="aiLightningRadio" autocomplete="off" value="lightning" checked>
+                    <input type="radio" class="btn-check" name="gameSpeed" id="aiLightningRadio" autocomplete="off" value="lightning">
                     <label class="btn btn-outline-primary" for="aiLightningRadio">Lightning</label>
                 </div>
 

@@ -69,6 +69,13 @@ my %globalConnectionsByAuth = ();
 my %playerGamesByServerConn = ();
 my %gameConnections = ();
 
+## hash of achievements
+my %achievementsByName = ();
+my %achievementsById = ();
+
+### db hashref rows of achievement types
+my $achievements = undef;
+
 ## must be send from game connection since it is in memory
 my %rematches = ();
 
@@ -843,7 +850,7 @@ sub handleChatCommandGame {
             $uid,
             $gameRow->{piece_speed},
             $gameRow->{piece_recharge},
-            $gameRow->{piece_advantage} // "1:1:1:1",
+            $gameRow->{speed_advantage} // "1:1:1:1",
             getAiLevel(AI_USER_MEDIUM),
             $aiColor,
             'ws://localhost:3001/ws',
@@ -1212,7 +1219,27 @@ get '/profile/:screenname' => async sub {
         $c->stash('globalScoreLightning', undef);
     }
 
-    return $c->render('template' => 'profile', format => 'html', handler => 'ep');
+    my $achievementTypes = getAchievementTypes();
+    $c->stash('achievementTypes', $achievementTypes);
+
+    return $c->render(
+        'template' => 'profile',
+        format => 'html',
+        handler => 'ep'
+    );
+};
+
+get '/achievements/:gameId' => async sub {
+    my $c = shift;
+
+    my $gameId = $c->stash('gameId');
+
+    my $achievements = rewardAchievementsForGame($gameId);
+    my $str = '';
+    foreach my $a (@$achievements) {
+        $str .= $a . "<br>\n";
+    }
+    $c->render('text' => $str);
 };
 
 get '/profile/:screenname/games/:speed/:type' => async sub {
@@ -1416,7 +1443,7 @@ get '/open-json/ai' => sub {
                     'game_type' => $game->{game_type},
                     'piece_speed' => $game->{piece_speed},
                     'piece_recharge' => $game->{piece_recharge},
-                    'piece_advantage' => $game->{piece_advantage},
+                    'speed_advantage' => $game->{speed_advantage},
                     'ws_protocol' => $c->stash('wsProtocol'),
                     'ws_server' => $game->{ws_server},
                     'color' => $color,
@@ -1425,7 +1452,6 @@ get '/open-json/ai' => sub {
             }
         }
     }
-    print Dumper(@openAiGames);
     $c->render('json' => \@openAiGames);
 };
 
@@ -1465,7 +1491,7 @@ get '/ajax/openGames/json' => sub {
                 'gameId' => $gameRow->{game_id},
                 #'piece_speed' => $gameRow->{piece_speed},
                 #'piece_recharge' => $gameRow->{piece_recharge},
-                #'piece_advantage' => $gameRow->{piece_advantage},
+                #'speed_advantage' => $gameRow->{speed_advantage},
                 #'private_game_key' => $gameRow->{private_game_key},
                 'is_my_game' => 1,
             };
@@ -3166,6 +3192,8 @@ sub endGame {
         ($whiteEnd, $blackEnd, $redEnd, $greenEnd) = updateRatings($gameId, $gameSpeed, $gameType, $score, $teams);   
     }
 
+    my $achievements = rewardAchievementsForGame($gameId);
+
     if ($score && $score =~ m/^[015\.-]+$/) {
         ### write to game log for both players
         if ($whiteStart->{player_id}) {
@@ -3271,6 +3299,181 @@ sub endGame {
     delete $currentGames{$gameId};
     delete $games{$gameId};
     return 1;
+}
+
+sub rewardAchievementsForGame {
+    my $finishedGameId = shift;
+
+    my $gameRow = app->db()->selectrow_hashref(
+        'SELECT * FROM games WHERE game_id = ?', { 'Slice' => {} }, $finishedGameId
+    );
+    my $achievementTypes = getAchievementTypes();
+
+    my ($whiteResult, $blackResult, $redResult, $greenResult) = split('-', $gameRow->{score});      
+
+    if (! $gameRow) {
+        return;
+    }
+
+    my ($white, $black, $red, $green) = getPlayers($finishedGameId);
+
+    my @achievements = ();
+    my $player;
+    ### non ai, non anon player
+    if ($gameRow->{white_player} > 0 && $whiteResult eq '1') {
+        if ($gameRow->{black_player} < 1) {
+            my $white = grantAiAchievement(
+                $white, $black->{player_id}, $gameRow->{game_speed}
+            );
+            if ($white) { push @achievements, $white; }
+        }
+    }
+    if ($gameRow->{black_player} > 0 && $blackResult eq '1') {
+        if ($gameRow->{white_player} < 1) {
+            my $black = grantAiAchievement(
+                $white, $black->{player_id}, $gameRow->{game_speed}
+            );
+            if ($black) { push @achievements, $black; }
+        }
+    }
+
+    ### belts
+    if ($gameRow->{white_player} > 0) {
+        push(@achievements, grantBeltAchievement(
+            $white,
+            $gameRow->{game_speed},
+            $gameRow->{game_type}
+        ));
+    }
+
+    return \@achievements;
+}
+
+sub grantBeltAchievement {
+    my $player = shift;
+    my $speed = shift;
+    my $gameType = shift;
+
+    my $type = "";
+    my $belt = $player->getBelt($speed, $gameType);
+    my @earned = ();
+    if ($speed eq 'standard' && $gameType eq '2way') {
+        $type = 'Standard';
+    } elsif ($speed eq 'lightning' && $gameType eq '2way') {
+        $type = 'Lightning';
+    } elsif ($speed eq 'lightning' && $gameType eq '4way') {
+        $type = 'Fast 4way';
+    } else {
+        return @earned;
+    }
+    if ($belt eq 'tripleblack') {
+        push(@earned, grantAchievementName($player, "$type Triple Black Belt"));
+        push(@earned, grantAchievementName($player, "$type Double Black Belt"));
+        push(@earned, grantAchievementName($player, "$type Black Belt"));
+        push(@earned, grantAchievementName($player, "$type Brown Belt"));
+        push(@earned, grantAchievementName($player, "$type Red Belt"));
+        push(@earned, grantAchievementName($player, "$type Orange Belt"));
+        push(@earned, grantAchievementName($player, "$type Yellow Belt"));
+        push(@earned, grantAchievementName($player, "$type Green Belt"));
+    } elsif ($belt eq 'doubleblack') {
+        push(@earned, grantAchievementName($player, "$type Double Black Belt"));
+        push(@earned, grantAchievementName($player, "$type Black Belt"));
+        push(@earned, grantAchievementName($player, "$type Brown Belt"));
+        push(@earned, grantAchievementName($player, "$type Red Belt"));
+        push(@earned, grantAchievementName($player, "$type Orange Belt"));
+        push(@earned, grantAchievementName($player, "$type Yellow Belt"));
+        push(@earned, grantAchievementName($player, "$type Green Belt"));
+    } elsif ($belt eq 'black') {
+        push(@earned, grantAchievementName($player, "$type Black Belt"));
+        push(@earned, grantAchievementName($player, "$type Brown Belt"));
+        push(@earned, grantAchievementName($player, "$type Red Belt"));
+        push(@earned, grantAchievementName($player, "$type Orange Belt"));
+        push(@earned, grantAchievementName($player, "$type Yellow Belt"));
+        push(@earned, grantAchievementName($player, "$type Green Belt"));
+    } elsif ($belt eq 'brown') {
+        push(@earned, grantAchievementName($player, "$type Brown Belt"));
+        push(@earned, grantAchievementName($player, "$type Red Belt"));
+        push(@earned, grantAchievementName($player, "$type Orange Belt"));
+        push(@earned, grantAchievementName($player, "$type Yellow Belt"));
+        push(@earned, grantAchievementName($player, "$type Green Belt"));
+    } elsif ($belt eq 'red') {
+        push(@earned, grantAchievementName($player, "$type Red Belt"));
+        push(@earned, grantAchievementName($player, "$type Orange Belt"));
+        push(@earned, grantAchievementName($player, "$type Yellow Belt"));
+        push(@earned, grantAchievementName($player, "$type Green Belt"));
+    } elsif ($belt eq 'orange') {
+        push(@earned, grantAchievementName($player, "$type Orange Belt"));
+        push(@earned, grantAchievementName($player, "$type Yellow Belt"));
+        push(@earned, grantAchievementName($player, "$type Green Belt"));
+    } elsif ($belt eq 'yellow') {
+        push(@earned, grantAchievementName($player, "$type Yellow Belt"));
+        push(@earned, grantAchievementName($player, "$type Green Belt"));
+    } elsif ($belt eq 'green') {
+        push(@earned, grantAchievementName($player, "$type Green Belt"));
+    }
+    return @earned;
+}
+
+sub getAchievementTypes {
+    if (defined($achievements)) { return $achievements; }
+
+    $achievements = app->db()->selectall_arrayref(
+        'SELECT * FROM achievement_types',
+        { 'Slice' => {} }
+    );
+
+    foreach my $row (@{$achievements}) {
+        $achievementsByName{$row->{name}} = $row;
+        $achievementsById{$row->{achievement_type_id}} = $row;
+    }
+    return $achievements
+}
+
+sub getAchievementByName {
+    my $name = shift;
+    if (! %achievementsByName) { getAchievementsTypes(); } # populates hash
+    return $achievementsByName{$name};
+}
+sub getAchievementById {
+    my $id = shift;
+    if (! %achievementsById) { getAchievementsTypes(); } # populates hash
+    return $achievementsById{$id};
+}
+
+sub grantAiAchievement {
+    my ($player, $ai, $speed) = @_;
+
+    $speed = ucfirst($speed);
+    if ($ai == AI_USER_EASY) {
+        return grantAchievementName($player, "$speed Easy");
+    } elsif ($ai == AI_USER_MEDIUM) {
+        return grantAchievementName($player, "$speed Medium");
+    } elsif ($ai == AI_USER_HARD) {
+        return grantAchievementName($player, "$speed Hard");
+    } elsif ($ai == AI_USER_BERSERK) {
+        return grantAchievementName($player, "$speed Berserk");
+    } elsif ($ai == AI_USER_CRANE) {
+        return grantAchievementName($player, "$speed Crane");
+    } elsif ($ai == AI_USER_TURTLE) {
+        return grantAchievementName($player, "$speed Turtle");
+    } elsif ($ai == AI_USER_CENTIPEDE) {
+        return grantAchievementName($player, "$speed Centipede");
+    } elsif ($ai == AI_USER_DRAGON) {
+        return grantAchievementName($player, "$speed Dragon");
+    } elsif ($ai == AI_USER_MASTER) {
+        return grantAchievementName($player, "$speed Master");
+    }
+}
+
+sub grantAchievementName {
+    my $player = shift;
+    my $name = shift;
+
+    my $achv = getAchievementByName($name);
+    if ($achv) {
+        return $player->grantAchievement($achv->{achievement_type_id});
+    }
+    return undef;
 }
 
 sub getPlayers {

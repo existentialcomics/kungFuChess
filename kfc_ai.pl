@@ -18,10 +18,10 @@ my $pass   = shift;
 my $domain = shift;
 my $level  = shift;
 my $speed    = shift // 'standard';
-my $register = shift // 0;
 my $way      = shift // '2way';
+my $register = shift // 0;
 my $globalMode = shift // 'normal';
-my $timeToExit = shift // (time + (60 * 60));
+my $timeToExit = shift // (time + (60 * 20));
 
 my $minMemory = 1500000;
 
@@ -120,13 +120,13 @@ my $aiInterval = AnyEvent->timer(
             $url .= "?update-time=true";
             $mech->get($url);
             eval {
-                if (rand() < 0.05 && $globalMode eq 'normal') {
-                    print "setting globalMode to pool\n";
+                if (rand() < 0.06 && $globalMode eq 'normal' && $user ne 'anon') {
+                    print "setting $user globalMode to pool\n";
                     $mode = 'pool';
                     return;
                 }
-                if (rand() < 0.02 && $globalMode eq 'chill') {
-                    print "setting globalMode to pool\n";
+                if (rand() < 0.01 && $globalMode eq 'chill' && $user ne 'anon') {
+                    print "setting $user globalMode to pool\n";
                     $mode = 'pool';
                     return;
                 }
@@ -228,9 +228,15 @@ my $aiInterval = AnyEvent->timer(
             };
         } elsif ($mode eq 'pool') {
             if (rand() < 0.05 && $globalMode eq 'normal') {
-                print "setting globalMode to search\n";
-                $mode = 'searchForGame';
-                return;
+                if (rand() < 0.5) {
+                    print "setting globalMode to search\n";
+                    $mode = 'searchForGame';
+                    return;
+                } else {
+                    print "setting globalMode to chill\n";
+                    $mode = 'chill';
+                    return;
+                }
             }
             my $url = '/ajax/pool/' . $speed . '/' . $way;
             if (! $uid) {

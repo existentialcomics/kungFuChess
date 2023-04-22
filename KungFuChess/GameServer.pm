@@ -866,6 +866,9 @@ sub moveIfLegal {
         }
 
         if ($done) {
+            ### dodge, if an enemy moved BEFORE we started moving
+            #     here on destination
+
             my $time = time();
             $self->{startMoves}->{$to_bb} = $startTime;
             $self->{stopMoves}->{$to_bb}  = time();
@@ -936,11 +939,19 @@ sub moveIfLegal {
     my $restartAnimation = 0;
     $moveStep->($self, $moveStep, $fr_bb, $to_bb, $moveDir, $startTime, $moveType, '', $colorbit, $restartAnimation);
 
+    ### TODO set info here about moving pieces
+    $self->{startInfo}->{$fr_bb}->{pieceLeft} = $startTime;
+    $self->{startInfo}->{$fr_bb}->{move_to} = $to_bb;
+    $self->{startInfo}->{$fr_bb}->{color} = $colorbit;
+
     return 1;
 }
 
 sub killPieceBB {
     my ($self, $bb, $killerColorbit, $isSweep) = @_;
+
+    ### divserion 
+    #my $wasFrozen = exists($self->{timeoutSquares}->{$bb});
 
     ### mark that it is no longer active, stopping any movement
     my $piece = KungFuChess::Bitboards::_getPieceBB($bb);
@@ -1029,4 +1040,5 @@ sub getPieces {
 
     return @pieces;
 }
+
 1;
