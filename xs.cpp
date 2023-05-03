@@ -1786,13 +1786,13 @@ std::vector<Move> getAllMoves(Color wantColor) {
             }
         }
         
-        //*********************** knights
+        //*********************** dragons
         b = pieces(c, DRAGON);
         mobility[Us] += MobilityBonus[KNIGHT - 2][mob];
         while (b) {
             Square sq = pop_lsb(b);
             Bitboard att_bb = dragon_attacks(sq);
-            attackedBy[Us][KING] |= att_bb;
+            attackedBy[Us][DRAGON] |= att_bb;
 
             Piece piece = make_piece(c, DRAGON);
             board[sq] = piece;

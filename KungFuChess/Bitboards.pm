@@ -412,6 +412,13 @@ sub setCurrentMoves {
     $currentMoves = $_;
 }
 
+sub colorOfPiece {
+    if ($_[0] > 200) {
+        return BLACK;
+    }
+    return WHITE;
+}
+
 if ($useXS) {
     initXS();
 }
@@ -2668,6 +2675,12 @@ sub pop_lsb {
 #
 sub strToInt {
     $_[0] += 0;
+}
+
+sub getColorName {
+    if ($_[0] == WHITE){ return 'white'; }
+    if ($_[0] == BLACK){ return 'black'; }
+    return '';
 }
 
 1;

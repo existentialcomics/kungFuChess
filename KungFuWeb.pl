@@ -2638,43 +2638,39 @@ websocket '/ws' => sub {
             $game->serverBroadcast($msg);
         } elsif ($msg->{'c'} eq 'authkillsuspend'){
             if (! gameauth($msg) ){ return 0; }
-            # pass the move request to the server
             $msg->{'c'} = 'killsuspend';
             $msg->{'is_sweep'} = 1;
             $game->playerBroadcast($msg);
         } elsif ($msg->{'c'} eq 'authunsuspend'){
             if (! gameauth($msg) ){ return 0; }
-            # pass the move request to the server
             $msg->{'c'} = 'unsuspend';
             $game->playerBroadcast($msg);
         } elsif ($msg->{'c'} eq 'authsuspend'){
             if (! gameauth($msg) ){ return 0; }
-            # pass the move request to the server
             $msg->{'c'} = 'suspend';
             $game->playerBroadcast($msg);
         } elsif ($msg->{'c'} eq 'authcancelpremove'){
             if (! gameauth($msg) ){ return 0; }
-            # pass the move request to the server
             $msg->{'c'} = 'cancelPremove';
             $game->playerBroadcast($msg);
         } elsif ($msg->{'c'} eq 'authmovestep'){
             if (! gameauth($msg) ){ return 0; }
-            # pass the move request to the server
             $msg->{'c'} = 'move';
             $game->playerBroadcast($msg);
         } elsif ($msg->{'c'} eq 'authpause'){
             if (! gameauth($msg) ){ return 0; }
-            # pass the move request to the server
             $msg->{'c'} = 'pause';
+            $game->playerBroadcast($msg);
+        } elsif ($msg->{'c'} eq 'authtactic'){
+            if (! gameauth($msg) ){ return 0; }
+            $msg->{'c'} = 'tactic';
             $game->playerBroadcast($msg);
         } elsif ($msg->{'c'} eq 'authcontinue'){
             if (! gameauth($msg) ){ return 0; }
-            # pass the move request to the server
             $msg->{'c'} = 'continue';
             $game->playerBroadcast($msg);
         } elsif ($msg->{'c'} eq 'authstop'){
             if (! gameauth($msg) ){ return 0; }
-            # pass the move request to the server
             $msg->{'c'} = 'stop';
             $game->playerBroadcast($msg);
         } elsif ($msg->{'c'} eq 'authPremove'){
@@ -3344,6 +3340,29 @@ sub rewardAchievementsForGame {
             $gameRow->{game_speed},
             $gameRow->{game_type}
         ));
+    }
+    if ($gameRow->{black_player} > 0) {
+        push(@achievements, grantBeltAchievement(
+            $black,
+            $gameRow->{game_speed},
+            $gameRow->{game_type}
+        ));
+    }
+    if ($gameRow->{game_type} eq '4way') {
+        if ($gameRow->{red_player} > 0) {
+            push(@achievements, grantBeltAchievement(
+                $red,
+                $gameRow->{game_speed},
+                $gameRow->{game_type}
+            ));
+        }
+        if ($gameRow->{green_player} > 0) {
+            push(@achievements, grantBeltAchievement(
+                $green,
+                $gameRow->{game_speed},
+                $gameRow->{game_type}
+            ));
+        }
     }
 
     return \@achievements;

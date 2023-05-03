@@ -45,9 +45,11 @@ insert into achievement_types (image, name, description, group_name) VALUES ('ac
 
 insert into achievement_types (image, name, description, group_name) VALUES ('achievements/dodge.png', 'Dodge', 'Dodge an attack', 'tactic'); 
 insert into achievement_types (image, name, description, group_name) VALUES ('achievements/anticipate.png', 'Anticipate', 'Anticipate an attack', 'tactic'); 
-insert into achievement_types (image, name, description, group_name) VALUES ('achievements/cutoff.png', 'Cutoff', 'Cutoff of an enemy attack', 'tactic'); 
 insert into achievement_types (image, name, description, group_name) VALUES ('achievements/diversion.png', 'Diversion', 'Create a diversion', 'tactic'); 
-insert into achievement_types (image, name, description, group_name) VALUES ('achievements/combo.png', 'Combo', 'Execute a combo attack', 'tactic'); 
+insert into achievement_types (image, name, description, group_name) VALUES ('achievements/combo.png', 'Two Piece Combo', 'Execute a combo attack of two pieces', 'tactic'); 
+insert into achievement_types (image, name, description, group_name) VALUES ('achievements/combo.png', 'Three Piece Combo', 'Execute a combo attack of three pieces', 'tactic'); 
+insert into achievement_types (image, name, description, group_name) VALUES ('achievements/combo.png', 'Four Piece Combo', 'Execute a combo attack of four pieces', 'tactic'); 
+insert into achievement_types (image, name, description, group_name) VALUES ('achievements/combo.png', 'Five Piece Combo', 'Execute a combo attack of five pieces', 'tactic'); 
 insert into achievement_types (image, name, description, group_name) VALUES ('achievements/peekaboo.png', 'Peekaboo', 'Execute a peekaboo attack', 'tactic'); 
 insert into achievement_types (image, name, description, group_name) VALUES ('achievements/sweep.png', 'Sweep', 'Sweep a piece', 'tactic'); 
 insert into achievement_types (image, name, description, group_name) VALUES ('achievements/block.png', 'Block', 'Block an enemy attack', 'tactic'); 

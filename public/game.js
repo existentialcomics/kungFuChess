@@ -907,6 +907,16 @@ var handleMessage = function(msg) {
             }, 2000);
         }
         setTimeout(startGame, 3000)
+    } else if (msg.c == 'tactic') {
+        var dt = new Date();
+        addGameMessage(
+            'tactic',
+            msg.message,
+            'grey',
+            'black',
+            dt,
+            msg.authColor
+        );
     } else if (msg.c == 'gamechat') {
         var dt = new Date();
         addGameMessage(

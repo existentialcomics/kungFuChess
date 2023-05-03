@@ -252,6 +252,17 @@ sub setCurrentMoves {
     $currentMoves = $_;
 }
 
+sub colorOfPiece {
+    if ($_[0] > 400) {
+        return GREEN;
+    } elsif ($_[0] > 300) {
+        return RED;
+    } elsif ($_[0] > 200) {
+        return BLACK;
+    }
+    return WHITE;
+}
+
 ### 4way only, can't capture initial pawn setup
 ### to test simply & together fr and to and this
 my $illegalPawnCaptures =
@@ -2947,6 +2958,14 @@ sub pop_lsb {
 #
 sub strToInt {
     $_[0] = uint128($_[0]);
+}
+
+sub getColorName {
+    if ($_[0] == WHITE){ return 'white'; }
+    if ($_[0] == BLACK){ return 'black'; }
+    if ($_[0] == RED){ return 'red'; }
+    if ($_[0] == GREEN){ return 'green'; }
+    return '';
 }
 
 1;

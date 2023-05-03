@@ -17,60 +17,12 @@ use KungFuChess::BBHash;
 ### taken from Chess::Rep
 ### can't use the whole lib because of chess specific rules like check
 use constant ({
-    CASTLE_W_OO  => 1,
-    CASTLE_W_OOO => 2,
-    CASTLE_B_OO  => 4,
-    CASTLE_B_OOO => 8,
-    PIECE_TO_ID => {
-        p => 0x01,              # black pawn
-        n => 0x02,              # black knight
-        k => 0x04,              # black king
-        b => 0x08,              # black bishop
-        r => 0x10,              # black rook
-        q => 0x20,              # black queen
-        P => 0x81,              # white pawn
-        N => 0x82,              # white knight
-        K => 0x84,              # white king
-        B => 0x88,              # white bishop
-        R => 0x90,              # white rook
-        Q => 0xA0,              # white queen
-    },
-    ID_TO_PIECE => [
-        undef,                  # 0
-        'p',                    # 1
-        'n',                    # 2
-        undef,                  # 3
-        'k',                    # 4
-        undef,                  # 5
-        undef,                  # 6
-        undef,                  # 7
-        'b',                    # 8
-        undef,                  # 9
-        undef,                  # 10
-        undef,                  # 11
-        undef,                  # 12
-        undef,                  # 13
-        undef,                  # 14
-        undef,                  # 15
-        'r',                    # 16
-        undef,                  # 17
-        undef,                  # 18
-        undef,                  # 19
-        undef,                  # 20
-        undef,                  # 21
-        undef,                  # 22
-        undef,                  # 23
-        undef,                  # 24
-        undef,                  # 25
-        undef,                  # 26
-        undef,                  # 27
-        undef,                  # 28
-        undef,                  # 29
-        undef,                  # 30
-        undef,                  # 31
-        'q',                    # 32
-    ],
     FEN_STANDARD => 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
+
+    TACTIC_PEEKABOO     => 0x01, # we have dodged ourself
+    TACTIC_PUNCHTHROUGH => 0x02, # the enemy has dodged us
+    TACTIC_DODGED       => 0x04, # the enemy has dodged us
+    TACTIC_SWEEP        => 0x08, # we have swept a piece
 });
 
 my @MOVES_N = (31, 33, 14, 18, -18, -14, -33, -31);
@@ -147,7 +99,37 @@ sub _init {
     ### currently animating moves
     $self->{activeMoves}    = {};
 
+    ### time when a piece last vacated this sq
+    # for achievements. This is by color
+    $self->{leaveSqTimes}    = {
+        KungFuChess::Bitboards::WHITE => {},
+        KungFuChess::Bitboards::BLACK => {},
+        #KungFuChess::Bitboards::RED => {},
+        #KungFuChess::Bitboards::GREEN => {},
+    };
+    ### this tracks when the piece left it's LAST sq
+    $self->{lastLeaveSqTimes}    = {
+        KungFuChess::Bitboards::WHITE => {},
+        KungFuChess::Bitboards::BLACK => {},
+        #KungFuChess::Bitboards::RED => {},
+        #KungFuChess::Bitboards::GREEN => {},
+    };
+    ### tracks for combos, etc
+    $self->{killStack}    = {
+        KungFuChess::Bitboards::WHITE => [],
+        KungFuChess::Bitboards::BLACK => [],
+        #KungFuChess::Bitboards::RED => {},
+        #KungFuChess::Bitboards::GREEN => {},
+    };
+    $self->{moveStack}    = {
+        KungFuChess::Bitboards::WHITE => [],
+        KungFuChess::Bitboards::BLACK => [],
+        #KungFuChess::Bitboards::RED => {},
+        #KungFuChess::Bitboards::GREEN => {},
+    };
+
     ### keep track of original move times for stopped pieces
+    # for sweeps and achievements
     $self->{startMoves} = {};
     $self->{stopMoves}  = {};
     ### squares that are on hold before they can move again
@@ -525,8 +507,24 @@ sub moveIfLegal {
 
     my $timer = undef;
     my $timer2 = undef;
+
+    ### fr_bb means the square we are on now, NOT the start sq
     my $moveStep = sub {
-        my ($self, $func, $fr_bb, $to_bb, $dir, $startTime, $moveType, $piece, $colorbit, $restartAnimation) = @_;
+        my (
+            $self,
+            $func,
+            $fr_bb,
+            $to_bb,
+            $dir,
+            $startTime,
+            $lastStartTime,
+            $moveType,
+            $piece,
+            $colorbit,
+            $restartAnimation,
+            $tactics
+        ) = @_;
+
 
         if ($restartAnimation) {
             my $msg = {
@@ -563,7 +561,7 @@ sub moveIfLegal {
             my @kill_bbs = KungFuChess::Bitboards::getEnPassantKills($fr_bb, $to_bb);
             ### if 4way it is possible to kill two!
             foreach my $kill_bb (@kill_bbs) {
-                $self->killPieceBB($kill_bb, $colorbit);
+                $self->killPieceBB($kill_bb, $colorbit, $tactics, $startTime, $lastStartTime);
             }
         }
 
@@ -582,6 +580,26 @@ sub moveIfLegal {
             } else {
                 $moving_to_bb = KungFuChess::Bitboards::shift_BB($fr_bb, $dir);
             }
+            ######################## TACTICS
+            if (
+                exists($self->{leaveSqTimes}->{$colorbit}->{$moving_to_bb}) &&
+                $self->{leaveSqTimes}->{$colorbit}->{$moving_to_bb} > $startTime
+            ) {
+                $tactics |= TACTIC_PEEKABOO;
+            }
+            # TODO only works in 2way
+            my $enemyColorbit = ($colorbit == KungFuChess::Bitboards::WHITE ? 
+                KungFuChess::Bitboards::BLACK : KungFuChess::Bitboards::WHITE);
+            if (
+                exists($self->{leaveSqTimes}->{$enemyColorbit}->{$moving_to_bb}) &&
+                $self->{leaveSqTimes}->{$enemyColorbit}->{$moving_to_bb} > $startTime
+            ) {
+                $tactics |= TACTIC_PUNCHTHROUGH;
+                $tactics |= TACTIC_DODGED;
+
+                $self->sendTactic($enemyColorbit, 'dodged');
+            }
+            ######################## END TACTICS
 
             ### TODO replace this with a perfect hash of all 64 bb destinations
             ### only check this if the moving bitboard is occupied.
@@ -599,13 +617,15 @@ sub moveIfLegal {
                 if (exists($self->{activeMoves}->{$moving_to_bb})) {
                     my $themStartTime = $self->{activeMoves}->{$moving_to_bb}->{start_time};
                     if ($themStartTime < $startTime) {
+                        $tactics |= TACTIC_SWEEP;
                         ### the place we are moving has a piece that started before
                         ### so we get killed.
-                        $self->killPieceBB($fr_bb, $colorbit, 1);
+                        $self->killPieceBB($fr_bb, $colorbit, $tactics, $startTime, $lastStartTime);
 
                         return 1;
                     } else {
-                        $self->killPieceBB($moving_to_bb, $colorbit, 1);
+                        $tactics |= TACTIC_SWEEP;
+                        $self->killPieceBB($moving_to_bb, $colorbit, $tactics, $startTime, $lastStartTime);
 
                         KungFuChess::Bitboards::move($fr_bb, $moving_to_bb);
                         my $msgStep = {
@@ -637,9 +657,12 @@ sub moveIfLegal {
                     if ($moveType == KungFuChess::Bitboards::MOVE_DOUBLE_PAWN) {
                         $shouldStop = 2; ### 2 means stop now...
                     } else {
-                        # 2nd arg is for isSweep, technically if we don't stop here it's a sweep
+                        if (! $shouldStop) {
+                            $tactics |= TACTIC_SWEEP;
+                        }
+                        # technically if we don't stop here it's a sweep
                         # they didn't arrive in time to complete the animation and stand their ground
-                        $self->killPieceBB($moving_to_bb, $colorbit, ($shouldStop ? undef : 1));
+                        $self->killPieceBB($moving_to_bb, $colorbit, $tactics, $startTime, $lastStartTime);
                         KungFuChess::Bitboards::move($fr_bb, $moving_to_bb);
                         my $msgStep = {
                             'c' => 'authmovestep',
@@ -738,6 +761,16 @@ sub moveIfLegal {
             $moveType = KungFuChess::Bitboards::MOVE_PUT_PIECE;
             $nextMoveSpeed = $self->{$colorbit}->{pieceSpeed};
         } elsif ($moveType == KungFuChess::Bitboards::MOVE_PUT_PIECE) {
+            #################### TACTICS
+            my $enemyColorbit = ($colorbit == KungFuChess::Bitboards::WHITE ? 
+                KungFuChess::Bitboards::BLACK : KungFuChess::Bitboards::WHITE);
+            if (
+                exists($self->{leaveSqTimes}->{$enemyColorbit}->{$to_bb}) &&
+                $self->{leaveSqTimes}->{$enemyColorbit}->{$to_bb} > $startTime
+            ) {
+                $self->sendTactic($enemyColorbit, 'dodged');
+            }
+            #################### end TACTICS
 
             ###------------------ comment this out to free horsey
             ### enemy collision active
@@ -759,7 +792,7 @@ sub moveIfLegal {
             }
             ###-----------------
 
-            $self->killPieceBB($to_bb, $colorbit);
+            $self->killPieceBB($to_bb, $colorbit, $tactics, $startTime, $lastStartTime);
             my $msgSpawn = {
                 'c' => 'authunsuspend',
                 'chr' => $piece,
@@ -803,13 +836,13 @@ sub moveIfLegal {
             $timer = AnyEvent->timer(
                 after => $self->{$colorbit}->{pieceSpeed},
                 cb => sub {
-                    $func->($self, $func, $fr_bb, $king_moving_to, $dir, $startTime, $moveType, $piece, $colorbit, $restartAnimation);
+                    $func->($self, $func, $fr_bb, $king_moving_to, $dir, $startTime, $lastStartTime, $moveType, $piece, $colorbit, $restartAnimation);
                 }
             );
             $timer2 = AnyEvent->timer(
                 after => $self->{$colorbit}->{pieceSpeed},
                 cb => sub {
-                    $func->($self, $func, $fr_bb, $rook_moving_to, $dir, $startTime, $moveType, $pieceTo, $colorbit, $restartAnimation);
+                    $func->($self, $func, $fr_bb, $rook_moving_to, $dir, $startTime, $lastStartTime, $moveType, $pieceTo, $colorbit, $restartAnimation);
                 }
             );
             return ; ## return early because there is no more movement
@@ -851,13 +884,13 @@ sub moveIfLegal {
             $timer = AnyEvent->timer(
                 after => $self->{$colorbit}->{pieceSpeed},
                 cb => sub {
-                    $func->($self, $func, $fr_bb, $king_moving_to, $dir, $startTime, $moveType, $piece, $colorbit, $restartAnimation);
+                    $func->($self, $func, $fr_bb, $king_moving_to, $dir, $startTime, $lastStartTime, $moveType, $piece, $colorbit, $restartAnimation);
                 }
             );
             $timer2 = AnyEvent->timer(
                 after => $self->{$colorbit}->{pieceSpeed},
                 cb => sub {
-                    $func->($self, $func, $fr_bb, $rook_moving_to, $dir, $startTime, $moveType, $pieceTo, $colorbit, $restartAnimation);
+                    $func->($self, $func, $fr_bb, $rook_moving_to, $dir, $startTime, $lastStartTime, $moveType, $pieceTo, $colorbit, $restartAnimation);
                 }
             );
             return ; ## return early because there is no more movement
@@ -865,13 +898,12 @@ sub moveIfLegal {
             warn "unknown movetype $moveType\n";
         }
 
+        #### DONE
         if ($done) {
-            ### dodge, if an enemy moved BEFORE we started moving
-            #     here on destination
-
             my $time = time();
+
             $self->{startMoves}->{$to_bb} = $startTime;
-            $self->{stopMoves}->{$to_bb}  = time();
+            $self->{stopMoves}->{$to_bb}  = $time;
             $self->{timeoutSquares}->{$to_bb} = { 'time' => $time };
             my $msg = {
                 'c' => 'authstop',
@@ -912,7 +944,20 @@ sub moveIfLegal {
             $timer = AnyEvent->timer(
                 after => $nextMoveSpeed,
                 cb => sub {
-                    $func->($self, $func, $next_fr_bb, $to_bb, $dir, $startTime, $moveType, $piece, $colorbit, $restartAnimation);
+                    $func->(
+                        $self,
+                        $func,
+                        $next_fr_bb,
+                        $to_bb,
+                        $dir,
+                        $startTime,
+                        $lastStartTime,
+                        $moveType,
+                        $piece,
+                        $colorbit,
+                        $restartAnimation,
+                        $tactics
+                    );
                 }
             );
         }
@@ -929,6 +974,8 @@ sub moveIfLegal {
     };
     $self->send($msg);
 
+    push(@{$self->{moveStack}->{$colorbit}}, time());
+
     my $startTime = time();
     ### usually times are set here but we set just to 1 to show it exists
     $self->{activeMoves}->{$fr_bb} = {
@@ -937,35 +984,98 @@ sub moveIfLegal {
         moveDir => $moveDir,
     };
     my $restartAnimation = 0;
-    $moveStep->($self, $moveStep, $fr_bb, $to_bb, $moveDir, $startTime, $moveType, '', $colorbit, $restartAnimation);
+    my $tactics = 0;
 
-    ### TODO set info here about moving pieces
-    $self->{startInfo}->{$fr_bb}->{pieceLeft} = $startTime;
-    $self->{startInfo}->{$fr_bb}->{move_to} = $to_bb;
-    $self->{startInfo}->{$fr_bb}->{color} = $colorbit;
+    $self->{leaveSqTimes}->{$colorbit}->{$fr_bb} = time();
+    my $lastStartTime = $self->{stopMoves}->{$fr_bb} // 0.0;
+
+    #print "init move starttime: $startTime, $lastStartTime\n";
+
+    ### call the function
+    $moveStep->(
+        $self,
+        $moveStep,
+        $fr_bb,
+        $to_bb,
+        $moveDir,
+        $startTime,
+        $lastStartTime,
+        $moveType,
+        '', # piece
+        $colorbit,
+        $restartAnimation,
+        $tactics
+    );
 
     return 1;
 }
 
-sub killPieceBB {
-    my ($self, $bb, $killerColorbit, $isSweep) = @_;
+### number of items in a stack in x seconds
+sub numberInStack {
+    my $timeDiff = shift;
 
-    ### divserion 
-    #my $wasFrozen = exists($self->{timeoutSquares}->{$bb});
+    my $count = 0;
+    while (my $stackTime = pop (@_)) {
+        $count++;
+        if ($timeDiff < (time() - $stackTime)) { print "less than, exiting at $count\n"; return $count; }
+    }
+    $count++;
+    return $count;
+}
+
+sub killPieceBB {
+    my ($self, $bb, $killerColorbit, $tactics, $startTime, $lastStartTime) = @_;
+
+    my $wasFrozen = exists($self->{timeoutSquares}->{$bb});
 
     ### mark that it is no longer active, stopping any movement
     my $piece = KungFuChess::Bitboards::_getPieceBB($bb);
-    delete $self->{startMoves}->{$bb};
-    delete $self->{stopMoves}->{$bb};
-    delete $self->{activeMoves}->{$bb};
     if ($piece) {
+        my $deathColorBit = KungFuChess::Bitboards::colorOfPiece($piece);
         my $killMsg = {
             'c'  => 'authkill',
             'bb' => $bb
         };
-        if ($isSweep) {
-            $killMsg->{is_sweep} = 1;
+        my $comboKills = numberInStack(0.5, @{$self->{killStack}->{$killerColorbit}});
+        if ($comboKills >= 2) {
+            $self->sendTactic($killerColorbit, 'combo of ' . $comboKills);
         }
+        ### distraction moves
+        if (
+            ! $wasFrozen &&
+            $piece != KungFuChess::Bitboards::PAWN &&
+            (time() - $startTime) > 1.9 )
+        {
+            my $distractmoves = numberInStack(3, @{$self->{moveStack}->{$killerColorbit}});
+            if ($distractmoves > 2) {
+                $self->sendTactic($killerColorbit, 'divserion');
+            }
+        }
+        delete $self->{leaveSqTimes}->{$deathColorBit}->{$bb};
+        delete $self->{lastLeaveSqTimes}->{$deathColorBit}->{$bb};
+
+        push(@{$self->{killStack}->{$killerColorbit}}, time());
+
+        ### TACTICS
+        ### we capture a frozen piece who began moving before we did (last move)
+        if (
+            $wasFrozen && exists($self->{startMoves}->{$bb}) &&
+            $self->{startMoves}->{$bb} < $lastStartTime
+        ) {
+            $self->sendTactic($killerColorbit, 'anticipate');
+        }
+
+        if ($tactics & TACTIC_SWEEP) {
+            $killMsg->{is_sweep} = 1;
+            $self->sendTactic($killerColorbit, 'sweep');
+        }
+        if ($tactics & TACTIC_PEEKABOO) {
+            $self->sendTactic($killerColorbit, 'peekaboo');
+        }
+        if ($tactics & TACTIC_PUNCHTHROUGH) {
+            $self->sendTactic($killerColorbit, 'punch through');
+        }
+        ### END TACTCIS
         $self->send($killMsg);
         if ($piece % 100 == KungFuChess::Bitboards::KING) {
             KungFuChess::Bitboards::_removeColorByPiece($piece);
@@ -981,6 +1091,11 @@ sub killPieceBB {
         }
     }
     KungFuChess::Bitboards::_removePiece($bb);
+    delete $self->{startMoves}->{$bb};
+    delete $self->{stopMoves}->{$bb};
+    delete $self->{activeMoves}->{$bb};
+
+    return;
 }
 
 sub gameOver() {
@@ -1032,6 +1147,18 @@ sub getPiece {
     my $pieceId = shift;
 
     return $self->{board}->{$pieceId};
+}
+
+sub sendTactic {
+    my $self = shift;
+    my $colorbit = shift;
+    my $tactic = shift;
+
+    my $msg = {
+        'c' => 'authtactic',
+        'message' => KungFuChess::Bitboards::getColorName($colorbit) . " $tactic!",
+    };
+    $self->send($msg);
 }
 
 sub getPieces {
