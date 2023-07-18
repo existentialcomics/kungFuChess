@@ -214,7 +214,8 @@ my $aiInterval = AnyEvent->timer(
                         $authToken,
                         $game->{piece_speed},
                         $game->{piece_recharge},
-                        '1-1-1-1',
+                        '1:1:1:1', ## berserk speed advantage
+                        $game->{teams},
                         $level,
                         $color,
                         $game->{ws_protocol} . "://" . $game->{ws_server} . "/ws",
@@ -291,7 +292,8 @@ my $aiInterval = AnyEvent->timer(
                     $authToken,
                     ($speed eq 'standard' ? 10 : 1),
                     ($speed eq 'standard' ? 10 : 1),
-                    '1-1-1-1',
+                    '1:1:1:1', ### speed advantage
+                    '1-1-1-1', ### teams
                     $level,
                     $color,
                     $wsdomain,

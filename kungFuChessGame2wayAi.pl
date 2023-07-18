@@ -6,6 +6,7 @@ my $authKey = shift;
 my $pieceSpeed = shift;
 my $pieceRecharge = shift;
 my $speedAdj = shift;
+my $teams = shift;
 my $difficulty = shift;
 my $color = shift;
 my $domain = shift;
@@ -25,6 +26,7 @@ my $kfcAi = KungFuChess::GameAi->new(
     $pieceSpeed,
     $pieceRecharge,
     $speedAdj,
+    $teams,
     '2way',
     $difficulty,
     $color,

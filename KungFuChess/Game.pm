@@ -251,7 +251,8 @@ sub playerReady {
             $self->{readyToPlay} = time + 3;
             my $msg = {
                 'c' => 'gameBegins',
-                'seconds' => 3
+                'seconds' => 3,
+                'teams' => $self->{teams},
             };
             $self->serverBroadcast($msg);
             $self->playerBroadcast($msg);

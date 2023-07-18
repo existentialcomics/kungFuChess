@@ -36,6 +36,7 @@ print KungFuChess::Bitboards::pretty();
 #print "XS evaluate:\n";
 print KungFuChess::Bitboards::evaluateXS();
 print "\n";
+KungFuChess::Bitboards::xsDebug();
 exit;
 #print "\nmoves:\n";
 #my @moves = KungFuChess::Bitboards::getMovesXS();

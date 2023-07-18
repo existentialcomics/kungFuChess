@@ -41,19 +41,21 @@ sub _init {
     my $pieceSpeed = shift;
     my $pieceRecharge = shift;
 	my $speedAdj = shift;
+	my $teams = shift;
 	my $mode  = shift;
     my $difficulty = shift;
     my $color = shift;
     my $domain = shift;
 	my $ai = 1;
 
-    print "game key: $gameKey, authkey: $authKey, speed: $speed, mode: $mode, diff: $difficulty, color: $color, domain: $domain\n";
+    print "game key: $gameKey, authkey: $authKey, speed: $speed, mode: $mode, diff: $difficulty, color: $color, domain: $domain, teams: $teams\n";
 
     $self->{startTime} = time();
 
     my $cfg = new Config::Simple('kungFuChess.cnf');
     $self->{config} = $cfg;
     $self->{mode}   = $mode;
+    $self->{teams}  = $teams;
 
     ### correct for a bug elsewhere lol
     if ($color eq 'white') {
@@ -625,6 +627,8 @@ sub handleMessage {
         KungFuChess::Bitboards::move($msg->{fr_bb}+0, $msg->{to_bb}+0);
         KungFuChess::Bitboards::resetAiBoards($self->{color});
         $self->setFrozen($msg->{to_bb});
+	} elsif ($msg->{c} eq 'teamsChange'){
+        $self->{teams} = $msg->{'teamsReal'};
 	} elsif ($msg->{c} eq 'stop'){
         KungFuChess::Bitboards::unsetMoving($msg->{fr_bb});
         delete $self->{frozen}->{$msg->{fr_bb}};
@@ -730,6 +734,7 @@ sub handleMessage {
         # to prevent autodraw from coming up right away
         my $startTime = time() + $msg->{seconds};
         #$self->{aiStates}->{uciok} = 0;
+        $self->{teams} = $msg->{teams};
 
         #usleep(($startTime + 0.1) * 1000);
         my @moves = ();
@@ -885,6 +890,7 @@ sub aiTick {
                 $self->{ai_depth},
                 $self->{ai_thinkTime},
                 $self->{mode} eq '4way' ? 1 : $self->{color},
+                $self->{teams},
             );
 
             if ($debug) {

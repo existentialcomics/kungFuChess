@@ -46,13 +46,14 @@ while($run) {
             print "url $baseUrl$claimUrl\n";
             $mech->get($baseUrl . $claimUrl);
 
-            my $cmdAi = sprintf('/usr/bin/perl ./kungFuChessGame%sAi.pl %s %s %s %s %s %s %s %s 1>%s 2>%s &',
+            my $cmdAi = sprintf('/usr/bin/perl ./kungFuChessGame%sAi.pl %s %s %s %s %s %s %s %s %s 1>%s 2>%s &',
                 $gameRow->{game_type},
                 $gameRow->{game_id},
                 $uid,
                 $gameRow->{piece_speed},
                 $gameRow->{piece_recharge},
                 $gameRow->{speed_advantage} // "1:1:1:1",
+                $gameRow->{teams} // "1-1-1-1",
                 $gameRow->{level},
                 $aiColor,
                 ($secure ? "wss://" : "ws://") . $gameRow->{ws_server} . "/ws",

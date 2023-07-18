@@ -983,6 +983,31 @@ var handleMessage = function(msg) {
         location.reload();
     } else if (msg.c == 'teamsChange') {
         $('#teams').html(msg.teams);
+
+        if (msg.teams == 'white red vs black green') {
+          $('#4wayTeamsWhiteRed').attr('checked', true);
+        } else {
+          $('#4wayTeamsWhiteRed').attr('checked', false);
+        }
+
+        if (msg.teams == 'white green vs black red') {
+          $('#4wayTeamsWhiteGreen').attr('checked', true);
+        } else {
+          $('#4wayTeamsWhiteGreen').attr('checked', false);
+        }
+
+        if (msg.teams == 'free for all') {
+          $('#4wayTeamsFFA').attr('checked', true);
+        } else {
+          $('#4wayTeamsFFA').attr('checked', false);
+        }
+
+        if (msg.teams == 'white black vs red green') {
+          $('#4wayTeamsWhiteBlack').attr('checked', true);
+        } else {
+          $('#4wayTeamsWhiteBlack').attr('checked', false);
+        }
+
         var dt = new Date();
         addGameMessage(
             "SYSTEM",
@@ -1994,17 +2019,57 @@ $(function () {
         };
         sendMsg(msg);
     });
-	var orig_speedAdvantage  = speedAdvantage;
-	var orig_timerSpeed      = timerSpeed;
-	var orig_timerRecharge   = timerRecharge;
-	var orig_timerSpeedWhite = timerSpeedWhite;
-	var orig_timerSpeedBlack = timerSpeedBlack;
-	var orig_timerSpeedRed   = timerSpeedRed;
-	var orig_timerSpeedGreen = timerSpeedGreen;
-	var orig_timerRechargeWhite = timerRechargeWhite;
-	var orig_timerRechargeBlack = timerRechargeBlack;
-	var orig_timerRechargeRed   = timerRechargeRed;
-	var orig_timerRechargeGreen = timerRechargeGreen;
+    $("#4wayTeamsFFALabel").click(function() {
+        var msg = {
+            'message' : '/teams free for all',
+            'uid' : currentGameUid,
+            'auth' : anonKey,
+            'gameId' : gameId,
+            'c' : 'chat',
+        };
+        sendMsg(msg);
+    });
+    $("#4wayTeamsWhiteBlackLabel").click(function() {
+        var msg = {
+            'message' : '/teams white black',
+            'uid' : currentGameUid,
+            'auth' : anonKey,
+            'gameId' : gameId,
+            'c' : 'chat',
+        };
+        sendMsg(msg);
+    });
+    $("#4wayTeamsWhiteRedLabel").click(function() {
+        var msg = {
+            'message' : '/teams white red',
+            'uid' : currentGameUid,
+            'auth' : anonKey,
+            'gameId' : gameId,
+            'c' : 'chat',
+        };
+        sendMsg(msg);
+    });
+    $("#4wayTeamsWhiteGreenLabel").click(function() {
+        var msg = {
+            'message' : '/teams white green',
+            'uid' : currentGameUid,
+            'auth' : anonKey,
+            'gameId' : gameId,
+            'c' : 'chat',
+        };
+        sendMsg(msg);
+    });
+  var orig_speedAdvantage  = speedAdvantage;
+  var orig_timerSpeed      = timerSpeed;
+  var orig_timerRecharge   = timerRecharge;
+  var orig_timerSpeedWhite = timerSpeedWhite;
+  var orig_timerSpeedBlack = timerSpeedBlack;
+  var orig_timerSpeedRed   = timerSpeedRed;
+  var orig_timerSpeedGreen = timerSpeedGreen;
+  var orig_timerRechargeWhite = timerRechargeWhite;
+  var orig_timerRechargeBlack = timerRechargeBlack;
+  var orig_timerRechargeRed   = timerRechargeRed;
+  var orig_timerRechargeGreen = timerRechargeGreen;
 
     var setGameSpeed = function(speed) {
         speedAdvantage  = orig_speedAdvantage * speed;

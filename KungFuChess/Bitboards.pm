@@ -29,6 +29,10 @@ sub setRandomness {
     }
 }
 
+sub debugXS {
+    xs::debug();
+}
+
 sub setNoMovePenalty {
     xs::setNoMovePenalty($_[0]);
 }

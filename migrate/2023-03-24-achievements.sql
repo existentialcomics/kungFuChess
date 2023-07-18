@@ -47,9 +47,9 @@ insert into achievement_types (image, name, description, group_name) VALUES ('ac
 insert into achievement_types (image, name, description, group_name) VALUES ('achievements/anticipate.png', 'Anticipate', 'Anticipate an attack', 'tactic'); 
 insert into achievement_types (image, name, description, group_name) VALUES ('achievements/diversion.png', 'Diversion', 'Create a diversion', 'tactic'); 
 insert into achievement_types (image, name, description, group_name) VALUES ('achievements/combo.png', 'Two Piece Combo', 'Execute a combo attack of two pieces', 'tactic'); 
-insert into achievement_types (image, name, description, group_name) VALUES ('achievements/combo.png', 'Three Piece Combo', 'Execute a combo attack of three pieces', 'tactic'); 
-insert into achievement_types (image, name, description, group_name) VALUES ('achievements/combo.png', 'Four Piece Combo', 'Execute a combo attack of four pieces', 'tactic'); 
-insert into achievement_types (image, name, description, group_name) VALUES ('achievements/combo.png', 'Five Piece Combo', 'Execute a combo attack of five pieces', 'tactic'); 
+insert into achievement_types (image, name, description, group_name) VALUES ('achievements/3combo.png', 'Three Piece Combo', 'Execute a combo attack of three pieces', 'tactic'); 
+insert into achievement_types (image, name, description, group_name) VALUES ('achievements/4combo.png', 'Four Piece Combo', 'Execute a combo attack of four pieces', 'tactic'); 
+insert into achievement_types (image, name, description, group_name) VALUES ('achievements/5combo.png', 'Five Piece Combo', 'Execute a combo attack of five pieces', 'tactic'); 
 insert into achievement_types (image, name, description, group_name) VALUES ('achievements/peekaboo.png', 'Peekaboo', 'Execute a peekaboo attack', 'tactic'); 
 insert into achievement_types (image, name, description, group_name) VALUES ('achievements/sweep.png', 'Sweep', 'Sweep a piece', 'tactic'); 
 insert into achievement_types (image, name, description, group_name) VALUES ('achievements/block.png', 'Block', 'Block an enemy attack', 'tactic'); 
@@ -58,28 +58,28 @@ insert into achievement_types (image, name, description, group_name) VALUES ('ac
 insert into achievement_types (image, name, description, group_name) VALUES ('achievements/selfkill.png', 'Self Kill', 'Kill your own piece', 'tactic'); 
 insert into achievement_types (image, name, description, group_name) VALUES ('achievements/jedi.png', 'Jedi Dodge', 'Execute a jedi dodge', 'tactic'); 
 
-insert into achievement_types (image, name, description, group_name) VALUES ('achievements/ai_std_easy.png', 'Standard Easy', 'Beat AI on Standard Easy', 'ai'); 
-insert into achievement_types (image, name, description, group_name) VALUES ('achievements/ai_std_medium.png', 'Standard Medium', 'Beat AI on Standard Easy', 'ai'); 
-insert into achievement_types (image, name, description, group_name) VALUES ('achievements/ai_std_hard.png', 'Standard Hard', 'Beat AI on Standard Hard', 'ai'); 
-insert into achievement_types (image, name, description, group_name) VALUES ('achievements/ai_std_berserk.png', 'Standard Berserk', 'Beat AI on Standard Berserk', 'ai'); 
-insert into achievement_types (image, name, description, group_name) VALUES ('achievements/ai_std_crane.png', 'Standard Crane', 'Beat AI on Standard Crane', 'ai'); 
-insert into achievement_types (image, name, description, group_name) VALUES ('achievements/ai_std_turtle.png', 'Standard Turtle', 'Beat AI on Standard Turtle', 'ai'); 
-insert into achievement_types (image, name, description, group_name) VALUES ('achievements/ai_std_centipede.png', 'Standard Centipede', 'Beat AI on Standard Centipede', 'ai'); 
-insert into achievement_types (image, name, description, group_name) VALUES ('achievements/ai_std_dragon.png', 'Standard Dragon', 'Beat AI on Standard Dragon', 'ai'); 
+insert into achievement_types (image, name, description, group_name) VALUES ('achievements/ai_std_easy.png', 'AI Standard Easy', 'Beat AI on Standard Easy', 'ai'); 
+insert into achievement_types (image, name, description, group_name) VALUES ('achievements/ai_std_medium.png', 'AI Standard Medium', 'Beat AI on Standard Easy', 'ai'); 
+insert into achievement_types (image, name, description, group_name) VALUES ('achievements/ai_std_hard.png', 'AI Standard Hard', 'Beat AI on Standard Hard', 'ai'); 
+insert into achievement_types (image, name, description, group_name) VALUES ('achievements/ai_std_berserk.png', 'AI Standard Berserk', 'Beat AI on Standard Berserk', 'ai'); 
+insert into achievement_types (image, name, description, group_name) VALUES ('achievements/ai_std_crane.png', 'AI Standard Crane', 'Beat AI on Standard Crane', 'ai'); 
+insert into achievement_types (image, name, description, group_name) VALUES ('achievements/ai_std_turtle.png', 'AI Standard Turtle', 'Beat AI on Standard Turtle', 'ai'); 
+insert into achievement_types (image, name, description, group_name) VALUES ('achievements/ai_std_centipede.png', 'AI Standard Centipede', 'Beat AI on Standard Centipede', 'ai'); 
+insert into achievement_types (image, name, description, group_name) VALUES ('achievements/ai_std_dragon.png', 'AI Standard Dragon', 'Beat AI on Standard Dragon', 'ai'); 
 
-insert into achievement_types (image, name, description, group_name) VALUES ('achievements/ai_light_easy.png', 'Lightning Easy', 'Beat AI on Lightning Easy', 'ai'); 
-insert into achievement_types (image, name, description, group_name) VALUES ('achievements/ai_light_medium.png', 'Lightning Medium', 'Beat AI on Lightning Medium', 'ai'); 
-insert into achievement_types (image, name, description, group_name) VALUES ('achievements/ai_light_hard.png', 'Lightning Hard', 'Beat AI on Lightning Hard', 'ai'); 
-insert into achievement_types (image, name, description, group_name) VALUES ('achievements/ai_light_berserk.png', 'Lightning Berserk', 'Beat AI on Lightning Beserk', 'ai'); 
-insert into achievement_types (image, name, description, group_name) VALUES ('achievements/ai_light_crane.png', 'Lightning Crane', 'Beat AI on Lightning Crane', 'ai'); 
-insert into achievement_types (image, name, description, group_name) VALUES ('achievements/ai_light_turtle.png', 'Lightning Turtle', 'Beat AI on Lightning Turtle', 'ai'); 
-insert into achievement_types (image, name, description, group_name) VALUES ('achievements/ai_light_centipede.png', 'Lightning Centipede', 'Beat AI on Lightning Centipede', 'ai'); 
-insert into achievement_types (image, name, description, group_name) VALUES ('achievements/ai_light_dragon.png', 'Lightning Dragon', 'Beat AI on Lightning Dragon', 'ai'); 
+insert into achievement_types (image, name, description, group_name) VALUES ('achievements/ai_light_easy.png', 'AI Lightning Easy', 'Beat AI on Lightning Easy', 'ai'); 
+insert into achievement_types (image, name, description, group_name) VALUES ('achievements/ai_light_medium.png', 'AI Lightning Medium', 'Beat AI on Lightning Medium', 'ai'); 
+insert into achievement_types (image, name, description, group_name) VALUES ('achievements/ai_light_hard.png', 'AI Lightning Hard', 'Beat AI on Lightning Hard', 'ai'); 
+insert into achievement_types (image, name, description, group_name) VALUES ('achievements/ai_light_berserk.png', 'AI Lightning Berserk', 'Beat AI on Lightning Beserk', 'ai'); 
+insert into achievement_types (image, name, description, group_name) VALUES ('achievements/ai_light_crane.png', 'AI Lightning Crane', 'Beat AI on Lightning Crane', 'ai'); 
+insert into achievement_types (image, name, description, group_name) VALUES ('achievements/ai_light_turtle.png', 'AI Lightning Turtle', 'Beat AI on Lightning Turtle', 'ai'); 
+insert into achievement_types (image, name, description, group_name) VALUES ('achievements/ai_light_centipede.png', 'AI Lightning Centipede', 'Beat AI on Lightning Centipede', 'ai'); 
+insert into achievement_types (image, name, description, group_name) VALUES ('achievements/ai_light_dragon.png', 'AI Lightning Dragon', 'Beat AI on Lightning Dragon', 'ai'); 
 
-insert into achievement_types (image, name, description, group_name) VALUES ('achievements/ai_std_4way_easy.png', 'Standard Easy 4way', 'Beat AI on 4way Easy', 'ai'); 
-insert into achievement_types (image, name, description, group_name) VALUES ('achievements/ai_std_4way_medium.png', 'Standard Medium 4way', 'Beat AI on 4way Medium', 'ai'); 
-insert into achievement_types (image, name, description, group_name) VALUES ('achievements/ai_std_4way_hard.png', 'Standard Hard 4way', 'Beat AI on 4way Hard', 'ai'); 
-insert into achievement_types (image, name, description, group_name) VALUES ('achievements/ai_std_4way_berserk.png', 'Standard Berserk 4way', 'Beat AI on 4way Berserk', 'ai'); 
+insert into achievement_types (image, name, description, group_name) VALUES ('achievements/ai_light_4way_easy.png', 'AI 4way Easy 4way', 'Beat AI on 4way Easy', 'ai'); 
+insert into achievement_types (image, name, description, group_name) VALUES ('achievements/ai_light_4way_medium.png', 'AI 4way Medium 4way', 'Beat AI on 4way Medium', 'ai'); 
+insert into achievement_types (image, name, description, group_name) VALUES ('achievements/ai_light_4way_hard.png', 'AI 4way Hard 4way', 'Beat AI on 4way Hard', 'ai'); 
+insert into achievement_types (image, name, description, group_name) VALUES ('achievements/ai_light_4way_berserk.png', 'AI 4way Berserk 4way', 'Beat AI on 4way Berserk', 'ai'); 
 
 insert into achievement_types (image, name, description, group_name) VALUES ('achievements/masterbelt.png', 'Kung Fu Master', 'Collect all belts', 'master'); 
 insert into achievement_types (image, name, description, group_name) VALUES ('achievements/masterTactics.png', 'Tactics Master', 'Perform all tactics', 'master'); 

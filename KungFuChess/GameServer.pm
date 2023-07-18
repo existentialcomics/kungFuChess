@@ -1060,6 +1060,7 @@ sub killPieceBB {
         ### we capture a frozen piece who began moving before we did (last move)
         if (
             $wasFrozen && exists($self->{startMoves}->{$bb}) &&
+            $piece != KungFuChess::Bitboards::PAWN &&
             $self->{startMoves}->{$bb} < $lastStartTime
         ) {
             $self->sendTactic($killerColorbit, 'anticipate');

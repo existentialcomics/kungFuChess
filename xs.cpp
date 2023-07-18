@@ -412,7 +412,6 @@ enum MoveFlags : int {
 uint8_t PopCnt16[1 << 16];
 uint8_t SquareDistance[SQUARE_NB][SQUARE_NB];
 
-
 /// xorshift64star Pseudo-Random Number Generator
 /// This class is based on original code written and dedicated
 /// to the public domain by Sebastiano Vigna (2014).
@@ -493,7 +492,58 @@ inline int popcount(Bitboard b) {
 
 } // end namespace chess_xs
 
+
 using namespace chess_xs;
+
+// list of all intermediary moves needed for a piece to get to the move
+class MoveSet
+{
+    public:
+        Square startSq;
+        Square curSq;
+        Square endSq;
+        int stoppedAt;
+        int currentMoveNum;
+        int moveLength;
+        bool is_active;
+
+        // first half are for moves then being frozen
+        Move movelist[16];
+        Piece pieceCaptures[16];
+    MoveSet() {
+        is_active = false;
+        stoppedAt = -1;
+        currentMoveNum = -1;
+        moveLength = -1;
+        startSq = SQ_NONE;
+        curSq = SQ_NONE;
+        endSq = SQ_NONE;
+    }
+};
+
+std::vector<MoveSet> activeMoves(100);
+
+MoveSet getMoveSet(Move m) {
+    Direction d = directionOfMove(m);
+    Square sq_fr = from_sq(m);
+    Square sq_to = to_sq(m);
+    MoveSet ms = MoveSet();
+    ms.startSq = sq_fr;
+    ms.curSq   = sq_fr;
+    ms.endSq   = sq_to;
+    ms.currentMoveNum = 0;
+
+    int moveLength = 0;
+    Square current_sq = sq_fr;
+    while (current_sq != sq_fr && moveLength < 17) {
+        current_sq = lsb(shift(d, square_bb(current_sq)));
+        ms.movelist[moveLength];
+        moveLength++;
+    }
+    ms.moveLength = moveLength;
+    return ms;
+}
+
 
 //#undef Move
 //#undef to
@@ -2002,6 +2052,39 @@ inline void move_piece(Square from, Square to) {
     board[to] = pc;
 }
 
+
+void advanceBoard() {
+    // reduce all frozenSq[] by step
+
+    // do all moves in movelist in the reverse order they were set
+}
+
+void undoAdvanceBoard() {
+    // advance all none-null frozenSQ[] by step
+
+    // undo all moves in movelist
+}
+
+//void advanceMoveSet(Moveset moveSet) {
+    //moveSet.pieceCaptures[moveSet.currentMoveNum] =
+        //do_move(moveSet.movelist[moveSet.currentMoveNum]);
+
+    //moveSet.currentMoveNum++;
+//}
+
+//void undoAdvanceMoveSet(Moveset moveSet) {
+    //moveSet.pieceCaptures[moveSet.currentMoveNum] =
+        //undo_move(moveSet.movelist[moveSet.currentMoveNum]);
+
+    //moveSet.currentMoveNum--;
+//}
+
+//MoveSet queueMove(Move m) {
+    //undo_move(moveSet.movelist[moveSet.currentMoveNum]);
+    //moveSet.currentMoveNum++;
+
+//}
+
 Piece do_move(Move m) {
     Piece p_to;
 
@@ -2108,36 +2191,36 @@ void setBBs(
     is_endgame = (pieceCount < 12);
 }
 
-class MoveList
-{
-private:
-    Node *head,*tail;
-public:
-    MoveList()
-    {
-        head = NULL;
-        tail = NULL;
-    }
+//class MoveList
+//{
+//private:
+    //Node *head,*tail;
+//public:
+    //MoveList()
+    //{
+        //head = NULL;
+        //tail = NULL;
+    //}
 
-    void add_node(int score, Move m)
-    {
-        Node *tmp = new Node;
-        tmp->score = score;
-        tmp->move = m;
-        tmp->next = NULL;
+    //void add_node(int score, Move m)
+    //{
+        //Node *tmp = new Node;
+        //tmp->score = score;
+        //tmp->move = m;
+        //tmp->next = NULL;
 
-        if(head == NULL)
-        {
-            head = tmp;
-            tail = tmp;
-        }
-        else
-        {
-            tail->next = tmp;
-            tail = tail->next;
-        }
-    }
-};
+        //if(head == NULL)
+        //{
+            //head = tmp;
+            //tail = tmp;
+        //}
+        //else
+        //{
+            //tail->next = tmp;
+            //tail = tail->next;
+        //}
+    //}
+//};
 
 Node dodge(Square toSq, Color c) {
     resetAttacks();
@@ -2305,6 +2388,158 @@ Node* searchTreeRealTime(Move currentMove, int depth, int ply, int& alpha, int& 
     currentNode->move = currentMove;
     Color Them = ~c;
 
+    std::vector<Move> moves(0);
+
+    resetAttacks();
+    moves = getAllMoves(c);
+    evalInit(WHITE);
+    evalInit(BLACK);
+
+    if (ply > depth) {
+        int score = evaluate();
+        currentNode->score = score;
+        currentNode->next = NULL;
+    } else {
+        int highScore = -999999;
+        int lowScore  =  999999;
+        if (debug)
+            std::cout << "begin move search\n";
+
+        bool nextIsMaximizingPlayer = isMaximizingPlayer;
+        Color nextColor = c;
+
+        while (moveSpot < moves.size()) {
+            Move m = moves[moveSpot];
+
+            if (debug && ply < 2) {
+                if (ply == 0 && debug) {
+                    std::cout << "\n ++++++++++++++++ move: " << human(m) << " , ply: " << ply << " , spot" << moveSpot << " color: " << c << " +++++++++++++++\n" << pretty(m) << "\n";
+                } else if (debug > 1) {
+                    std::cout << "\n    ---------------- move: " << m << " , ply: " << ply << " , spot" << moveSpot << " color: " << c <<  " ---------------\n" << pretty(m) << "\n";
+                }
+            }
+
+            advanceBoard();
+            ply++;
+
+            Node* nextBestMove = searchTreeRealTime(m, depth, ply, alpha, beta, nextIsMaximizingPlayer, nextColor, moveString);
+
+            if (debug) {
+                if (ply < 3) {
+                    for (int i = 0; i < ply; i++) {
+                        std::cout << "...";
+                    }
+                    std::cout << human(from_sq(nextBestMove->move)) << human(to_sq(nextBestMove->move))<< ": " << nextBestMove->score << "\n";
+                }
+            }
+
+            //================ kung fu Move adjustments ================
+            // these scores are INTs not middle/endgame ints
+            MoveFlags moveFlag = flags(nextBestMove->move);
+            int distance = distanceSquare(from_sq(nextBestMove->move), to_sq(nextBestMove->move));
+
+            if (isMaximizingPlayer) {
+                nextBestMove->score -= (distance * distancePenalty);
+            } else {
+                nextBestMove->score += (distance * distancePenalty);
+            }
+
+            // no move penalties
+            // only for the first set of moves
+            if (ply < 3) {
+                if (! is_ok(nextBestMove->move)) { // i.e. no_move
+                    if (isMaximizingPlayer) {
+                        nextBestMove->score -= noMovePenalty;
+                    } else {
+                        nextBestMove->score += noMovePenalty;
+                    }
+                }
+            }
+
+            if (ply == 1 || ply == 2) {
+                if (distance > 2 && moveFlag == CAPTURES) {
+                    if (isMaximizingPlayer) {
+                        nextBestMove->score -= longCapturePenalty;
+                    } else {
+                        nextBestMove->score += longCapturePenalty;
+                    }
+                }
+            }
+            //================ end kung fu chess adjustments ================
+
+            if (debug) {
+                if (ply < 3) {
+                    for (int i = 0; i < ply; i++) {
+                        std::cout << "---";
+                    }
+                    std::cout << human(from_sq(nextBestMove->move)) << human(to_sq(nextBestMove->move))<< ": " << nextBestMove->score << "\n";
+                }
+            }
+
+            ply--;
+
+            undoAdvanceBoard();
+            //***************
+
+            if (ply == 1 && debug) {
+                std::cout << "\n ++++++++++++++++ move: " << human(m) << " , ply: " << ply << " , spot" << moveSpot << " color: " << c << " +++++++++++++++\n" << "\n";
+                std::cout << "newscore: " << nextBestMove->score << "\n";
+            }
+            if (ply == 2 && debug) {
+                std::cout << "\n ---------------- counter: " << human(m) << " , ply: " << ply << " , spot" << moveSpot << " color: " << c << " ---------------\n" << "\n";
+                std::cout << "newscore: " << nextBestMove->score << "\n";
+            }
+            if (debug && ply == 0) {
+                std::cout << pretty() << "\n";
+            }
+
+            moveSpot++;
+
+            //--------------------- alpha beta pruning
+            if (isMaximizingPlayer) {
+                if (nextBestMove->score > highScore) {
+                    highNode  = nextBestMove;
+                    highScore = nextBestMove->score;
+                }
+                alpha = std::max(highScore, alpha);
+                if (isNextTurn(ply - 1)) {
+                    if (highScore > beta) {
+                        break;
+                    }
+                }
+            } else { // minimizing player
+                if (nextBestMove->score < lowScore) {
+                    lowNode  = nextBestMove;
+                    lowScore = nextBestMove->score;
+                }
+                beta = std::min(lowScore, beta);
+                if (isNextTurn(ply - 1)) {
+                    if (lowScore < alpha) {
+                        break;
+                    }
+                }
+            }
+        } //---- end movelist loop
+
+        if (isMaximizingPlayer) {
+            currentNode->score  = highScore;
+            currentNode->next   = highNode;
+        } else {
+            currentNode->score  = lowScore;
+            currentNode->next   = lowNode;
+        }
+        if (debug && ply == 0) {
+            std::cout << "      ply: " << ply << "\n";
+            std::cout << "highscore: " << highNode->score << "\n";
+            std::cout << " lowscore: " << lowNode->score << "\n";
+            std::cout << " curscore: " << currentNode->score << "\n";
+            std::cout << " curmove : " << currentNode->move << "\n";
+            std::cout << pretty(currentNode->move) << "\n";
+            //std::cout << "nnnnmove : " << currentNode->next->next->move << "\n";
+        }
+    }
+
+
     return currentNode;
 }
 
@@ -2428,8 +2663,8 @@ Node* searchTree(Move currentMove, int depth, int ply, int& alpha, int& beta, bo
                     }
                 }
             }
-
             //================ end kung fu chess adjustments ================
+
             if (debug) {
                 if (ply < 3) {
                     for (int i = 0; i < ply; i++) {
@@ -2574,3 +2809,8 @@ Move getNextBestMove() {
     
     return bestMoveNode->next->move;
 }
+
+//void debugNew() {
+    //Move m = make_move(SQ_B2, SQ_C6, QUIET);
+    //MoveSet = getMoveSet(m);
+//}

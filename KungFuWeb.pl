@@ -851,6 +851,7 @@ sub handleChatCommandGame {
             $gameRow->{piece_speed},
             $gameRow->{piece_recharge},
             $gameRow->{speed_advantage} // "1:1:1:1",
+            $gameRow->{teams} // "1-1-1-1",
             getAiLevel(AI_USER_MEDIUM),
             $aiColor,
             'ws://localhost:3001/ws',
@@ -976,13 +977,17 @@ sub handleChatCommandGame {
         if ($args eq 'white green' || $args eq 'wg' || $args eq 'black red' || $args eq 'br') {
             $args = '1-0-0-1';
         }
+        if ($args eq 'free for all' || $args eq 'ffa') {
+            $args = '1-1-1-1';
+        }
         if ($args =~ m/^[0-1]-[0-1]-[0-1]-[0-1]$/) {
-            app()->db->do("UPDATE games SET teams = ? WHERE game_id = ? limit 1", {}, $args, $game->{id});
+            app()->db->do("UPDATE games SET teams = ? WHERE game_id = ? LIMIT 1", {}, $args, $game->{id});
             $game->setTeams($args);
             my $sysMsg = {
                 'c'   => 'teamsChange', 
                 'msg' => 'teams changed to: ' . getTeamsName($args),
-                'teams' => getTeamsName($args)
+                'teams' => getTeamsName($args),
+                'teamsReal' => $args
             };
             gameBroadcast($sysMsg, $msg->{gameId});
         } else {
@@ -1444,6 +1449,7 @@ get '/open-json/ai' => sub {
                     'piece_speed' => $game->{piece_speed},
                     'piece_recharge' => $game->{piece_recharge},
                     'speed_advantage' => $game->{speed_advantage},
+                    'teams' => $game->{teams},
                     'ws_protocol' => $c->stash('wsProtocol'),
                     'ws_server' => $game->{ws_server},
                     'color' => $color,
@@ -2007,6 +2013,7 @@ sub createGame {
             $pieceSpeed,
             $pieceRecharge,
             $speedAdvantage // "1:1:1:1",
+            $teams // "1-1-1-1",
             $options->{ai_difficulty} // getAiLevel($black),
             2, # BLACK
             'ws://localhost:3001/ws',
@@ -2027,6 +2034,7 @@ sub createGame {
             $pieceSpeed,
             $pieceRecharge,
             $speedAdvantage // "1:1:1:1",
+            $teams // "1-1-1-1",
             $options->{ai_difficulty} // getAiLevel($red),
             3, # RED
             'ws://localhost:3001/ws',
@@ -2047,6 +2055,7 @@ sub createGame {
             $pieceSpeed,
             $pieceRecharge,
             $speedAdvantage // "1:1:1:1",
+            $teams // "1-1-1-1",
             $options->{ai_difficulty} // getAiLevel($green),
             4, # green
             'ws://localhost:3001/ws',
@@ -4167,6 +4176,8 @@ sub getTeamsName {
         return 'red vs all';
     } elsif ($teams eq '0-0-0-1' || $teams eq '1-1-1-0') { # green vs all
         return 'green vs all';
+    } elsif ($teams eq '0-0-0-0' || $teams eq '0-0-0-0') { # green vs all
+        return 'free for all';
     }
     return $teams
 }

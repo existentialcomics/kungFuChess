@@ -214,6 +214,7 @@ constexpr int PBonus[RANK_NB][FILE_NB] =
   };
 
 int psq[PIECE_NB][SQUARE_NB];
+int frozenSq[SQUARE_NB];
 
 // MobilityBonus[PieceType-2][attacked] contains bonuses for middle and end game,
 // indexed by piece type and number of attacked squares in the mobility area.
@@ -245,7 +246,6 @@ enum Direction : int {
   SOUTH_WEST = SOUTH + WEST,
   NORTH_WEST = NORTH + WEST
 };
-
 
 Bitboard SquareBB[SQUARE_NB];
 Bitboard LineBB[SQUARE_NB][SQUARE_NB];
@@ -901,4 +901,25 @@ Bitboard passed_pawn_span(Color c, Square s) {
   return pawn_attack_span(c, s) | forward_file_bb(c, s);
 }
 
+Direction directionOfMove(Move m) {
+    Square sq_fr = from_sq(m);
+    Square sq_to = to_sq(m);
 
+    if (rank_of(sq_fr) > rank_of(sq_to) && file_of(sq_fr) > file_of(sq_to)) {
+        return NORTH_EAST;
+    } else if (rank_of(sq_fr) > rank_of(sq_to) && file_of(sq_fr) < file_of(sq_to)) {
+        return NORTH_WEST;
+    } else if (rank_of(sq_fr) < rank_of(sq_to) && file_of(sq_fr) > file_of(sq_to)) {
+        return SOUTH_EAST;
+    } else if (rank_of(sq_fr) > rank_of(sq_to) && file_of(sq_fr) < file_of(sq_to)) {
+        return SOUTH_WEST;
+    } else if (rank_of(sq_fr) > rank_of(sq_to) && file_of(sq_fr) == file_of(sq_to)) {
+        return EAST;
+    } else if (rank_of(sq_fr) < rank_of(sq_to) && file_of(sq_fr) == file_of(sq_to)) {
+        return WEST;
+    } else if (rank_of(sq_fr) == rank_of(sq_to) && file_of(sq_fr) < file_of(sq_to)) {
+        return NORTH;
+    } else if (rank_of(sq_fr) == rank_of(sq_to) && file_of(sq_fr) > file_of(sq_to)) {
+        return SOUTH;
+    }
+}

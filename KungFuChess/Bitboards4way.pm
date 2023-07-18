@@ -7,6 +7,7 @@ use strict;
 package KungFuChess::Bitboards;
 use Math::Int128  qw(uint128 string_to_uint128);
 use Data::Dumper;
+use Clone 'clone';
 use base 'Exporter';
 
 # 1 for tree debugging, 2 for addition eval debugging
@@ -23,6 +24,8 @@ sub setLongCapturePenalty {
 
 ### for alpha/beta pruning
 my $aiScore = undef;  ### current score
+
+my $teams = '1-1-1-1';
 
 my $aiColor = undef;
 
@@ -396,6 +399,11 @@ sub movingOppositeDirs {
 sub resetAiBoards {
     my $color = shift;
 
+    print "\n-----------------START white \n";
+    print prettyBoard($white);
+    print "\n-----------------START red \n";
+    print prettyBoard($red);
+
     $ai_pawns    = $pawns;
     $ai_knights  = $knights;
     $ai_bishops  = $bishops;
@@ -406,24 +414,102 @@ sub resetAiBoards {
     $ai_enPassant = $enPassant;
 
     if ($color) {
+        ### TODO teams here, simply ignore your teammate
         if ($color == WHITE) {
-            $ai_white    = $white;
-            $ai_black    = $black | $red | $green;
+            if ($teams eq '1-1-1-1') {
+                $ai_white  = $white;
+                $ai_black  = $black | $red   | $green;
+                $ai_frozenBB = 0;
+            } elsif ($teams eq '1-1-0-0') {
+                $ai_white  = $white | $black;
+                $ai_black  = $red   | $green;
+                $ai_frozenBB = clone $black;
+            } elsif ($teams eq '1-0-1-0') {
+                $ai_white  = $white | $red;
+                $ai_black  = $black   | $green;
+                $ai_frozenBB = clone $red;
+            } elsif ($teams eq '1-0-0-1') {
+                $ai_white  = $white | $green;
+                $ai_black  = $black   | $red;
+                $ai_frozenBB = clone $green;
+            } else {
+                $ai_white  = $white;
+                $ai_black  = $black | $red   | $green;
+                $ai_frozenBB = 0;
+            }
         } elsif ($color == BLACK) {
-            $ai_white    = $black;
-            $ai_black    = $white | $red | $green;
-        } elsif ($color == RED) {
-            $ai_white    = $red;
-            $ai_black    = $black | $white | $green;
-        } elsif ($color == GREEN) {
-            $ai_white    = $green;
-            $ai_black    = $black | $red | $white;
+            if ($teams eq '1-1-1-1') {
+                $ai_white  = $black;
+                $ai_black  = $white | $red | $green;
+                $ai_frozenBB = 0;
+            } elsif ($teams eq '1-1-0-0') {
+                $ai_white  = $white | $black;
+                $ai_black  = $red   | $green;
+                $ai_frozenBB = clone $white;
+            } elsif ($teams eq '1-0-1-0') {
+                $ai_white  = $black   | $green;
+                $ai_black  = $white | $red;
+                $ai_frozenBB = clone $green;
+            } elsif ($teams eq '1-0-0-1') {
+                $ai_white  = $black   | $red;
+                $ai_black  = $white | $green;
+                $ai_frozenBB = clone $red;
+            } else {
+                $ai_white    = $black;
+                $ai_black  = $white | $red | $green;
+                $ai_frozenBB = 0;
+            }
+        } elsif ($color == RED)   {
+            if ($teams eq '1-1-1-1') {
+                $ai_white   = $red;
+                $ai_black = $white | $black | $green;
+                $ai_frozenBB = 0;
+            } elsif ($teams eq '1-1-0-0') {
+                $ai_white  = $red   | $green;
+                $ai_black  = $white | $black;
+                $ai_frozenBB = clone $green;
+            } elsif ($teams eq '1-0-1-0') {
+                $ai_white  = $white | $red;
+                $ai_black  = $black   | $green;
+                $ai_frozenBB = clone $white;
+            } elsif ($teams eq '1-0-0-1') {
+                $ai_white  = $black   | $red;
+                $ai_black  = $white | $green;
+                $ai_frozenBB = clone $black;
+            } else {
+                $ai_white   = $red;
+                $ai_black = $white | $black | $green;
+                $ai_frozenBB = 0;
+            }
+        } elsif ($color == GREEN)   {
+            if ($teams eq '1-1-1-1') {
+                $ai_white   = $green;
+                $ai_black = $white | $black | $red;
+                $ai_frozenBB = 0;
+            } elsif ($teams eq '1-1-0-0') {
+                $ai_white  = $red   | $green;
+                $ai_black  = $white | $black;
+                $ai_frozenBB = clone $red;
+            } elsif ($teams eq '1-0-1-0') {
+                $ai_white  = $black | $green;
+                $ai_black  = $white | $red;
+                $ai_frozenBB = clone $black;
+            } elsif ($teams eq '1-0-0-1') {
+                $ai_white = $white  | $green;
+                $ai_black = $black | $red;
+                $ai_frozenBB = clone $white;
+            } else {
+                $ai_white   = $green;
+                $ai_black = $white | $black | $red;
+                $ai_frozenBB = 0;
+            }
         }
     } else {
         $ai_white    = $white;
         $ai_black    = $black;
         $ai_red      = $red;
         $ai_green    = $green;
+        $ai_frozenBB = 0;
     }
     $ai_white_true    = $white;
     $ai_black_true    = $black;
@@ -438,7 +524,6 @@ sub resetAiBoards {
     #$ai_blackQCastleR = $blackQCastleR;
 
     #$ai_frozenBB = $frozenBB;
-    $ai_frozenBB = 0;
     $ai_movingBB = $movingBB;
 
     ### if we are moving it FOR a color we clear our enemies frozen
@@ -451,6 +536,13 @@ sub resetAiBoards {
     #   and the game is too fast paced to worry about the tree
     #   replacing the current moves, just have to redo it every time
     $currentMoves = undef;
+    print pretty();
+    print pretty_ai();
+    print prettyBoard($ai_frozenBB);
+    print "\n-----------------white \n";
+    print prettyBoard($white);
+    print "\n-----------------red \n";
+    print prettyBoard($red);
 }
 
 sub setupInitialPosition {
@@ -1928,19 +2020,105 @@ sub evaluate {
                 $pawnDir = WEST;
             }
 
+            ### For now we only have white (us) and black (them)
             if ($color == WHITE) {
                 $us = $ai_white;
-                $them  = $ai_black | $ai_red   | $ai_green;
-            } elsif ($color == BLACK) {
+                $them = $ai_black;
+            } else {
                 $us = $ai_black;
-                $them  = $ai_white | $ai_red   | $ai_green;
-            } elsif ($color == RED)   {
-                $us = $ai_red;
-                $them  = $ai_black | $ai_white | $ai_green;
-            } elsif ($color == GREEN)   {
-                $us = $ai_green;
-                $them  = $ai_black | $ai_red   | $ai_white;
+                $them = $ai_white;
             }
+            ### TODO teams
+            #print "teams: $teams\n";
+            #if ($color == WHITE) {
+                #if ($teams eq '1-1-1-1') {
+                    #print "ffa \n";
+                    #$us    = $ai_white;
+                    #$them  = $ai_black | $ai_red   | $ai_green;
+                #} elsif ($teams eq '1-1-0-0') {
+                    #print "white black green red\n";
+                    #$us    = $ai_white | $ai_black;
+                    #$them  = $ai_red   | $ai_green;
+                #} elsif ($teams eq '1-0-1-0') {
+                    #print "white red black green\n";
+                    #$us    = $ai_white | $ai_red;
+                    #$them  = $ai_black   | $ai_green;
+                #} elsif ($teams eq '1-0-0-1') {
+                    #print "white green black red\n";
+                    #$us    = $ai_white | $ai_green;
+                    #$them  = $ai_black   | $ai_red;
+                #} else {
+                    #print "else \n";
+                    #$us = $ai_white;
+                    #$them  = $ai_black | $ai_red   | $ai_green;
+                #}
+            #} elsif ($color == BLACK) {
+                #if ($teams eq '1-1-1-1') {
+                    #print "ffa \n";
+                    #$us    = $ai_black;
+                    #$them  = $white | $ai_red | $ai_green;
+                #} elsif ($teams eq '1-1-0-0') {
+                    #print "white black green red\n";
+                    #$us    = $ai_white | $ai_black;
+                    #$them  = $ai_red   | $ai_green;
+                #} elsif ($teams eq '1-0-1-0') {
+                    #print "white red black green\n";
+                    #$us    = $ai_black   | $ai_green;
+                    #$them  = $ai_white | $ai_red;
+                #} elsif ($teams eq '1-0-0-1') {
+                    #print "white green black red\n";
+                    #$us    = $ai_black   | $ai_red;
+                    #$them  = $ai_white | $ai_green;
+                #} else {
+                    #print "else \n";
+                    #$us    = $ai_black;
+                    #$them  = $white | $ai_red | $ai_green;
+                #}
+            #} elsif ($color == RED)   {
+                #if ($teams eq '1-1-1-1') {
+                    #print "ffa \n";
+                    #$us   = $ai_red;
+                    #$them = $ai_white | $ai_black | $ai_green;
+                #} elsif ($teams eq '1-1-0-0') {
+                    #print "white black green red\n";
+                    #$us   = $ai_red   | $ai_green;
+                    #$them = $ai_white | $ai_black;
+                #} elsif ($teams eq '1-0-1-0') {
+                    #print "white red black green\n";
+                    #$us   = $ai_white | $ai_red;
+                    #$them = $ai_black   | $ai_green;
+                #} elsif ($teams eq '1-0-0-1') {
+                    #print "white green black red\n";
+                    #$us  = $ai_black   | $ai_red;
+                    #$them = $ai_white | $ai_green;
+                #} else {
+                    #print "else \n";
+                    #$us   = $ai_red;
+                    #$them = $ai_white | $ai_black | $ai_green;
+                #}
+            #} elsif ($color == GREEN)   {
+                #if ($teams eq '1-1-1-1') {
+                    #print "ffa \n";
+                    #$us   = $ai_green;
+                    #$them = $ai_white | $ai_black | $ai_red;
+                #} elsif ($teams eq '1-1-0-0') {
+                    #print "white black green red\n";
+                    #$us   = $ai_red   | $ai_green;
+                    #$them = $ai_white | $ai_black;
+                #} elsif ($teams eq '1-0-1-0') {
+                    #print "white red black green\n";
+                    #$us   = $ai_white | $ai_red;
+                    #$them = $ai_black   | $ai_green;
+                #} elsif ($teams eq '1-0-0-1') {
+                    #print "white green black red\n";
+                    #$us  = $ai_black   | $ai_red;
+                    #$them = $ai_white | $ai_green;
+                #} else {
+                    #print "else \n";
+                    #$us   = $ai_green;
+                    #$them = $ai_white | $ai_black | $ai_red;
+                #}
+            #}
 
             my $pieceAttackingBB     = 0x0;
             my $pieceAttackingXrayBB = 0x0;
@@ -2384,9 +2562,10 @@ sub getMovesXS {
 }
 
 sub aiThink {
-    my ($depth, $timeToThink, $color) = @_;
+    my ($depth, $timeToThink, $color, $ai_teams) = @_;
     print "thinking ... $depth, $timeToThink, $color\n";
 
+    $teams = $ai_teams;
     ### global
     $aiColor = $color;
     my $aiAlpha = AI_NEG_INFINITY; 

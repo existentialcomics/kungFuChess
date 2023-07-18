@@ -145,6 +145,23 @@
                 <% } else { %>
                 <button type="button" class="btn btn-primary btn-block" id="sit" style="visibility:hidden;">Sit</button>
                 <% } %>
+                <% if ($gameType eq '4way') { %>
+                    <label for="gameType" class="col col-form-label col-form-label-lg">4way Teams</label>
+                    <div class="btn-group d-flex" role="group" aria-label="Board type">
+                        <input type="radio" class="btn-check" name="4wayTeams" id="4wayTeamsFFA" autocomplete="off" value="ffa" checked>
+                        <label class="btn btn-outline-primary" for="4wayTeamsFFA" id="4wayTeamsFFALabel">Free For All</label>
+
+                        <input type="radio" class="btn-check" name="4wayTeams" id="4wayTeamsWhiteRed" autocomplete="off" value="white-red">
+                        <label class="btn btn-outline-primary" for="4wayTeamsWhiteRed" id="4wayTeamsWhiteRedLabel">White-Red/Black-Green</label>
+                        <br />
+
+                        <input type="radio" class="btn-check" name="4wayTeams" id="4wayTeamsWhiteGreen" autocomplete="off" value="white-green">
+                        <label class="btn btn-outline-primary" for="4wayTeamsWhiteGreen" id="4wayTeamsWhiteGreenLabel">White-Green<br />Black-Red</label>
+
+                        <input type="radio" class="btn-check" name="4wayTeams" id="4wayTeamsWhiteBlack" autocomplete="off" value="white-black">
+                        <label class="btn btn-outline-primary" for="4wayTeamsWhiteBlack" id="4wayTeamsWhiteBlackLabel">White-Black<br />Green-Red</label>
+                    </div>
+                <% } %>
             </div>
             <div id="gameStatusActive" <%== $gameStatus eq 'active' ? '' : 'style="display:none;"' %>>
                 <% if ($color ne 'watch') { %>
@@ -233,14 +250,16 @@
 
 <script>
 $('input[type=radio]').on('change', function() {
-    $.ajax({
-        url:'/ajax/updateOptions',
-        method: 'POST',
-        data: $(this).closest("form").serialize(),
-        success: function (data) {
-            //alert($textbox.attr("id"));
-        }
-    });
+    if ('updateChatOptionsForm' == $(this).closest("form")[0]?.id) {
+        $.ajax({
+            url:'/ajax/updateOptions',
+            method: 'POST',
+            data: $(this).closest("form").serialize(),
+            success: function (data) {
+                //alert($textbox.attr("id"));
+            }
+        });
+    }
 });
 $('input[type=checkbox]').on('change', function() {
     var form = $(this).closest("form").serializeArray();
