@@ -208,7 +208,7 @@ my $aiInterval = AnyEvent->timer(
                 $color = $game->{color};
                 if ($color) {
                     print "game matched $color\n";
-                    my $cmdAi = sprintf('/usr/bin/perl ./kungFuChessGame%sAi.pl %s %s %s %s %s %s %s %s >>%s 2>>%s',
+                    my $cmdAi = sprintf('/usr/bin/perl ./kungFuChessGame%sAi.pl %s %s %s %s %s %s %s %s %s >>%s 2>>%s',
                         $game->{game_type},
                         $gameId,
                         $authToken,
@@ -286,7 +286,7 @@ my $aiInterval = AnyEvent->timer(
                     }
                 }
                 my $cmdAi = sprintf(
-                    '/usr/bin/perl ./kungFuChessGame%sAi.pl %s %s %s %s %s %s %s %s >%s 2>%s',
+                    '/usr/bin/perl ./kungFuChessGame%sAi.pl %s %s %s %s %s %s %s %s %s >%s 2>%s',
                     $way,
                     $gameId,
                     $authToken,

@@ -495,15 +495,6 @@ post '/ajax/createChallenge' => sub {
                 #$options->{speed_advantage} = '1.6:1:1:1';
             }
         }
-        if ($gameMode eq 'ai-crane') {
-            if ($gameSpeed eq 'standard') {
-                $options->{fen} = 'nnnnknnn/pnnppnnp/8/8/8/8/PPPPPPPP/RNBQKBNR';
-                $options->{speed_advantage} = '1:0.5:0.5:0.5';
-            } else {
-                $options->{fen} = 'nnnnknnn/pnnppnnp/8/8/8/8/PPPPPPPP/RNBQKBNR';
-                $options->{speed_advantage} = '1:1:1:1';
-            }
-        }
         if ($gameMode eq 'ai-turtle') {
             if ($gameSpeed eq 'standard') {
                 $options->{fen} = 'rrrrkrrr/prr11rrp/8/8/8/8/PPPPPPPP/RNBQKBNR';
@@ -520,6 +511,15 @@ post '/ajax/createChallenge' => sub {
             } else {
                 $options->{fen} = 'ppppkppp/pppppppp/pppppppp/8/8/8/PPPPPPPP/RNBQKBNR';
                 #$options->{speed_advantage} = '1.6:1:1:1';
+            }
+        }
+        if ($gameMode eq 'ai-crane') {
+            if ($gameSpeed eq 'standard') {
+                $options->{fen} = 'nnnnknnn/pnnppnnp/8/8/8/8/PPPPPPPP/RNBQKBNR';
+                $options->{speed_advantage} = '1:0.5:0.5:0.5';
+            } else {
+                $options->{fen} = 'nnnnknnn/pnnppnnp/8/8/8/8/PPPPPPPP/RNBQKBNR';
+                $options->{speed_advantage} = '1:1:1:1';
             }
         }
         if ($gameMode eq 'ai-dragon') {
@@ -598,7 +598,24 @@ sub systemMessage {
     };
 
     if ($logMessage) {
-        app->db()->do('INSERT INTO chat_log (comment_text, player_id, screenname, player_color, game_id, post_time) VALUES (?,?,?,?,NOW())', {},
+        app->db()->do('INSERT INTO chat_log (
+                comment_text,
+                player_id,
+                screenname,
+                player_color,
+                game_id,
+                post_time)
+            VALUES
+            (
+                ?,
+                ?,
+                ?,
+                ?,
+                ?,
+                NOW()
+            )',
+            {},
+
             $msg->{'message'},
             SYSTEM_USER,
             'SYSTEM',
@@ -978,7 +995,7 @@ sub handleChatCommandGame {
             $args = '1-0-0-1';
         }
         if ($args eq 'free for all' || $args eq 'ffa') {
-            $args = '1-1-1-1';
+            $args = '0-0-0-0';
         }
         if ($args =~ m/^[0-1]-[0-1]-[0-1]-[0-1]$/) {
             app()->db->do("UPDATE games SET teams = ? WHERE game_id = ? LIMIT 1", {}, $args, $game->{id});
@@ -2082,12 +2099,21 @@ post '/ajax/updateOptions' => sub {
         app()->db->do("UPDATE players SET game_sounds = 1 WHERE player_id = ?", {}, $user->{player_id});
     } else {
         app()->db->do("UPDATE players SET game_sounds = 0 WHERE player_id = ?", {}, $user->{player_id});
-
     }
     if ($c->param('musicOn') && $user && $user->{player_id} > 0) {
         app()->db->do("UPDATE players SET music_sounds = 1 WHERE player_id = ?", {}, $user->{player_id});
     } else {
         app()->db->do("UPDATE players SET music_sounds = 0 WHERE player_id = ?", {}, $user->{player_id});
+    }
+    if ($c->param('notifyOn') && $user && $user->{player_id} > 0) {
+        app()->db->do("UPDATE players SET notify_sounds = 1 WHERE player_id = ?", {}, $user->{player_id});
+    } else {
+        app()->db->do("UPDATE players SET notify_sounds = 0 WHERE player_id = ?", {}, $user->{player_id});
+    }
+    if ($c->param('chatOn') && $user && $user->{player_id} > 0) {
+        app()->db->do("UPDATE players SET chat_sounds = 1 WHERE player_id = ?", {}, $user->{player_id});
+    } else {
+        app()->db->do("UPDATE players SET chat_sounds = 0 WHERE player_id = ?", {}, $user->{player_id});
     }
 
     my $return = {

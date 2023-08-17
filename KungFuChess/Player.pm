@@ -401,6 +401,7 @@ sub _loadAnonymousUser {
     $self->{is_anon}      = 1;
     $self->{chat_sounds}  = 0;
     $self->{game_sounds}  = 1;
+    $self->{notify_sounds}  = 1;
     $self->{music_sounds} = 1;
     $self->{'auth_token'} = $authToken // create_uuid_as_string();
 }

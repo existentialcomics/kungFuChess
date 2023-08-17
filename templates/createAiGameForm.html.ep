@@ -28,14 +28,14 @@
                     <input type="radio" class="btn-check text-light" name="gameMode" id="ai-berserk" autocomplete="off" value="ai-berserk">
                     <label class="btn btn-outline-primary" for="ai-berserk">Berserk</label>
 
-                    <input type="radio" class="btn-check text-light" name="gameMode" id="ai-crane" autocomplete="off" value="ai-crane">
-                    <label class="btn btn-outline-primary" for="ai-crane">Crane Style</label>
-
                     <input type="radio" class="btn-check text-light" name="gameMode" id="ai-turtle" autocomplete="off" value="ai-turtle">
                     <label class="btn btn-outline-primary" for="ai-turtle">Turtle Style</label>
 
                     <input type="radio" class="btn-check text-light" name="gameMode" id="ai-centipede" autocomplete="off" value="ai-centipede">
                     <label class="btn btn-outline-primary" for="ai-centipede">Centipede Style</label>
+
+                    <input type="radio" class="btn-check text-light" name="gameMode" id="ai-crane" autocomplete="off" value="ai-crane">
+                    <label class="btn btn-outline-primary" for="ai-crane">Crane Style</label>
 
                     <input type="radio" class="btn-check text-light" name="gameMode" id="ai-dragon" autocomplete="off" value="ai-dragon">
                     <label class="btn btn-outline-primary" for="ai-dragon">Dragon Style</label>

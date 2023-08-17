@@ -28,6 +28,7 @@
             </div>
             <%= form_for '/ajax/updateOptions' => (method => 'post',  id => 'updateChatOptionsForm', url => 'test') => begin %>
             <div class="form-group">
+                <label class="col col-form-label col-form-label-lg">Chat Options</label>
                 <div class="btn-group d-flex" role="group" aria-label="Chat Options">
                     <input type="radio" class="btn-check" name="chatOption" id="chatPublicRadio" autocomplete="off" value="public" <% if (! $user || ! $user->{show_chat} || $user->{show_chat} eq 'public') { %>checked<% } %>>
                     <label class="btn btn-outline-primary" for="chatPublicRadio">Public</label>
@@ -37,11 +38,15 @@
                     <label class="btn btn-outline-primary" for="chatNoneRadio">None</label>
 
                 </div>
+
+                <label class="col col-form-label col-form-label-lg">Sound Options</label>
                 <div class="form-check form-check-inline">
                     <label for="musicOn" class="form-check-label">Music</label>
-                    <input id="musicOn" name="musicOn" class="form-check-input" type="checkbox" data-toggle="toggle" data-style="mr-1" <% if ($user && $user->{music_sounds}) { %>checked<% } %>>
-                    <label for="soundOn" class="form-check-label">Sound</label>
-                    <input id="soundOn" name="soundOn" class="form-check-input" type="checkbox" data-toggle="toggle" data-style="mr-1" <% if ($user && $user->{game_sounds}) { %>checked<% } %>>
+                    <input id="musicOn" name="musicOn" class="form-check-input" type="checkbox" data-toggle="toggle" data-style="mr-1" <% if ($user && $user->{music_sounds}) { %>checked<% } %>><br />
+                    <label for="soundOn" class="form-check-label">Sounds</label>
+                    <input id="soundOn" name="soundOn" class="form-check-input" type="checkbox" data-toggle="toggle" data-style="mr-1" <% if ($user && $user->{game_sounds}) { %>checked<% } %>><br />
+                    <label for="nofityOn" class="form-check-label">Notify</label>
+                    <input id="nofityOn" name="nofityOn" class="form-check-input" type="checkbox" data-toggle="toggle" data-style="mr-1" <% if ($user && $user->{notify_sounds}) { %>checked<% } %>>
                 </div>
             </div>
             <% end %>
@@ -221,6 +226,8 @@
 
 	var playMusic  = <%= ($user && $user->{music_sounds} ? "true" : "false" ) %>;
 	var playSounds = <%= ($user && $user->{game_sounds} ? "true" : "false") %>;
+	var playNotify = <%= ($user && $user->{notify_sounds} ? "true" : "false") %>;
+	var playChat = <%= ($user && $user->{chat_sounds} ? "true" : "false") %>;
 
 	var speedAdvantage  = "<%= $speedAdvantage %>";
 	var timerSpeed      = "<%= $pieceSpeed %>";
@@ -277,6 +284,9 @@ $('input[type=checkbox]').on('change', function() {
         }
         if (element.name == 'soundOn') {
             playSounds = true;
+        }
+        if (element.name == 'notifyOn') {
+            playNotify = true;
         }
     }); 
     $.ajax({

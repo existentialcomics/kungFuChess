@@ -283,18 +283,6 @@ sub _init {
             $self->{no_move_penalty} = 0.9; # multiplier
             $self->{long_capture_penalty} = 0; # centipawns
             $self->{distance_penalty} = 0; # centipawns
-        } elsif ($difficulty eq '5' || $difficulty eq 'ai-crane') {
-            $self->{ai_thinkTime} = 1.0;
-            $self->{ai_depth} = 2;
-            $self->{ai_simul_moves} = 2;
-            $self->{ai_simul_depth} = 2;
-            $self->{ai_delay} = 100_000; 
-            $self->{ai_min_delay} = 70_000;
-            $self->{ai_interval} = 300_000;
-            $self->{randomness} = 500;
-            $self->{no_move_penalty} = 0.9; # multiplier
-            $self->{long_capture_penalty} = 0; # centipawns
-            $self->{distance_penalty} = 0; # centipawns
         } elsif ($difficulty eq '6' || $difficulty eq 'ai-turtle') {
             $self->{ai_thinkTime} = 1.0;
             $self->{ai_depth} = 2;
@@ -319,6 +307,18 @@ sub _init {
             $self->{no_move_penalty} = 0.9; # multiplier
             $self->{long_capture_penalty} = 0; # centipawns
             $self->{distance_penalty} = 0; # centipawns
+        } elsif ($difficulty eq '5' || $difficulty eq 'ai-crane') {
+            $self->{ai_thinkTime} = 1.0;
+            $self->{ai_depth} = 2;
+            $self->{ai_simul_moves} = 2;
+            $self->{ai_simul_depth} = 2;
+            $self->{ai_delay} = 100_000; 
+            $self->{ai_min_delay} = 75_000;
+            $self->{ai_interval} = 350_000;
+            $self->{randomness} = 600;
+            $self->{no_move_penalty} = 0.9; # multiplier
+            $self->{long_capture_penalty} = 0; # centipawns
+            $self->{distance_penalty} = 0; # centipawns
         } elsif ($difficulty eq '8' || $difficulty eq 'ai-dragon') {
             $self->{ai_thinkTime} = 1.0;
             $self->{ai_depth} = 2;
@@ -326,8 +326,8 @@ sub _init {
             $self->{ai_simul_depth} = 2;
             $self->{ai_delay} = 100_000; 
             $self->{ai_min_delay} = 70_000;
-            $self->{ai_interval} = 250_000;
-            $self->{randomness} = 500;
+            $self->{ai_interval} = 200_000;
+            $self->{randomness} = 200;
             $self->{no_move_penalty} = 0.9; # multiplier
             $self->{long_capture_penalty} = 0; # centipawns
             $self->{distance_penalty} = 0; # centipawns

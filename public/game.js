@@ -894,7 +894,7 @@ var handleMessage = function(msg) {
         for(id in pieces){
             pieces[id].setDelayTimer(3, true);
         }
-        if (playSounds == true) {
+        if (playNotify == true) {
             var audio = new Audio('/sound/Tick-DeepFrozenApps-397275646.mp3');
             audio.play();
             setTimeout( function() {
@@ -1030,7 +1030,9 @@ var handleMessage = function(msg) {
     } else if (msg.c == 'playerReady') {
         var dt = new Date();
         var audio = new Audio('/sound/public_sound_standard_GenericNotify.ogg');
-        audio.play();
+        if (playNotify) {
+          audio.play();
+        }
         $('#' + msg.color + 'Ready').html("<br /><small>ready</small");
         addGameMessage(
             "SYSTEM",
@@ -1257,8 +1259,7 @@ conn.onmessage = function(evt) {
 var music = new Audio('/sound/judo_chess_kfc_remake_final_soft.mp3');
 var startGame = function(){
     if (! replayMode) {
-        if (playSounds == true) {
-            //var audio = new Audio('/sound/Japanese Temple Bell Small-SoundBible.com-113624364.mp3');
+        if (playNotify == true) {
             var audio = new Audio('/sound/Boxing_Mma_Or_Wrestling_Bell-SoundBible.com-252285194.mp3');
             audio.play();
         }

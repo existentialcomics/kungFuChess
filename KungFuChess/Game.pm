@@ -176,7 +176,7 @@ sub killPlayer {
             } elsif ($self->{green}->{alive} == 1) {
                 return '0-0-0-1';
             } else { ### no one is alive, practice abort?
-                return '0-0-0-0';
+                return '0-1-2-3';
             }
         } else {
             if ($self->{white}->{alive} == 1) {
