@@ -861,7 +861,7 @@ sub handleChatCommandGame {
             $aiColor = 4;
         }
 
-        my $cmdAi = sprintf('/usr/bin/perl ./kungFuChessGame%sAi.pl %s %s %s %s %s %s %s %s 1>%s 2>%s &',
+        my $cmdAi = sprintf('/usr/bin/perl ./kungFuChessGame%sAi.pl %s %s %s %s %s %s %s %s %s 1>%s 2>%s &',
             $gameRow->{game_type},
             $gameRow->{game_id},
             $uid,
