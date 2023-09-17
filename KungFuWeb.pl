@@ -277,7 +277,7 @@ get '/tactics/beginner/dodge' => sub {
 
     $c->stash('video' => '/dodge.webm');
     $c->stash('name' => 'Dodge');
-    $c->stash('description' => 'One of the key features of KungFu Chess is the ability to dodge incoming attacks. Especially on slower games, it is very dangers to attack pieces that are not in their recharge state, especially from long range. This makes is so pieces that are recharging are often the only pieces vulnerable to attack, so be very careful not to move into vulnerable positions, and if there is an attack on a strong pieces, always be ready to quickly dodge it.');
+    $c->stash('description' => 'One of the key features of KungFu Chess is the ability to dodge incoming attacks. Especially on slower games, it is very dangerous to attack pieces that are not in their recharge state, especially from long range. This makes is so pieces that are recharging are often the only pieces vulnerable to attack, so be very careful not to move into vulnerable positions, and if there is an attack on a strong piece, always be ready to quickly dodge it.');
 
     $c->render('template' => 'tactic', format => 'html', handler => 'ep');
 };
