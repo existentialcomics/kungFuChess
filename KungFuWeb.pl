@@ -376,7 +376,7 @@ get '/tactics/expert/selfkill' => sub {
 
     $c->stash('video' => '/selfKill.webm');
     $c->stash('name' => 'Self Kill');
-    $c->stash('description' => 'As was discussed in other tactics, such as the block and peekabo, since we don\'t know what the state of the board will be when we begin a move, you are allowed to make normally illegal moves. For knights in particular, this means you can move anywhere, even on top of your own pieces. If you don\'t move your piece away in time, you will kill it. However, in rare circumstances, this can be used to your advantage. As you can see in the video, the white king is trapped, and the black bishop is quickly coming in for the kill. White however can kill their own pawn, clearing a desperate escape route for the king.');
+    $c->stash('description' => 'As was discussed in other tactics, such as the block and peekaboo, since we don\'t know what the state of the board will be when we begin a move, you are allowed to make normally illegal moves. For knights in particular, this means you can move anywhere, even on top of your own pieces. If you don\'t move your piece away in time, you will kill it. However, in rare circumstances, this can be used to your advantage. As you can see in the video, the white king is trapped, and the black bishop is quickly coming in for the kill. White however can kill their own pawn, clearing a desperate escape route for the king.');
 
     $c->render('template' => 'tactic', format => 'html', handler => 'ep');
 };
