@@ -297,7 +297,7 @@ get '/tactics/beginner/cutoff' => sub {
 
     $c->stash('video' => '/cutoff.webm');
     $c->stash('name' => 'Cutoff');
-    $c->stash('description' => 'Think you are safely guarding a piece just because you are attacking the square it is on? This isn\'t chess, so think again. A key aspect of Kung Fu Chess is that you are often guarding pieces that don\'t seemed guarded, such as with the "anticipate" tactic, but you are also not guarding pieces that do seemed guarded. For example, it is quite easy to take a piece while simulaneously cutting off the pieces guarding it. Always be aware of what pieces can move into your path.');
+    $c->stash('description' => 'Think you are safely guarding a piece just because you are attacking the square it is on? This isn\'t chess, so think again. A key aspect of Kung Fu Chess is that you are often guarding pieces that don\'t seemed guarded, such as with the "anticipate" tactic, but you are also not guarding pieces that do seemed guarded. For example, it is quite easy to take a piece while simultaneously cutting off the pieces guarding it. Always be aware of what pieces can move into your path.');
 
     $c->render('template' => 'tactic', format => 'html', handler => 'ep');
 };
@@ -317,7 +317,7 @@ get '/tactics/advanced/combo' => sub {
 
     $c->stash('video' => '/combo.webm');
     $c->stash('name' => 'Combo');
-    $c->stash('description' => 'This is the most core tactic of Kung Fu Chess. Pieces aren\'t guarded if you can simply take the piece and the piece guarding it at once. Take out entire pawn structures at once or force protecting piece to move while you take another piece. The possiblities are endless when combination tactics are properly mastered, and combo moves are what really drives advanced play.');
+    $c->stash('description' => 'This is the most core tactic of Kung Fu Chess. Pieces aren\'t guarded if you can simply take the piece and the piece guarding it at once. Take out entire pawn structures at once or force protecting piece to move while you take another piece. The possibilities are endless when combination tactics are properly mastered, and combo moves are what really drives advanced play.');
 
     $c->render('template' => 'tactic', format => 'html', handler => 'ep');
 };
@@ -337,7 +337,7 @@ get '/tactics/advanced/block' => sub {
 
     $c->stash('video' => '/block.webm');
     $c->stash('name' => 'Block');
-    $c->stash('description' => 'Similarly to the peekaboo tactic and anticipate tactics, this takes advantage of knowing where your opponent is moving, and the fact that you can alter the board before they arrive. In this case we don\'t simply guard or dodge from the spot, we move and sacrifice one of our own pieces into their path to stop them in their tracks. Be careful, and make sure your piece arrives in time, or it could get swept! In the video, white\'s queen goes for the black king, but black quickly moves a pawn into the path, causing the queen to stop on a vulerable square.');
+    $c->stash('description' => 'Similarly to the peekaboo tactic and anticipate tactics, this takes advantage of knowing where your opponent is moving, and the fact that you can alter the board before they arrive. In this case we don\'t simply guard or dodge from the spot, we move and sacrifice one of our own pieces into their path to stop them in their tracks. Be careful, and make sure your piece arrives in time, or it could get swept! In the video, white\'s queen goes for the black king, but black quickly moves a pawn into the path, causing the queen to stop on a vulnerable square.');
 
     $c->render('template' => 'tactic', format => 'html', handler => 'ep');
 };
