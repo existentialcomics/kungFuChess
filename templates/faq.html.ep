@@ -10,7 +10,7 @@
         <h4><b>How fast do the pieces move, and how long do they have to wait before they can move again?</b></h4>
         <p>There are two modes, "standard" and "lightning". In standard the pieces take 10 seconds to recharge, and move one square per second. In lightning they pieces take 2 second to recharge, and one square every fifth of a second (five times faster than standard).</p>
         <h4><b>What are some of the key tactical differences in Kung Fu Chess compared to regular chess?</b></h4>
-        <p>You can see most of the advanced tactics on the <a href="/tactics" class='link-dark'>tactics</a> page. In general, it's that you must keep in mind which pieces are currently recharging, and the timing of how long it will take pieces to get to where they are going. Remeber, the board can change dramtically by the time your move even finishes.</p>
+        <p>You can see most of the advanced tactics on the <a href="/tactics" class='link-dark'>tactics</a> page. In general, it's that you must keep in mind which pieces are currently recharging, and the timing of how long it will take pieces to get to where they are going. Remember, the board can change dramatically by the time your move even finishes.</p>
         <h4><b>Wait, 4way? What is that.</b></h4>
         <p>Just like it sounds, four players at once, all attacking each other. In normal chess this would be quite boring. And in fact it is pretty boring on the standard speed in Kung Fu Chess. On lightning speed, however, it created a chaotic, dynamic, fast paced game.</p>
         <h4><b>What are the belts?</b></h4>
