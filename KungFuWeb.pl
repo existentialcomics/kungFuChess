@@ -278,7 +278,7 @@ get '/tactics/beginner/dodge' => sub {
 
     $c->stash('video' => '/dodge.webm');
     $c->stash('name' => 'Dodge');
-    $c->stash('description' => 'One of the key features of KungFu Chess is the ability to dodge incoming attacks. Especially on slower games, it is very dangers to attack pieces that are not in their recharge state, especially from long range. This makes is so pieces that are recharging are often the only pieces vulnerable to attack, so be very careful not to move into vulnerable positions, and if there is an attack on a strong pieces, always be ready to quickly dodge it.');
+    $c->stash('description' => 'One of the key features of KungFu Chess is the ability to dodge incoming attacks. Especially on slower games, it is very dangerous to attack pieces that are not in their recharge state, especially from long range. This makes is so pieces that are recharging are often the only pieces vulnerable to attack, so be very careful not to move into vulnerable positions, and if there is an attack on a strong piece, always be ready to quickly dodge it.');
 
     $c->render('template' => 'tactic', format => 'html', handler => 'ep');
 };
@@ -288,7 +288,7 @@ get '/tactics/beginner/anticipate' => sub {
 
     $c->stash('video' => '/anticipate.webm');
     $c->stash('name' => 'Anticipate');
-    $c->stash('description' => 'When you see a piece moving, it is very important to try to work out which spot your opponent is attempting to land on, so you can potentially set up an attack on that spot before they reach it, allowing you to capture the piece before it is able to move again. In the video, you can see the bishop making long move to g4. However, white anticipates this, particually once they move into the f5 square, which is already guarded. This allows white to move a pawn forward to attack the expected square. Against a skilled opponent, you should not only consider squares guarded that are attacked by pawns, but also squares that are potentially attacked by pawns that are ready to move.');
+    $c->stash('description' => 'When you see a piece moving, it is very important to try to work out which spot your opponent is attempting to land on, so you can potentially set up an attack on that spot before they reach it, allowing you to capture the piece before it is able to move again. In the video, you can see the bishop making a long move to g4. However, white anticipates this, particularly once they move into the f5 square, which is already guarded. This allows white to move a pawn forward to attack the expected square. Against a skilled opponent, you should not only consider squares guarded that are attacked by pawns, but also squares that are potentially attacked by pawns that are ready to move.');
 
     $c->render('template' => 'tactic', format => 'html', handler => 'ep');
 };
@@ -298,7 +298,7 @@ get '/tactics/beginner/cutoff' => sub {
 
     $c->stash('video' => '/cutoff.webm');
     $c->stash('name' => 'Cutoff');
-    $c->stash('description' => 'Think you are safely guarding a piece just because you are attacking the square it is on? This isn\'t chess, so think again. A key aspect of Kung Fu Chess is that you are often guarding pieces that don\'t seemed guarded, such as with the "anticipate" tactic, but you are also not guarding pieces that do seemed guarded. For example, it is quite easy to take a piece while simulaneously cutting off the pieces guarding it. Always be aware of what pieces can move into your path.');
+    $c->stash('description' => 'Think you are safely guarding a piece just because you are attacking the square it is on? This isn\'t chess, so think again. A key aspect of Kung Fu Chess is that you are often guarding pieces that don\'t seemed guarded, such as with the "anticipate" tactic, but you are also not guarding pieces that do seemed guarded. For example, it is quite easy to take a piece while simultaneously cutting off the pieces guarding it. Always be aware of what pieces can move into your path.');
 
     $c->render('template' => 'tactic', format => 'html', handler => 'ep');
 };
@@ -318,7 +318,7 @@ get '/tactics/advanced/combo' => sub {
 
     $c->stash('video' => '/combo.webm');
     $c->stash('name' => 'Combo');
-    $c->stash('description' => 'This is the most core tactic of Kung Fu Chess. Pieces aren\'t guarded if you can simply take the piece and the piece guarding it at once. Take out entire pawn structures at once or force protecting piece to move while you take another piece. The possiblities are endless when combination tactics are properly mastered, and combo moves are what really drives advanced play.');
+    $c->stash('description' => 'This is the most core tactic of Kung Fu Chess. Pieces aren\'t guarded if you can simply take the piece and the piece guarding it at once. Take out entire pawn structures at once or force protecting piece to move while you take another piece. The possibilities are endless when combination tactics are properly mastered, and combo moves are what really drives advanced play.');
 
     $c->render('template' => 'tactic', format => 'html', handler => 'ep');
 };
@@ -338,7 +338,7 @@ get '/tactics/advanced/block' => sub {
 
     $c->stash('video' => '/block.webm');
     $c->stash('name' => 'Block');
-    $c->stash('description' => 'Similarly to the peekaboo tactic and anticipate tactics, this takes advantage of knowing where your opponent is moving, and the fact that you can alter the board before they arrive. In this case we don\'t simply guard or dodge from the spot, we move and sacrifice one of our own pieces into their path to stop them in their tracks. Be careful, and make sure your piece arrives in time, or it could get swept! In the video, white\'s queen goes for the black king, but black quickly moves a pawn into the path, causing the queen to stop on a vulerable square.');
+    $c->stash('description' => 'Similarly to the peekaboo tactic and anticipate tactics, this takes advantage of knowing where your opponent is moving, and the fact that you can alter the board before they arrive. In this case we don\'t simply guard or dodge from the spot, we move and sacrifice one of our own pieces into their path to stop them in their tracks. Be careful, and make sure your piece arrives in time, or it could get swept! In the video, white\'s queen goes for the black king, but black quickly moves a pawn into the path, causing the queen to stop on a vulnerable square.');
 
     $c->render('template' => 'tactic', format => 'html', handler => 'ep');
 };
@@ -367,7 +367,7 @@ get '/tactics/expert/feint' => sub {
 
     $c->stash('video' => '/feint.webm');
     $c->stash('name' => 'Feint');
-    $c->stash('description' => 'This bold and daring strategy uses your opponent\'s skill against him, by moving towards a very good spot and then not landing there! In the video, white has a chance to exchange a knight for a rook by attacking the black knight and rook at the same time. He will lose his bishop, assuming black dodges it and takes, but will get the rook. However, since he knows his opponent will see this and have ample time to dodge, so he moves instead to the unguarded space in front of it, saving his bishop. Risky, because if black does not dodge, he would lose the queen!');
+    $c->stash('description' => 'This bold and daring strategy uses your opponent\'s skill against him, by moving towards a very good spot and then not landing there! In the video, white has a chance to exchange a knight for a rook by attacking the black knight and rook at the same time. He will lose his bishop, assuming black dodges it and takes, but he will get the rook. However, since he knows his opponent will see this and have ample time to dodge, so he moves instead to the unguarded space in front of it, saving his bishop. Risky, because if black does not dodge, he would lose the queen!');
 
     $c->render('template' => 'tactic', format => 'html', handler => 'ep');
 };
@@ -377,7 +377,7 @@ get '/tactics/expert/selfkill' => sub {
 
     $c->stash('video' => '/selfKill.webm');
     $c->stash('name' => 'Self Kill');
-    $c->stash('description' => 'As was discussed in other tactics, such as the block and peekabo, since we don\'t know what the state of the board will be when we begin a move, you are allowed to make normally illegal moves. For knights in particular, this means you can move anywhere, even on top of your own pieces. If you don\'t move your piece away in time, you will kill it. However, in rare circumstances, this can be used to your advantage. As you can see in the video, the white king is trapped, and the black bishop is quickly coming in for the kill. White however can kill their own pawn, clearing a desperate escape route for the king.');
+    $c->stash('description' => 'As was discussed in other tactics, such as the block and peekaboo, since we don\'t know what the state of the board will be when we begin a move, you are allowed to make normally illegal moves. For knights in particular, this means you can move anywhere, even on top of your own pieces. If you don\'t move your piece away in time, you will kill it. However, in rare circumstances, this can be used to your advantage. As you can see in the video, the white king is trapped, and the black bishop is quickly coming in for the kill. White however can kill their own pawn, clearing a desperate escape route for the king.');
 
     $c->render('template' => 'tactic', format => 'html', handler => 'ep');
 };
