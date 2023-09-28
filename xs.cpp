@@ -363,17 +363,17 @@ int bitScanForward(Bitboard bb) {
 }
 
 inline Square lsb(Bitboard b) {
-  assert(b);
+  //assert(b);
   return Square(__builtin_ctzll(b));
 }
 
 inline Square msb(Bitboard b) {
-  assert(b);
+  //assert(b);
   return Square(63 ^ __builtin_clzll(b));
 }
 
 inline Square pop_lsb(Bitboard& b) {
-  assert(b);
+  //assert(b);
   const Square s = lsb(b);
   b &= b - 1;
   return s;
@@ -382,7 +382,7 @@ inline Square pop_lsb(Bitboard& b) {
 /// frontmost_sq() returns the most advanced square for the given color,
 /// requires a non-zero bitboard.
 inline Square frontmost_sq(Color c, Bitboard b) {
-  assert(b);
+  //assert(b);
   return c == WHITE ? msb(b) : lsb(b);
 }
 
@@ -438,7 +438,9 @@ class PRNG {
   }
 
 public:
-  PRNG(uint64_t seed) : s(seed) { assert(seed); }
+  PRNG(uint64_t seed) : s(seed) {
+      //assert(seed);
+  }
 
   template<typename T> T rand() { return T(rand64()); }
 
@@ -861,7 +863,7 @@ void init_magics(PieceType pt, Bitboard table[], Magic magics[]) {
 
 Bitboard attacks_bb(PieceType pt, Square s, Bitboard occupied) {
 
-  assert((pt != PAWN) && (is_ok(s)));
+  //assert((pt != PAWN) && (is_ok(s)));
 
   switch (pt)
   {
@@ -1416,7 +1418,7 @@ int evaluatePawns(Color Us) {
     {
         s = pop_lsb(b);
 
-        assert(pos.piece_on(s) == make_piece(Us, PAWN));
+        //assert(pos.piece_on(s) == make_piece(Us, PAWN));
 
         Rank r = relative_rank(Us, s);
 
@@ -2395,6 +2397,7 @@ Node* searchTreeRealTime(Move currentMove, int depth, int ply, int& alpha, int& 
     evalInit(WHITE);
     evalInit(BLACK);
 
+    std::cout << " BEGIN SEARCH ply: " << ply << " of " << depth << "\n";
     if (ply > depth) {
         int score = evaluate();
         currentNode->score = score;
@@ -2408,20 +2411,20 @@ Node* searchTreeRealTime(Move currentMove, int depth, int ply, int& alpha, int& 
         bool nextIsMaximizingPlayer = isMaximizingPlayer;
         Color nextColor = c;
 
+        int moveSpot = 0;
         while (moveSpot < moves.size()) {
             Move m = moves[moveSpot];
 
             if (debug && ply < 2) {
                 if (ply == 0 && debug) {
-                    std::cout << "\n ++++++++++++++++ move: " << human(m) << " , ply: " << ply << " , spot" << moveSpot << " color: " << c << " +++++++++++++++\n" << pretty(m) << "\n";
+                    std::cout << "\n ++++++++++++++++ move: " << human(m) << " , ply: " << ply << " , spot: " << moveSpot << " color: " << c << " +++++++++++++++\n" << pretty(m) << "\n";
                 } else if (debug > 1) {
-                    std::cout << "\n    ---------------- move: " << m << " , ply: " << ply << " , spot" << moveSpot << " color: " << c <<  " ---------------\n" << pretty(m) << "\n";
+                    std::cout << "\n    ---------------- move: " << m << " , ply: " << ply << " , spot: " << moveSpot << " color: " << c <<  " ---------------\n" << pretty(m) << "\n";
                 }
             }
 
-            advanceBoard();
+            //advanceBoard();
             ply++;
-
             Node* nextBestMove = searchTreeRealTime(m, depth, ply, alpha, beta, nextIsMaximizingPlayer, nextColor, moveString);
 
             if (debug) {
@@ -2446,27 +2449,28 @@ Node* searchTreeRealTime(Move currentMove, int depth, int ply, int& alpha, int& 
 
             // no move penalties
             // only for the first set of moves
-            if (ply < 3) {
-                if (! is_ok(nextBestMove->move)) { // i.e. no_move
-                    if (isMaximizingPlayer) {
-                        nextBestMove->score -= noMovePenalty;
-                    } else {
-                        nextBestMove->score += noMovePenalty;
-                    }
-                }
-            }
+            //if (ply < 3) {
+                //if (! is_ok(nextBestMove->move)) { // i.e. no_move
+                    //if (isMaximizingPlayer) {
+                        //nextBestMove->score -= noMovePenalty;
+                    //} else {
+                        //nextBestMove->score += noMovePenalty;
+                    //}
+                //}
+            //}
 
-            if (ply == 1 || ply == 2) {
-                if (distance > 2 && moveFlag == CAPTURES) {
-                    if (isMaximizingPlayer) {
-                        nextBestMove->score -= longCapturePenalty;
-                    } else {
-                        nextBestMove->score += longCapturePenalty;
-                    }
-                }
-            }
+            //if (ply == 1 || ply == 2) {
+                //if (distance > 2 && moveFlag == CAPTURES) {
+                    //if (isMaximizingPlayer) {
+                        //nextBestMove->score -= longCapturePenalty;
+                    //} else {
+                        //nextBestMove->score += longCapturePenalty;
+                    //}
+                //}
+            //}
             //================ end kung fu chess adjustments ================
 
+            ply--;
             if (debug) {
                 if (ply < 3) {
                     for (int i = 0; i < ply; i++) {
@@ -2476,9 +2480,7 @@ Node* searchTreeRealTime(Move currentMove, int depth, int ply, int& alpha, int& 
                 }
             }
 
-            ply--;
-
-            undoAdvanceBoard();
+            //undoAdvanceBoard();
             //***************
 
             if (ply == 1 && debug) {
@@ -2539,7 +2541,6 @@ Node* searchTreeRealTime(Move currentMove, int depth, int ply, int& alpha, int& 
         }
     }
 
-
     return currentNode;
 }
 
@@ -2551,9 +2552,6 @@ Node* searchTree(Move currentMove, int depth, int ply, int& alpha, int& beta, bo
         } else {
             moveString = moveString + " " + human(currentMove); 
         }
-        //if (ply == 1) {
-            std::cout << "searchTree ply " << ply << " begin search move: " << moveString << "\n";
-        //}
     }
 
     Node *highNode = new Node;
@@ -2758,7 +2756,9 @@ int beginSearch(int depth) {
     int beta  =  999999;
     totalEvals = 0;
     bool isMax = (aiColor == WHITE);
-    Node *baseNode = searchTree(0, depth + (is_endgame ? 2 : 0), 0, alpha, beta, isMax, aiColor);
+    //Node *baseNode = searchTree(0, depth + (is_endgame ? 2 : 0), 0, alpha, beta, isMax, aiColor);
+    //Node *baseNode = searchTreeRealTime(0, depth + (is_endgame ? 2 : 0), 0, alpha, beta, isMax, aiColor);
+    Node *baseNode = searchTreeRealTime(0, 2, 0, alpha, beta, isMax, aiColor);
     bestMoveNode = baseNode->next;
     if (debug) {
         std::cout << " -------------- done search ---------------- " << "\n";

@@ -45,8 +45,8 @@
                     <input id="musicOn" name="musicOn" class="form-check-input" type="checkbox" data-toggle="toggle" data-style="mr-1" <% if ($user && $user->{music_sounds}) { %>checked<% } %>><br />
                     <label for="soundOn" class="form-check-label">Sounds</label>
                     <input id="soundOn" name="soundOn" class="form-check-input" type="checkbox" data-toggle="toggle" data-style="mr-1" <% if ($user && $user->{game_sounds}) { %>checked<% } %>><br />
-                    <label for="nofityOn" class="form-check-label">Notify</label>
-                    <input id="nofityOn" name="nofityOn" class="form-check-input" type="checkbox" data-toggle="toggle" data-style="mr-1" <% if ($user && $user->{notify_sounds}) { %>checked<% } %>>
+                    <label for="notifyOn" class="form-check-label">Notify</label>
+                    <input id="notifyOn" name="notifyOn" class="form-check-input" type="checkbox" data-toggle="toggle" data-style="mr-1" <% if ($user && $user->{notify_sounds}) { %>checked<% } %>>
                 </div>
             </div>
             <% end %>
@@ -197,6 +197,12 @@
                 %= include 'greenPlayer'
             <% } else { %>
                 %= include 'whitePlayer'
+            <% } %>
+            <% if ($matchScore) { %>
+                <br /><br />Match score:<br /> 
+                &nbsp;+<%== $matchScore->{win_count} %>
+                &nbsp;-<%== $matchScore->{loss_count} %>
+                &nbsp;=<%== $matchScore->{draw_count} %>
             <% } %>
             <% if ($globalScore) { %>
                 <br /><br />Lifetime score:<br /> 

@@ -129,6 +129,7 @@ app->plugin('database', {
 
 app->plugin('DefaultHelpers');
 app->plugin('CSRFProtect');
+app->types->type('wasm', 'application/wasm');
 
 app->hook(before_routes => sub {
     my $c = shift;
@@ -1793,8 +1794,10 @@ get '/game/:gameId' => sub {
 
         if ($color eq 'black') {
             $c->stash('globalScore', getGlobalScore($black, $white, $gameRow->{game_speed}));
+            $c->stash('matchScore', getMatchScore($black, $white, $gameRow->{game_speed}, $gameRow->{board_id}));
         } else  {
             $c->stash('globalScore', getGlobalScore($white, $black, $gameRow->{game_speed}));
+            $c->stash('matchScore', getMatchScore($white, $black, $gameRow->{game_speed}, $gameRow->{board_id}));
         }
     } else {
         $c->stash('globalScore', undef);
@@ -3184,14 +3187,14 @@ sub endGame {
 
     app->log->debug('ending game: ' . $gameId . ' to ' . $result);
 
-    my @gameRow = app->db()->selectrow_array("SELECT status, game_speed, game_type, rated, teams FROM games WHERE game_id = ?", {}, $gameId);
+    my @gameRow = app->db()->selectrow_array("SELECT status, game_speed, game_type, rated, teams, board_id FROM games WHERE game_id = ?", {}, $gameId);
 
     if (! @gameRow ) {
         app->debug("  game doesn't exist so it cannot be ended!! $gameId");
         return 0;
     }
 
-    my ($status, $gameSpeed, $gameType, $rated, $teams) = @gameRow;
+    my ($status, $gameSpeed, $gameType, $rated, $teams, $boardId) = @gameRow;
 
     app->db()->do("DELETE FROM pool WHERE matched_game = ?", {}, $gameId);
 
@@ -3229,9 +3232,10 @@ sub endGame {
         ### write to game log for both players
         if ($whiteStart->{player_id}) {
             app->db()->do('INSERT INTO game_log
-                (game_id, player_id, opponent_id, game_speed, game_type, result, rating_before, rating_after, rated)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)', {},
+                (game_id, match_id, player_id, opponent_id, game_speed, game_type, result, rating_before, rating_after, rated)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', {},
                 $gameId,
+                $boardId,
                 $whiteStart->{player_id},
                 $blackStart->{player_id},
                 $gameSpeed,
@@ -3245,9 +3249,10 @@ sub endGame {
 
         if ($blackStart->{player_id}) {
             app->db()->do('INSERT INTO game_log
-                (game_id, player_id, opponent_id, game_speed, game_type, result, rating_before, rating_after, rated)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)', {},
+                (game_id, match_id, player_id, opponent_id, game_speed, game_type, result, rating_before, rating_after, rated)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', {},
                 $gameId,
+                $boardId,
                 $blackStart->{player_id},
                 $whiteStart->{player_id},
                 $gameSpeed,
@@ -3261,9 +3266,10 @@ sub endGame {
         if ($gameType eq '4way') {
             if ($redStart->{player_id}) {
                 app->db()->do('INSERT INTO game_log
-                    (game_id, player_id, opponent_id, game_speed, game_type, result, rating_before, rating_after, rated)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)', {},
+                    (game_id, match_id, player_id, opponent_id, game_speed, game_type, result, rating_before, rating_after, rated)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', {},
                     $gameId,
+                    $boardId,
                     $redStart->{player_id},
                     $blackStart->{player_id},
                     $gameSpeed,
@@ -3277,9 +3283,10 @@ sub endGame {
 
             if ($greenStart->{player_id}) {
                 app->db()->do('INSERT INTO game_log
-                    (game_id, player_id, opponent_id, game_speed, game_type, result, rating_before, rating_after, rated)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)', {},
+                    (game_id, match_id, player_id, opponent_id, game_speed, game_type, result, rating_before, rating_after, rated)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', {},
                     $gameId,
+                    $boardId,
                     $greenStart->{player_id},
                     $whiteStart->{player_id},
                     $gameSpeed,
@@ -4174,6 +4181,33 @@ sub getGlobalScore {
        $white->{player_id},
        $black->{player_id},
        $gameSpeed
+   );
+   my $return = {
+       win_count  => $result->{win_count} // 0,
+       loss_count => $result->{loss_count} // 0,
+       draw_count => $result->{draw_count} // 0,
+   };
+   return $return; 
+}
+
+### get the total score of two players
+sub getMatchScore {
+    my ($white, $black, $gameSpeed, $matchId) = @_;
+
+    my $sql = '
+    SELECT
+        SUM(CASE WHEN result = "win" THEN 1 ELSE 0 END) AS win_count,
+        SUM(CASE WHEN result = "loss" THEN 1 ELSE 0 END) AS loss_count,
+        SUM(CASE WHEN result = "draw" THEN 1 ELSE 0 END) AS draw_count
+    FROM game_log WHERE player_id = ? AND opponent_id = ? AND game_speed = ? AND rated = 1 AND match_id = ?';
+
+    my $result = app->db()->selectrow_hashref(
+       $sql,
+       { 'Slice' => {} },
+       $white->{player_id},
+       $black->{player_id},
+       $gameSpeed,
+       $matchId
    );
    my $return = {
        win_count  => $result->{win_count} // 0,

@@ -255,7 +255,7 @@ Bitboard PawnAttacks[COLOR_NB][SQUARE_NB];
 
 
 inline Bitboard square_bb(Square s) {
-  assert(is_ok(s));
+  //assert(is_ok(s));
   return SquareBB[s];
 }
 
@@ -864,7 +864,7 @@ constexpr Bitboard pawn_attacks_bb(Color c, Bitboard b) {
 
 inline Bitboard pawn_attacks_bb(Color c, Square s) {
 
-  assert(is_ok(s));
+  //assert(is_ok(s));
   return PawnAttacks[c][s];
 }
 

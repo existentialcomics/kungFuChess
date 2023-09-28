@@ -30,7 +30,7 @@ sub setRandomness {
 }
 
 sub debugXS {
-    xs::debug();
+    #xs::debug();
 }
 
 sub setNoMovePenalty {
