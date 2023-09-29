@@ -2397,7 +2397,6 @@ Node* searchTreeRealTime(Move currentMove, int depth, int ply, int& alpha, int& 
     evalInit(WHITE);
     evalInit(BLACK);
 
-    std::cout << " BEGIN SEARCH ply: " << ply << " of " << depth << "\n";
     if (ply > depth) {
         int score = evaluate();
         currentNode->score = score;
@@ -2756,9 +2755,9 @@ int beginSearch(int depth) {
     int beta  =  999999;
     totalEvals = 0;
     bool isMax = (aiColor == WHITE);
-    //Node *baseNode = searchTree(0, depth + (is_endgame ? 2 : 0), 0, alpha, beta, isMax, aiColor);
+    Node *baseNode = searchTree(0, depth + (is_endgame ? 2 : 0), 0, alpha, beta, isMax, aiColor);
     //Node *baseNode = searchTreeRealTime(0, depth + (is_endgame ? 2 : 0), 0, alpha, beta, isMax, aiColor);
-    Node *baseNode = searchTreeRealTime(0, 2, 0, alpha, beta, isMax, aiColor);
+    //Node *baseNode = searchTreeRealTime(0, 2, 0, alpha, beta, isMax, aiColor);
     bestMoveNode = baseNode->next;
     if (debug) {
         std::cout << " -------------- done search ---------------- " << "\n";
