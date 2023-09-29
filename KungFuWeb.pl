@@ -1800,6 +1800,7 @@ get '/game/:gameId' => sub {
             $c->stash('matchScore', getMatchScore($white, $black, $gameRow->{game_speed}, $gameRow->{board_id}));
         }
     } else {
+        $c->stash('matchScore', undef);
         $c->stash('globalScore', undef);
     }
 
