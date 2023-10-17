@@ -372,7 +372,7 @@ for (var i = 0; i < fileLength; i++) {
 var globalIdCount = 1;
 var replayMode = false;
 
-console.log("connecting..." + authId);
+console.log("connecting...");
 
 var hidePremoves = function(piece) {
     if (piece.hasOwnProperty('premoveFrom')){
