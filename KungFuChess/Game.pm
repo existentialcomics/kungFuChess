@@ -224,6 +224,9 @@ sub playerReady {
     my $msg = shift;
 
     my $color = $self->authMove($msg);
+    if ($self->{readyToPlay} > 0) {
+        return 0;
+    }
     if ($color){
         my $readyMsg = {
             'c' => 'playerReady',

@@ -541,7 +541,6 @@ sendMsg = function(msg) {
 };
 
 readyToStart = function() {
-    
     var msg = {
         "c" : "readyToBegin"
     };
