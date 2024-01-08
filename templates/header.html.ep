@@ -14,9 +14,9 @@
     </script>
     <script src="/main.js?cache=2023-02-24"></script>
     <% if ($user){ %>
-    <link rel="stylesheet" type="text/css" href="/css/<%= $user->getBelt() %>.css?cache=2022-07-20">
+    <link rel="stylesheet" type="text/css" href="/css/<%= $user->getBelt() %>.css?cache=2024-01-01">
     <% } else { %>
-    <link rel="stylesheet" type="text/css" href="/css/basic.css?cache=2023-07-18">
+    <link rel="stylesheet" type="text/css" href="/css/basic.css?cache=2024-01-01">
     <% } %>
 </head>
 <body>
