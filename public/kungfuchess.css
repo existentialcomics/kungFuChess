@@ -174,8 +174,8 @@ li a:hover {
 }
 
 #boardContainer {
-    float:left;
-    margin: auto;
+    float:center;
+    /*margin: auto;*/
 }
 
 #sidebar {

@@ -232,8 +232,7 @@ li a:hover {
   padding: 2px; }
 
 #boardContainer {
-  float: left;
-  margin: auto; }
+  /*float:top;*/ }
 
 #sidebar {
   padding: 20px;

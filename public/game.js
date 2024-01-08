@@ -81,6 +81,13 @@ var maxPieceId = 1;
 width = boardContent.width();
 height = $("#boardContainer").width();
 
+if (width > maxBoardWidth) {
+  width = maxBoardWidth;
+}
+if (height > maxBoardWidth) {
+  height = maxBoardWidth;
+}
+
 $(window).resize(function(){
     piecesByImageId = {};
     stage.destroyChildren();
@@ -92,6 +99,12 @@ $(window).resize(function(){
     premoveLayer.destroyChildren();
     width = boardContent.width();
     height = $("#boardContainer").width();
+    if (width > maxBoardWidth) {
+      width = maxBoardWidth;
+    }
+    if (height > maxBoardWidth) {
+      height = maxBoardWidth;
+    }
     stage = setupBoard();
     stage = setupEvents(stage);
     for(id in pieces){

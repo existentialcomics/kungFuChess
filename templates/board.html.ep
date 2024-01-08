@@ -53,7 +53,7 @@
             <%= jquery_ajax_csrf_protection %>
         </div>
         <div id="boardContainer" class="col-6">
-            <div id="container">
+            <div id="container" style="float:top;">
             <!-- javascript puts pieces here -->
             </div>
         </div>
@@ -234,6 +234,7 @@
 	var playSounds = <%= ($user && $user->{game_sounds} ? "true" : "false") %>;
 	var playNotify = <%= ($user && $user->{notify_sounds} ? "true" : "false") %>;
 	var playChat = <%= ($user && $user->{chat_sounds} ? "true" : "false") %>;
+	var maxBoardWidth = <%= ($user && $user->{max_board_width} ? $user->{max_board_width} : 999999999) %>;
 
 	var speedAdvantage  = "<%= $speedAdvantage %>";
 	var timerSpeed      = "<%= $pieceSpeed %>";

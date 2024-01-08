@@ -775,7 +775,7 @@ sub handleChatCommandGame {
         };
         $game->serverBroadcast($gameMsg);
         ##################################################################
-    } elsif ($command eq 'ai') {
+    } elsif ($command eq 'ai' || $command eq 'ai_hard' || $command eq 'ai_easy') {
         my ($color, $gameRow, $successAuth) = authGameColor($msg->{auth}, $msg->{uid}, $msg->{gameId});
         if ($args !~ m/^red|green|white|black$/) {
             my $return = {
@@ -862,6 +862,8 @@ sub handleChatCommandGame {
             $aiColor = 4;
         }
 
+        my $aiDifficulty = ($command eq 'ai' ? AI_USER_MEDIUM : $command eq 'ai_hard' ? AI_USER_HARD : AI_USER_EASY);
+
         my $cmdAi = sprintf('/usr/bin/perl ./kungFuChessGame%sAi.pl %s %s %s %s %s %s %s %s %s 1>%s 2>%s &',
             $gameRow->{game_type},
             $gameRow->{game_id},
@@ -870,7 +872,7 @@ sub handleChatCommandGame {
             $gameRow->{piece_recharge},
             $gameRow->{speed_advantage} // "1:1:1:1",
             $gameRow->{teams} // "1-1-1-1",
-            getAiLevel(AI_USER_MEDIUM),
+            getAiLevel($aiDifficulty),
             $aiColor,
             'ws://localhost:3001/ws',
             '/var/log/kungfuchess/' . $gameRow->{game_id} . '-game-black-ai.log',
@@ -883,7 +885,7 @@ sub handleChatCommandGame {
         $game->serverBroadcast($gameMsg);
 
         app()->db->do("UPDATE games SET " . $args . "_player = ?, " . $args . "_anon_key = ?, rated = 0 WHERE game_id = ? limit 1", {},
-            AI_USER_MEDIUM,
+            $aiDifficulty,
             $uid,
             $gameRow->{game_id},
             $game->{id}
@@ -2118,6 +2120,9 @@ post '/ajax/updateOptions' => sub {
         app()->db->do("UPDATE players SET chat_sounds = 1 WHERE player_id = ?", {}, $user->{player_id});
     } else {
         app()->db->do("UPDATE players SET chat_sounds = 0 WHERE player_id = ?", {}, $user->{player_id});
+    }
+    if ($c->param('maxBoardWidth')) {
+        app()->db->do("UPDATE players SET max_board_width = ? WHERE player_id = ?", {}, $user->{player_id}, $c->param('maxBoardWidth'));
     }
 
     my $return = {
@@ -4030,30 +4035,34 @@ sub matchPool {
         }
     }
 
-
     ### first we try to see if there are games waiting to begin with a NULL player
-            #AND !(white_player IS NULL AND black_player IS NULL AND red_player IS NULL AND green_player IS NULL)
-    my $gameSql = "
-        SELECT * FROM games
-        WHERE `status` = 'waiting to begin'
-            AND game_speed = ?
-            AND game_type = ?
-            AND rated = ?
-            AND (white_player IS NULL OR black_player IS NULL OR red_player IS NULL OR green_player IS NULL)
-            LIMIT 1
-        ";
-    my $activeGameRow = app->db()->selectrow_hashref(
-        $gameSql,
-        { 'Slice' => {} },
-        $poolRow->{game_speed},
-        $poolRow->{game_type},
-        $poolRow->{rated},
-    );
+    if ($poolRow->{game_type} eq '4way') {
+        my $gameSql = "
+            SELECT * FROM games
+            WHERE `status` = 'waiting to begin'
+                AND game_speed = ?
+                AND rated = ?
+                AND (
+                    white_player IS NULL OR
+                    black_player IS NULL OR
+                    red_player IS NULL OR 
+                    green_player IS NULL
+                    )
+                AND game_type = '4way'
+                LIMIT 1
+            ";
+        my $activeGameRow = app->db()->selectrow_hashref(
+            $gameSql,
+            { 'Slice' => {} },
+            $poolRow->{game_speed},
+            $poolRow->{rated},
+        );
 
-    if ($activeGameRow) {
-        app->db()->do('UPDATE pool SET matched_game = ? WHERE private_game_key = ?', {}, $activeGameRow->{game_id}, $uuid);
-        return $activeGameRow->{game_id};
-    } 
+        if ($activeGameRow) {
+            app->db()->do('UPDATE pool SET matched_game = ? WHERE private_game_key = ?', {}, $activeGameRow->{game_id}, $uuid);
+            return $activeGameRow->{game_id};
+        } 
+    }
 
     ### now we try to find if any player matched them.
     #my $needed = $gameType eq '4way' ? 3 : 1;
