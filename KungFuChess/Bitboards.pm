@@ -253,6 +253,11 @@ my $bb_to_human = {
     '128' => 'h1',
 };
 
+sub human {
+    my $bb = shift;
+    return $bb_to_human->{$bb};
+}
+
 my $human_to_bb = {
     'a8' => '72057594037927936',
     'b8' => '144115188075855872',

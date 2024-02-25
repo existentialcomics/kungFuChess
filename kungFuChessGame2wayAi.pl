@@ -18,7 +18,7 @@ use lib dirname(abs_path($0));
 use KungFuChess::Bitboards;
 use KungFuChess::GameAi;
 
-print "init game ai... ($gameKey, $authKey, $pieceSpeed, $speedAdj, $difficulty, $color, $domain)\n";
+print "init game ai... ($gameKey, $authKey, $pieceSpeed, $pieceRecharge, $speedAdj, $teams, $difficulty, $color, $domain)\n";
 my $kfcAi = KungFuChess::GameAi->new(
     $gameKey,
     $authKey,

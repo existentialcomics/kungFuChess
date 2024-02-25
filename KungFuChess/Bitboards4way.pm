@@ -33,6 +33,10 @@ sub setDebugLevel {
     $aiDebug = shift;
 }
 
+sub human {
+    return "todo in 4way";
+}
+
 my $aiDebugEvalCount = 0;
 ### each player takes x moves in the ai search tree to simulate real time
 my $aiMovesPerTurn = 2;

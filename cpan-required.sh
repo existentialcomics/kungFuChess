@@ -9,10 +9,11 @@ cpan Compress::Raw::Zlib
 cpan IO::Compress::Gzip
 cpan UUID::Tiny
 cpan AnyEvent
-cpan JSON::XS
 cpan AnyEvent::WebSocket::Client
+cpan JSON::XS
 cpan Config::Simple
 cpan Digest::Bcrypt
 cpan HTML::Escape
 cpan LWP::Simple
 cpan Sys::MemInfo
+cpan Inline::CPP

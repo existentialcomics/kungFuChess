@@ -215,7 +215,7 @@ my $aiInterval = AnyEvent->timer(
                         $game->{piece_speed},
                         $game->{piece_recharge},
                         '1:1:1:1', ## berserk speed advantage
-                        $game->{teams},
+                        $game->{teams} // '1-1-1-1',
                         $level,
                         $color,
                         $game->{ws_protocol} . "://" . $game->{ws_server} . "/ws",

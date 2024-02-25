@@ -99,6 +99,9 @@ sub _init {
     ### currently animating moves
     $self->{activeMoves}    = {};
 
+    ### squares that always cause stop/pause (when castling)
+    $self->{stopSquares}    = {};
+
     ### time when a piece last vacated this sq
     # for achievements. This is by color
     $self->{leaveSqTimes}    = {
@@ -525,7 +528,6 @@ sub moveIfLegal {
             $tactics
         ) = @_;
 
-
         if ($restartAnimation) {
             my $msg = {
                 'c' => 'authcontinue',
@@ -548,11 +550,31 @@ sub moveIfLegal {
             &&
             (! defined($self->{activeMoves}->{$fr_bb}) || $self->{activeMoves}->{$fr_bb}->{to_bb} != $to_bb)
         ) {
-            warn "undefined activeMove someone killed us\n";
+            if (! defined($self->{activeMoves}->{$fr_bb})){
+                print "\nundefined activeMove someone killed us\n";
+                print $fr_bb;
+                print " -> ";
+                print $to_bb;
+                warn "undefined $fr_bb activeMove someone killed us\n";
+            } else {
+                print "\nmistach activeMove someone killed us\n";
+                print $fr_bb;
+                print " -> ";
+                print $to_bb;
+                warn "mistach $fr_bb activeMove someone killed us\n";
+            }
             return undef;
         }
-        # remove the active move from the old space
-        delete $self->{activeMoves}->{$fr_bb};
+        if (
+            ($moveType == KungFuChess::Bitboards::MOVE_NORMAL || 
+                $moveType == KungFuChess::Bitboards::MOVE_PROMOTE ||
+                $moveType == KungFuChess::Bitboards::MOVE_DOUBLE_PAWN ||
+                $moveType == KungFuChess::Bitboards::MOVE_EN_PASSANT 
+            ) 
+        ) {
+            # remove the active move from the old space for normalish moves
+            delete $self->{activeMoves}->{$fr_bb};
+        }
 
         my $done = 0;
         my $nextMoveSpeed = $self->{$colorbit}->{pieceSpeed};
@@ -686,7 +708,7 @@ sub moveIfLegal {
                         $to_bb = $moving_to_bb;
                     }
                 }
-            } elsif ($themColor == $usColor) { ## we hit ourselves, stop!
+            } elsif ($themColor == $usColor || exists($self->{stopSquares}->{$moving_to_bb})) { ## we hit ourselves, stop! (or a stop sq)
                 ### we hit our own piece, but it is moving so let's politely wait for it to get out of the way.
                 if (exists($self->{activeMoves}->{$moving_to_bb})
                     && ! KungFuChess::Bitboards::movingOppositeDirs($moveDir, $self->{activeMoves}->{$moving_to_bb}->{moveDir})
@@ -833,16 +855,20 @@ sub moveIfLegal {
                 'to_bb'  => $rook_moving_to
             };
             $self->send($msgSus2);
+            $self->{stopSquares}->{$king_moving_to} = 1;
+            $self->{stopSquares}->{$rook_moving_to} = 1;
             $timer = AnyEvent->timer(
                 after => $self->{$colorbit}->{pieceSpeed},
                 cb => sub {
                     $func->($self, $func, $fr_bb, $king_moving_to, $dir, $startTime, $lastStartTime, $moveType, $piece, $colorbit, $restartAnimation);
+                    delete $self->{stopSquares}->{$king_moving_to};
                 }
             );
             $timer2 = AnyEvent->timer(
                 after => $self->{$colorbit}->{pieceSpeed},
                 cb => sub {
                     $func->($self, $func, $fr_bb, $rook_moving_to, $dir, $startTime, $lastStartTime, $moveType, $pieceTo, $colorbit, $restartAnimation);
+                    delete $self->{stopSquares}->{$rook_moving_to};
                 }
             );
             return ; ## return early because there is no more movement
@@ -881,16 +907,21 @@ sub moveIfLegal {
                 'to_bb'  => $rook_moving_to
             };
             $self->send($msgSus2);
+            $self->{stopSquares}->{$king_moving_to} = 1;
+            $self->{stopSquares}->{$rook_moving_to} = 1;
             $timer = AnyEvent->timer(
                 after => $self->{$colorbit}->{pieceSpeed},
                 cb => sub {
                     $func->($self, $func, $fr_bb, $king_moving_to, $dir, $startTime, $lastStartTime, $moveType, $piece, $colorbit, $restartAnimation);
+                    delete $self->{stopSquares}->{$king_moving_to};
                 }
             );
+            $self->{stopSquares}->{$rook_moving_to} = 1;
             $timer2 = AnyEvent->timer(
                 after => $self->{$colorbit}->{pieceSpeed},
                 cb => sub {
                     $func->($self, $func, $fr_bb, $rook_moving_to, $dir, $startTime, $lastStartTime, $moveType, $pieceTo, $colorbit, $restartAnimation);
+                    delete $self->{stopSquares}->{$rook_moving_to};
                 }
             );
             return ; ## return early because there is no more movement
@@ -1167,6 +1198,15 @@ sub getPieces {
     my @pieces = values %{$self->{board}};
 
     return @pieces;
+}
+
+sub human {
+    my $bb = shift;
+    return KungFuChess::Bitboards::human($bb);
+}
+
+sub prettyBoard {
+    return KungFuChess::Bitboards::pretty();
 }
 
 1;
