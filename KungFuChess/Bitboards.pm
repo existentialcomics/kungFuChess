@@ -987,7 +987,6 @@ sub isLegalMove {
             $bbQR     = $blackQCastleR;
             $bbQR_off = $blackQCastleR_off;
         }
-
         ### we simply assume the pieces are there to move, since the castle bbs should be cleared if they move
         if ($fr_bb & $bbK){ 
             ### if they are moving to the "off" square we assume they are attempting to castle

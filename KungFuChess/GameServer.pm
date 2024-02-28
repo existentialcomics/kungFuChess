@@ -461,6 +461,7 @@ sub moveIfLegal {
 
     my ($colorbit, $moveType, $moveDir, $fr_bb, $to_bb)
         = KungFuChess::Bitboards::isLegalMove($move_fr_bb, $move_to_bb, $fr_rank, $fr_file, $to_rank, $to_file);
+
     my $usColor   = KungFuChess::Bitboards::occupiedColor($fr_bb);
     my $themColor = KungFuChess::Bitboards::occupiedColor($to_bb);
 
@@ -565,16 +566,8 @@ sub moveIfLegal {
             }
             return undef;
         }
-        if (
-            ($moveType == KungFuChess::Bitboards::MOVE_NORMAL || 
-                $moveType == KungFuChess::Bitboards::MOVE_PROMOTE ||
-                $moveType == KungFuChess::Bitboards::MOVE_DOUBLE_PAWN ||
-                $moveType == KungFuChess::Bitboards::MOVE_EN_PASSANT 
-            ) 
-        ) {
-            # remove the active move from the old space for normalish moves
-            delete $self->{activeMoves}->{$fr_bb};
-        }
+        # remove the active move from the old space
+        delete $self->{activeMoves}->{$fr_bb};
 
         my $done = 0;
         my $nextMoveSpeed = $self->{$colorbit}->{pieceSpeed};
@@ -860,14 +853,15 @@ sub moveIfLegal {
             $timer = AnyEvent->timer(
                 after => $self->{$colorbit}->{pieceSpeed},
                 cb => sub {
-                    $func->($self, $func, $fr_bb, $king_moving_to, $dir, $startTime, $lastStartTime, $moveType, $piece, $colorbit, $restartAnimation);
+                    #### undef fr_bb to prevent it deleting random active moves
+                    $func->($self, $func, undef, $king_moving_to, $dir, $startTime, $lastStartTime, $moveType, $piece, $colorbit, $restartAnimation);
                     delete $self->{stopSquares}->{$king_moving_to};
                 }
             );
             $timer2 = AnyEvent->timer(
                 after => $self->{$colorbit}->{pieceSpeed},
                 cb => sub {
-                    $func->($self, $func, $fr_bb, $rook_moving_to, $dir, $startTime, $lastStartTime, $moveType, $pieceTo, $colorbit, $restartAnimation);
+                    $func->($self, $func, undef, $rook_moving_to, $dir, $startTime, $lastStartTime, $moveType, $pieceTo, $colorbit, $restartAnimation);
                     delete $self->{stopSquares}->{$rook_moving_to};
                 }
             );
@@ -908,11 +902,10 @@ sub moveIfLegal {
             };
             $self->send($msgSus2);
             $self->{stopSquares}->{$king_moving_to} = 1;
-            $self->{stopSquares}->{$rook_moving_to} = 1;
             $timer = AnyEvent->timer(
                 after => $self->{$colorbit}->{pieceSpeed},
                 cb => sub {
-                    $func->($self, $func, $fr_bb, $king_moving_to, $dir, $startTime, $lastStartTime, $moveType, $piece, $colorbit, $restartAnimation);
+                    $func->($self, $func, undef, $king_moving_to, $dir, $startTime, $lastStartTime, $moveType, $piece, $colorbit, $restartAnimation);
                     delete $self->{stopSquares}->{$king_moving_to};
                 }
             );
@@ -920,7 +913,7 @@ sub moveIfLegal {
             $timer2 = AnyEvent->timer(
                 after => $self->{$colorbit}->{pieceSpeed},
                 cb => sub {
-                    $func->($self, $func, $fr_bb, $rook_moving_to, $dir, $startTime, $lastStartTime, $moveType, $pieceTo, $colorbit, $restartAnimation);
+                    $func->($self, $func, undef, $rook_moving_to, $dir, $startTime, $lastStartTime, $moveType, $pieceTo, $colorbit, $restartAnimation);
                     delete $self->{stopSquares}->{$rook_moving_to};
                 }
             );

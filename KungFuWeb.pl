@@ -2499,7 +2499,9 @@ websocket '/ws' => sub {
                         exists($rematches{$gameId}->{black}) || isAiUser($gameRow->{black_player}) && 
                         exists($rematches{$gameId}->{red}) || isAiUser($gameRow->{red_player}) && 
                         exists($rematches{$gameId}->{green}) || isAiUser($gameRow->{green_player})
-                    )
+                    ) || 
+                    ### practice games
+                    ( $color eq 'both')
                 ) {
                     my $rematchGameId = createRematchGame($gameId);
                     if ($rematchGameId) {
