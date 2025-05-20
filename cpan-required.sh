@@ -17,3 +17,4 @@ cpan HTML::Escape
 cpan LWP::Simple
 cpan Sys::MemInfo
 cpan Inline::CPP
+cpan WWW::Mechanize

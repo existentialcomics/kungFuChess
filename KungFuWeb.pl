@@ -687,7 +687,6 @@ sub chatGlobal {
                     'color' => 'red',
                     'text_color' => '#666666',
                 };
-                $return->{message} = "Stop repeating yourself.";
                 $return->{message} = "Stop talking so fast.";
                 return $return;
             }
@@ -1218,6 +1217,12 @@ get '/about' => sub {
     my $c = shift;
 
     $c->render('template' => 'about', format => 'html', handler => 'ep');
+};
+
+get '/settings' => sub {
+    my $c = shift;
+
+    $c->render('template' => 'settings', format => 'html', handler => 'ep');
 };
 
 get '/faq' => sub {

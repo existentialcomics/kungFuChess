@@ -10,3 +10,5 @@ hypnotoad.pid
 _Inline
 botManager.pl
 tweets
+websockets.properties
+java-websockets/websockets.properties

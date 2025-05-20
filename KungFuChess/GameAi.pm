@@ -818,7 +818,7 @@ sub aiTick {
 
     #if (Sys::MemInfo::get("freeswap") < $minMemory) { exit; }
     if (1) {
-        print "\naiTick() " . time() . "\n";
+        print "\naiTick() " . time() . " , elasped: " . (time() - $self->{startTime}) . "\n";
     }
     my $handle = $self->{conn}->{handle};
         $handle->push_read( 'line' => sub {}
