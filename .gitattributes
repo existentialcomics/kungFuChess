@@ -1,2 +1,4 @@
-scss/* linguist-vendored
+./scss/* linguist-vendored
 ./public/jquery-3.2.min.js linguist-vendored
+./public/js/* linguist-vendored
+./public/css/* linguist-vendored
