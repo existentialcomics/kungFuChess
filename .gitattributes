@@ -1,6 +1,7 @@
-./scss/* linguist-vendored
-./public/jquery-3.2.min.js linguist-vendored
-./public/konva.min.js linguist-vendored
-./public/konva.js linguist-vendored
-./public/js/* linguist-vendored
-./public/css/* linguist-vendored
+scss/* linguist-vendored
+public/jquery-3.2.min.js linguist-vendored
+public/konva.min.js linguist-vendored
+public/konva.js linguist-vendored
+public/js/* linguist-vendored
+public/css/* linguist-vendored
+java-websockets/src/main/resources/static/app.js linguist-vendored
