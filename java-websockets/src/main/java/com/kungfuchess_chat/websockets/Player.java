@@ -1,4 +1,6 @@
 package com.kungfuchess_chat.websockets;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
@@ -10,12 +12,23 @@ public class Player {
 	private int rating_standard_4way;
 	private int rating_lightning_4way;
 	
-	public Player(int id) {
-		
+	public Player(int id, Connection sqlConn) throws SQLException {
+		PreparedStatement stmtGetPlayer = sqlConn
+				.prepareStatement("SELECT * from players WHERE id = ?");
+		stmtGetPlayer.setInt(1, id);
+		ResultSet playerRs = stmtGetPlayer.executeQuery();
 	}
 	
-	public Player(String auth_token) {
-		
+	public Player(String auth_token, Connection sqlConn) throws SQLException {
+		PreparedStatement stmtGetPlayer = sqlConn
+				.prepareStatement("SELECT * from players WHERE auth_token = ?");
+		stmtGetPlayer.setString(1, auth_token);
+		ResultSet playerRs = stmtGetPlayer.executeQuery();
+
+	}
+	
+	public int getId() {
+		return id;
 	}
 	
 	public Player(ResultSet rs) throws SQLException {
