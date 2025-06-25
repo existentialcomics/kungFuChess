@@ -5,6 +5,7 @@ sudo apt install libmojolicious-plugin-authentication-perl
 sudo apt install mariadb-server
 sudo apt install libclass-dbi-perl
 sudo apt install libclass-dbi-mysql-perl
+sudo apt install libdbd-mysql-perl
 
 apt-get install libdigest-perl-md5-perl
 apt-get install libcompress-raw-zlib-perl

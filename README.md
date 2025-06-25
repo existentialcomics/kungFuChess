@@ -24,3 +24,7 @@ Load the schema.sql into a mysql server. You *might* need to do some inserts for
 Fill out the kungFuChess.cnf will your credentials, by looking at kungFuChess.cnf.example.
 
 The server will be available at http://localhost:3000/
+
+# docker instructions
+
+sudo docker run --add-host host.docker.internal:host-gateway --mount type=bind,src=/home/corey/kungFuChess/,dst=/kungFuChess/ kfc/perl morbo KungFuWeb.pl -l "http://localhost:3000" -w templates/ -w KungFuChess/
