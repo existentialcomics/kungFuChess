@@ -53,24 +53,19 @@ function getOpenGames(originalThread = false) {
                     currentGameUid = jsonRes.uid;
                 } else {
                     if (jsonRes.hasOwnProperty('openGames')) {
-                        $('#publicGamesContent').html(jsonRes.openGames);
+                        app.publicGamesContent = jsonRes.openGames;
                     }
                     if (jsonRes.hasOwnProperty('challenges')) {
-                        $('#challengeContent').html(jsonRes.challenges);
+                        app.challengeContent = jsonRes.challenges;
                     }
                     if (jsonRes.hasOwnProperty('myGame')) {
                         checkPoolRunning = false;
                         cancelCheckPool = false;
-                        $("#enter-pool-standard").html('Standard Pool');
-                        $("#enter-pool-lightning").html('Lightning Pool');
-                        $("#enter-pool-4way-standard").html('Standard 4way Pool');
-                        $("#enter-pool-4way-lightning").html('Lightning 4way Pool');
-
-                        $('#myGameContent').html(jsonRes.myGame);
-                        $('#createGameButtons').hide();
+                        app.myGameContent = jsonRes.myGame;
+                        app.showPools = false;
                     } else {
-                        $('#myGameContent').html('');
-                        $('#createGameButtons').show();
+                        app.myGameContent = '';
+                        app.showPools = true;
                     }
                 }
                 if (setInterval == true) {
@@ -99,58 +94,54 @@ function getActiveGames(originalThread = false) {
         activeGamesRunning = true;
         setInterval = true;
     }
-    if (document.getElementById('activeGamesContent')) {
-        var urlActiveGames = '/ajax/activeGames';
-        if (currentGameUid) {
-            urlActiveGames += '?uid=' + currentGameUid;
-        }
-        $.ajax({
-            type : 'GET',
-            url  : urlActiveGames,
-            dataType : 'json',
-            success : function(data){
-                var jsonRes = data;
-                $('#activeGamesContent').html(jsonRes.body);
-                if (setInterval == true) {
-                    intervalActiveGames = setTimeout(
-                        function() {
-                            getActiveGames(true);
-                        },
-                        3500
-                    );
-                }
-            }
-        });
+    var urlActiveGames = '/ajax/activeGames';
+    if (currentGameUid) {
+      urlActiveGames += '?uid=' + currentGameUid;
     }
+    $.ajax({
+      type : 'GET',
+      url  : urlActiveGames,
+      dataType : 'json',
+      success : function(data){
+        var jsonRes = data;
+        app.activeGamesContent = jsonRes.body;
+        if (setInterval == true) {
+          intervalActiveGames = setTimeout(
+            function() {
+              getActiveGames(true);
+            },
+            3500
+          );
+        }
+      }
+    });
 }
 
 var ratingToggle = 'standard';
 var getPlayersRunning = false;
 function getPlayers(originalThread = false) {
-    var setInterval = originalThread;
-    if (getPlayersRunning == false) {
-        getPlayersRunning = true;
-        setInterval = true;
+  var setInterval = originalThread;
+  if (getPlayersRunning == false) {
+    getPlayersRunning = true;
+    setInterval = true;
+  }
+  $.ajax({
+    type : 'GET',
+    url  : '/activePlayers?ratingType=' + ratingToggle,
+    dataType : 'html',
+    success : function(data){
+      $('#playersContent').html(data);
+      $('#challenge_' + screenname).remove();
+      if (setInterval) {
+        intervalPlayer = setTimeout(
+          function() {
+            getPlayers(true);
+          },
+          5000
+        );
+      }
     }
-    if (document.getElementById('playersContent')) {
-        $.ajax({
-            type : 'GET',
-            url  : '/activePlayers?ratingType=' + ratingToggle,
-            dataType : 'html',
-            success : function(data){
-                $('#playersContent').html(data);
-                $('#challenge_' + screenname).remove();
-                if (setInterval) {
-                    intervalPlayer = setTimeout(
-                        function() {
-                            getPlayers(true);
-                        },
-                        5000
-                    );
-                }
-            }
-        });
-    }
+  });
 }
 
 function checkPool(originalThread = false) {
@@ -260,7 +251,6 @@ $(function () {
         }
     });
 
-
     function change(e){
         $('.card-deck').html($(this).val() + "<br/>");
     }
@@ -284,7 +274,10 @@ $(function () {
             checkPool();
         }
     });
+
     $("#enter-pool-lightning").click(function() {
+    });
+    function enterPoolBegin(speed = 'standard', way = '2way') {
         if (checkPoolRunning
             && checkPoolGameSpeed == 'lightning'
             && checkPoolGameType  == '2way'
@@ -294,15 +287,13 @@ $(function () {
         } else {
             cancelCheckPool = false;
             $(this).html('Lightning Pool<br /><span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>');
-            $("#enter-pool-standard").html('Standard Pool');
-            $("#enter-pool-4way-standard").html('Standard 4way Pool');
-            $("#enter-pool-4way-lightning").html('Lightning 4way Pool');
+            app.inPool = 'lightning 2way';
             checkPoolGameSpeed = 'lightning';
             checkPoolGameType  = '2way';
             currentGameUid = '';
             checkPool();
         }
-    });
+    }
     $("#enter-pool-4way-standard").click(function() {
         if (checkPoolRunning
             && checkPoolGameSpeed == 'standard'
@@ -342,138 +333,125 @@ $(function () {
         }
     });
 
-    $("#showStandardRating").click(function() {
-        $("#showLightningRating").removeClass('active');
-        $("#showStandardRating").addClass('active');
-        ratingToggle = 'standard';
-        getPlayers();
-    });
+    //$("#showStandardRating").click(function() {
+        //$("#showLightningRating").removeClass('active');
+        //$("#showStandardRating").addClass('active');
+        //ratingToggle = 'standard';
+        //getPlayers();
+    //});
   
-    $("#showLightningRating").click(function() {
-        $("#showLightningRating").addClass('active');
-        $("#showStandardRating").removeClass('active');
-        ratingToggle = 'lightning';
-        getPlayers();
-    });
+    //$("#showLightningRating").click(function() {
+        //$("#showLightningRating").addClass('active');
+        //$("#showStandardRating").removeClass('active');
+        //ratingToggle = 'lightning';
+        //getPlayers();
+    //});
   
-    $("#showPool").click(function() {
-        $("#showOpenGames").removeClass('active');
-        $("#showActiveGames").removeClass('active');
-        $("#showChallenges").removeClass('active');
-        $("#showPool").addClass('active');
-        $("#openGamesContent").hide();
-        $("#activeGamesContent").hide();
-        $("#createGameFormDiv").hide();
-        $("#createAiGameFormDiv").hide();
-        $("#pool-matching").show();
-        cancelActiveGames = true;
-        cancelOpenGames = true;
-    });
+    //$("#showPool").click(function() {
+        //$("#showOpenGames").removeClass('active');
+        //$("#showActiveGames").removeClass('active');
+        //$("#showChallenges").removeClass('active');
+        //$("#showPool").addClass('active');
+        //$("#openGamesContent").hide();
+        //$("#activeGamesContent").hide();
+        //$("#createGameFormDiv").hide();
+        //$("#createAiGameFormDiv").hide();
+        //$("#pool-matching").show();
+        //cancelActiveGames = true;
+        //cancelOpenGames = true;
+    //});
   
-    $("#showOpenGames").click(function() {
-        $("#enter-pool-standard").html('Standard Pool');
-        $("#enter-pool-lightning").html('Lightning Pool');
-        $("#enter-pool-4way-standard").html('Standard 4way Pool');
-        $("#enter-pool-4way-lightning").html('Lightning 4way Pool');
+    //$("#showOpenGames").click(function() {
+        //$("#enter-pool-standard").html('Standard Pool');
+        //$("#enter-pool-lightning").html('Lightning Pool');
+        //$("#enter-pool-4way-standard").html('Standard 4way Pool');
+        //$("#enter-pool-4way-lightning").html('Lightning 4way Pool');
 
-        $("#showOpenGames").addClass('active');
-        $("#showActiveGames").removeClass('active');
-        $("#showChallenges").removeClass('active');
-        $("#showPool").removeClass('active');
-        $("#activeGamesContent").hide();
-        $("#pool-matching").hide();
-        cancelActiveGames = true;
-        cancelCheckPool = true;
-        $("#enter-pool-lighting").html('Lightning Pool');
-        $("#enter-pool-standard").html('Standard Pool');
+        //$("#showOpenGames").addClass('active');
+        //$("#showActiveGames").removeClass('active');
+        //$("#showChallenges").removeClass('active');
+        //$("#showPool").removeClass('active');
+        //$("#activeGamesContent").hide();
+        //$("#pool-matching").hide();
+        //cancelActiveGames = true;
+        //cancelCheckPool = true;
+        //$("#enter-pool-lighting").html('Lightning Pool');
+        //$("#enter-pool-standard").html('Standard Pool');
 
-        cancelOpenGames = false;
-        getOpenGames();
-        $("#createGameFormDiv").hide();
-        $("#createAiGameFormDiv").hide();
-        $("#openGamesContent").show();
-        $("#challengesContent").hide();
-    });
+        //cancelOpenGames = false;
+        //getOpenGames();
+        //$("#createGameFormDiv").hide();
+        //$("#createAiGameFormDiv").hide();
+        //$("#openGamesContent").show();
+        //$("#challengesContent").hide();
+    //});
 
-    $("#showChallenges").click(function() {
-        $("#enter-pool-standard").html('Standard Pool');
-        $("#enter-pool-lightning").html('Lightning Pool');
-        $("#enter-pool-4way-standard").html('Standard 4way Pool');
-        $("#enter-pool-4way-lightning").html('Lightning 4way Pool');
+    //$("#showChallenges").click(function() {
+        //$("#enter-pool-standard").html('Standard Pool');
+        //$("#enter-pool-lightning").html('Lightning Pool');
+        //$("#enter-pool-4way-standard").html('Standard 4way Pool');
+        //$("#enter-pool-4way-lightning").html('Lightning 4way Pool');
 
-        $("#showOpenGames").removeClass('active');
-        $("#showChallenges").addClass('active');
-        $("#showActiveGames").removeClass('active');
-        $("#showPool").removeClass('active');
-        $("#activeGamesContent").hide();
-        $("#pool-matching").hide();
-        cancelActiveGames = true;
-        cancelCheckPool = true;
-        cancelOpenGames = true;
-        $("#enter-pool-lighting").html('Lightning Pool');
-        $("#enter-pool-standard").html('Standard Pool');
+        //$("#showOpenGames").removeClass('active');
+        //$("#showChallenges").addClass('active');
+        //$("#showActiveGames").removeClass('active');
+        //$("#showPool").removeClass('active');
+        //$("#activeGamesContent").hide();
+        //$("#pool-matching").hide();
+        //cancelActiveGames = true;
+        //cancelCheckPool = true;
+        //cancelOpenGames = true;
+        //$("#enter-pool-lighting").html('Lightning Pool');
+        //$("#enter-pool-standard").html('Standard Pool');
 
-        $("#createGameFormDiv").hide();
-        $("#createAiGameFormDiv").hide();
-        $("#openGamesContent").hide();
-        $("#challengesContent").show();
-    });
+        //$("#createGameFormDiv").hide();
+        //$("#createAiGameFormDiv").hide();
+        //$("#openGamesContent").hide();
+        //$("#challengesContent").show();
+    //});
   
-    $("#showActiveGames").click(function() {
-        $("#enter-pool-standard").html('Standard Pool');
-        $("#enter-pool-lightning").html('Lightning Pool');
-        $("#enter-pool-4way-standard").html('Standard 4way Pool');
-        $("#enter-pool-4way-lightning").html('Lightning 4way Pool');
+    //$("#showActiveGames").click(function() {
+        //$("#enter-pool-standard").html('Standard Pool');
+        //$("#enter-pool-lightning").html('Lightning Pool');
+        //$("#enter-pool-4way-standard").html('Standard 4way Pool');
+        //$("#enter-pool-4way-lightning").html('Lightning 4way Pool');
 
-        $("#showActiveGames").addClass('active');
-        $("#showChallenges").removeClass('active');
-        $("#showOpenGames").removeClass('active');
-        $("#showPool").removeClass('active');
-        $("#pool-matching").hide();
-        cancelOpenGames = true;
-        cancelCheckPool = true;
-        $("#enter-pool-lighting").html('Lightning Pool');
-        $("#enter-pool-standard").html('Standard Pool');
+        //$("#showActiveGames").addClass('active');
+        //$("#showChallenges").removeClass('active');
+        //$("#showOpenGames").removeClass('active');
+        //$("#showPool").removeClass('active');
+        //$("#pool-matching").hide();
+        //cancelOpenGames = true;
+        //cancelCheckPool = true;
+        //$("#enter-pool-lighting").html('Lightning Pool');
+        //$("#enter-pool-standard").html('Standard Pool');
 
-        cancelActiveGames = false;
-        getActiveGames();
-        $("#createGameFormDiv").hide();
-        $("#createAiGameFormDiv").hide();
-        $("#openGamesContent").hide();
-        $("#activeGamesContent").show();
-        $("#challengesContent").hide();
-    });
+        //cancelActiveGames = false;
+        //getActiveGames();
+        //$("#createGameFormDiv").hide();
+        //$("#createAiGameFormDiv").hide();
+        //$("#openGamesContent").hide();
+        //$("#activeGamesContent").show();
+        //$("#challengesContent").hide();
+    //});
   
-    $("#homeContent").delegate('#createGameBtn', 'click', function() {
-        $("#pool-matching").hide();
-        $("#openGamesContent").hide();
-        $("#createGameFormDiv").show();
-        $("#createAiGameFormDiv").hide();
-
-        $("#openToPublicChk").prop('checked', true);
-        $("#isChallengeChk").prop('checked', false);
-        $("#challengeUserTxt").prop('disabled', true);
-        $("#challengeUserTxt").val('');
-    });
+    //$("#homeContent").delegate('#createGameBtn', 'click', function() {
+        //app.activeTab = 'lobby';
+        //app.showPools = false;
+        //app.showCreateGameForm = true;
+    //});
   
-    $("#homeContent").delegate('#createAiGameBtn', 'click', function() {
-        $("#pool-matching").hide();
-        $("#openGamesContent").hide();
-        $("#createGameFormDiv").hide();
-        $("#createAiGameFormDiv").show();
-    });
+    //$("#homeContent").delegate('#createAiGameBtn', 'click', function() {
+        //app.activeTab = 'lobby';
+        //app.showPools = false;
+        //app.showCreateAiForm = true;
+    //});
 
-    $("#homeContent").delegate('.challengePlayer', 'click', function() {
-        $("#pool-matching").hide();
-        $("#openGamesContent").hide();
-        $("#createGameFormDiv").show();
-        $("#createAiGameFormDiv").hide();
-
-        $("#openToPublicChk").prop('checked', false);
-        $("#isChallengeChk").prop('checked', true);
-        $("#challengeUserTxt").prop('disabled', false);
-        $("#challengeUserTxt").val($(this).data('screenname'));
-    });
+    //$("#homeContent").delegate('.challengePlayer', 'click', function() {
+        //// evading Vue here but whatever
+        //app.showCreateGameForm = 'basic';
+        //app.challengePlayer = $(this).data('screenname');
+    //});
   
     $("#homeContent").delegate('.watch-game-row', 'click', function() {
         var url = $(this).data('href');
@@ -499,13 +477,13 @@ $(function () {
                 } else {
                     //console.log("no gameId in jsonRes");
                 }
-                $("#showOpenGames").addClass('active');
-                $("#showPool").removeClass('active');
-                $("#pool-matching").hide();
+                //$("#showOpenGames").addClass('active');
+                //$("#showPool").removeClass('active');
+                //$("#pool-matching").hide();
                 getOpenGames();
-                $("#createGameFormDiv").hide();
-                $("#createAiGameFormDiv").hide();
-                $("#openGamesContent").show();
+                //$("#createGameFormDiv").hide();
+                //$("#createAiGameFormDiv").hide();
+                //$("#openGamesContent").show();
             }
         });
     });
@@ -577,10 +555,11 @@ $(function () {
         });
     });
 
-    $("#homeContent").delegate('#createAiGameSubmit', 'click', function(e) {
-        e.preventDefault();
-        $("#pool-matching").hide();
-        $("#openGamesContent").hide();
+    //$("#homeContent").delegate('#createAiGameSubmit', 'click', function(e) {
+      //e.preventDefault();
+      //createGameAiSubmit();
+    //});
+    function createGameAiSubmit() {
         $.ajax({
             type : 'POST',
             url  : '/ajax/createChallenge',
@@ -604,16 +583,10 @@ $(function () {
                     $("#error-alert").html('<div class="alert alert-danger alert-dismissible" id="error-alert" role="alert">' + jsonRes.error + "</div>");
     
                 }
-                $("#showOpenGames").addClass('active');
-                $("#showPool").removeClass('active');
-                $("#pool-matching").hide();
                 getOpenGames();
-                $("#createGameFormDiv").hide();
-                $("#createAiGameFormDiv").hide();
-                $("#openGamesContent").show();
             }
         });
-    });
+    }
   
     // global chat in lobby
     $('#global-chat-input').bind("enterKey",function(e){
@@ -634,7 +607,6 @@ $(function () {
     });
 
     getPlayers();
-
 });
 
 
@@ -788,3 +760,4 @@ $(function () {
         );
     });
 });
+
