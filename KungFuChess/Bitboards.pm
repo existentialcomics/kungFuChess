@@ -20,6 +20,11 @@ my $useXS = 1;
 # 1 for tree debugging, 2 for addition eval debugging
 my $aiDebug = 0;
 
+# 1 to safegaurd, 8 for full board
+my $blockers_depth = 1;
+my $allow_knight_self = 1;
+my $blockers_enemy = 0; # count enemy for blockers (no enemy punch through)
+
 my $aiRandomness = 50; # in points, 100 = PAWN
 
 sub setRandomness {
@@ -29,8 +34,20 @@ sub setRandomness {
     }
 }
 
+sub setClassic {
+    $blockers_depth = 8;
+    $allow_knight_self = 0;
+    $blockers_enemy = 1;
+}
+sub setNoneClassic {
+    $blockers_depth = 1;
+    $allow_knight_self = 1;
+    $blockers_enemy = 0;
+}
+
 sub debugXS {
-    #xs::debug();
+    print "\nDebugXS perl\n";
+    xs::debugXS();
 }
 
 sub setNoMovePenalty {
@@ -811,13 +828,19 @@ sub isMoving {
 }
 
 sub blockers {
-    my ($blockingBB, $dirBB, $fromBB, $toBB, $depth) = @_;
+    my ($blockingBB, $dirBB, $fromBB, $toBB, $depth, $blockingBB_enemy) = @_;
 
     while ($fromBB != $toBB) {
         $fromBB = shift_BB($fromBB, $dirBB);
         #if (! ($fromBB & $movingBB) ){
             if ($fromBB == 0)         { return 0; } ### off the board
             if ($fromBB & $blockingBB){ return 0; }
+            # classic mode, you can finish on enemy but not move through them.
+            if (defined($blockingBB_enemy)) {
+                if ($fromBB != $toBB) {
+                    if ($fromBB & $blockingBB_enemy){ return 0; }
+                }
+            }
 
             ### we may want to only have the piece immediately in front block
             if (defined($depth) ){
@@ -963,8 +986,6 @@ sub isLegalMove {
 
     my @noMove = (NO_COLOR, MOVE_NONE, DIR_NONE, $fr_bb, $to_bb);
 
-    my $checkBlockers = 0;
-
     if (! ($occupied & $fr_bb) ) {
         return @noMove;
     }
@@ -1074,37 +1095,49 @@ sub isLegalMove {
     }
     if ($fr_bb & $dragons) {
         if ( shift_BB($fr_bb, NORTH + NORTH) &
-             (shift_BB($to_bb, WEST) | shift_BB($to_bb, EAST)) ){
-            return ($color, MOVE_KNIGHT, DIR_NONE, $fr_bb, $to_bb);
+             (shift_BB($to_bb, WEST) | shift_BB($to_bb, EAST)) )
+        {
+           return @noMove if (! $allow_knight_self && ($to_bb & _piecesUs($color)));
+           return ($color, MOVE_KNIGHT, DIR_NONE, $fr_bb, $to_bb);
         }
         if ( shift_BB($fr_bb, SOUTH + SOUTH) &
-             (shift_BB($to_bb, WEST) | shift_BB($to_bb, EAST)) ){
-            return ($color, MOVE_KNIGHT, DIR_NONE, $fr_bb, $to_bb);
+             (shift_BB($to_bb, WEST) | shift_BB($to_bb, EAST)) )
+        {
+           return @noMove if (! $allow_knight_self && ($to_bb & _piecesUs($color)));
+           return ($color, MOVE_KNIGHT, DIR_NONE, $fr_bb, $to_bb);
         }
         if ( shift_BB(shift_BB($fr_bb, WEST), WEST) &
-             (shift_BB($to_bb, NORTH) | shift_BB($to_bb, SOUTH)) ){
-            return ($color, MOVE_KNIGHT, DIR_NONE, $fr_bb, $to_bb);
+             (shift_BB($to_bb, NORTH) | shift_BB($to_bb, SOUTH)) )
+        {
+           return @noMove if (! $allow_knight_self && ($to_bb & _piecesUs($color)));
+           return ($color, MOVE_KNIGHT, DIR_NONE, $fr_bb, $to_bb);
         }
         if ( shift_BB(shift_BB($fr_bb, EAST), EAST) &
-             (shift_BB($to_bb, NORTH) | shift_BB($to_bb, SOUTH)) ){
-            return ($color, MOVE_KNIGHT, DIR_NONE, $fr_bb, $to_bb);
+             (shift_BB($to_bb, NORTH) | shift_BB($to_bb, SOUTH)) )
+        {
+           return @noMove if (! $allow_knight_self && ($to_bb & _piecesUs($color)));
+           return ($color, MOVE_KNIGHT, DIR_NONE, $fr_bb, $to_bb);
         }
         ### dragon moves
         if ( shift_BB(shift_BB($fr_bb, NORTH), NORTH + NORTH) &
              (shift_BB($to_bb, WEST) | shift_BB($to_bb, EAST)) ){
-            return ($color, MOVE_KNIGHT, DIR_NONE, $fr_bb, $to_bb);
+           return @noMove if (! $allow_knight_self && ($to_bb & _piecesUs($color)));
+           return ($color, MOVE_KNIGHT, DIR_NONE, $fr_bb, $to_bb);
         }
         if ( shift_BB(shift_BB($fr_bb, SOUTH), SOUTH + SOUTH) &
              (shift_BB($to_bb, WEST) | shift_BB($to_bb, EAST)) ){
-            return ($color, MOVE_KNIGHT, DIR_NONE, $fr_bb, $to_bb);
+           return @noMove if (! $allow_knight_self && ($to_bb & _piecesUs($color)));
+           return ($color, MOVE_KNIGHT, DIR_NONE, $fr_bb, $to_bb);
         }
         if ( shift_BB(shift_BB(shift_BB($fr_bb, WEST), WEST), WEST) &
              (shift_BB($to_bb, NORTH) | shift_BB($to_bb, SOUTH)) ){
-            return ($color, MOVE_KNIGHT, DIR_NONE, $fr_bb, $to_bb);
+           return @noMove if (! $allow_knight_self && ($to_bb & _piecesUs($color)));
+           return ($color, MOVE_KNIGHT, DIR_NONE, $fr_bb, $to_bb);
         }
         if ( shift_BB(shift_BB(shift_BB($fr_bb, EAST), EAST), EAST) &
              (shift_BB($to_bb, NORTH) | shift_BB($to_bb, SOUTH)) ){
-            return ($color, MOVE_KNIGHT, DIR_NONE, $fr_bb, $to_bb);
+           return @noMove if (! $allow_knight_self && ($to_bb & _piecesUs($color)));
+           return ($color, MOVE_KNIGHT, DIR_NONE, $fr_bb, $to_bb);
         }
         
         return (NO_COLOR, MOVE_NONE, DIR_NONE);
@@ -1112,19 +1145,23 @@ sub isLegalMove {
     if ($fr_bb & $knights) {
         if ( shift_BB($fr_bb, NORTH + NORTH) &
              (shift_BB($to_bb, WEST) | shift_BB($to_bb, EAST)) ){
-            return ($color, MOVE_KNIGHT, DIR_NONE, $fr_bb, $to_bb);
+           return @noMove if (! $allow_knight_self && ($to_bb & _piecesUs($color)));
+           return ($color, MOVE_KNIGHT, DIR_NONE, $fr_bb, $to_bb);
         }
         if ( shift_BB($fr_bb, SOUTH + SOUTH) &
              (shift_BB($to_bb, WEST) | shift_BB($to_bb, EAST)) ){
-            return ($color, MOVE_KNIGHT, DIR_NONE, $fr_bb, $to_bb);
+           return @noMove if (! $allow_knight_self && ($to_bb & _piecesUs($color)));
+           return ($color, MOVE_KNIGHT, DIR_NONE, $fr_bb, $to_bb);
         }
         if ( shift_BB(shift_BB($fr_bb, WEST), WEST) &
              (shift_BB($to_bb, NORTH) | shift_BB($to_bb, SOUTH)) ){
-            return ($color, MOVE_KNIGHT, DIR_NONE, $fr_bb, $to_bb);
+           return @noMove if (! $allow_knight_self && ($to_bb & _piecesUs($color)));
+           return ($color, MOVE_KNIGHT, DIR_NONE, $fr_bb, $to_bb);
         }
         if ( shift_BB(shift_BB($fr_bb, EAST), EAST) &
              (shift_BB($to_bb, NORTH) | shift_BB($to_bb, SOUTH)) ){
-            return ($color, MOVE_KNIGHT, DIR_NONE, $fr_bb, $to_bb);
+           return @noMove if (! $allow_knight_self && ($to_bb & _piecesUs($color)));
+           return ($color, MOVE_KNIGHT, DIR_NONE, $fr_bb, $to_bb);
         }
         return (NO_COLOR, MOVE_NONE, DIR_NONE);
     }
@@ -1179,7 +1216,7 @@ sub _legalRooks {
         return (NO_COLOR, MOVE_NONE, DIR_NONE, $fr_bb, $to_bb);
     }
     ###
-    if (blockers(_piecesUs($color), $dir, $fr_bb, $to_bb, 1) ){
+    if (blockers(_piecesUs($color), $dir, $fr_bb, $to_bb, $blockers_depth, ($blockers_enemy ? _piecesThem($color) : undef)) ){
         return ($color, MOVE_NORMAL, $dir, $fr_bb, $to_bb);
     }
     return (NO_COLOR, MOVE_NONE, DIR_NONE, $fr_bb, $to_bb);
@@ -1207,7 +1244,7 @@ sub _legalBishops {
             $dir = NORTH_WEST;
         }
     }
-    if (blockers(_piecesUs($color), $dir, $fr_bb, $to_bb, 1) ){
+    if (blockers(_piecesUs($color), $dir, $fr_bb, $to_bb, $blockers_depth, ($blockers_enemy ? _piecesThem($color) : undef)) ){
         return ($color, MOVE_NORMAL, $dir, $fr_bb, $to_bb);
     }
     return (NO_COLOR, MOVE_NONE, DIR_NONE, $fr_bb, $to_bb);
@@ -1441,11 +1478,6 @@ sub occupiedColor {
     return 0;
 }
 
-sub isMoving {
-    my $bb = shift;
-    return $bb & $movingBB;
-}
-
 sub _getBBat {
     my ($f, $r) = @_;
 
@@ -1636,6 +1668,10 @@ sub setPosXS {
         $movingBB
     );
     #print "done setPosXS()\n";
+}
+
+sub setActiveMovesXS {
+
 }
 
 sub initXS {
@@ -2181,8 +2217,9 @@ sub getCurrentScore {
 ## attackedBy used for recommendBB
 #my ($aiScore, $moves, $totalMaterial, $attackedBy) = KungFuChess::Bitboards::aiThink(
 sub aiThinkXS {
-    my ($depth, $timeToThink, $color) = @_;
+    my ($depth, $timeToThink, $color, $activeMoves) = @_;
     KungFuChess::Bitboards::setPosXS();
+    KungFuChess::Bitboards::setActiveMovesXS($activeMoves);
     xs::setMyColor($color);
     xs::beginSearch($depth);
 
@@ -2209,7 +2246,7 @@ sub aiThink {
     if ($useXS) {
         return aiThinkXS(@_);
     }
-    my ($depth, $timeToThink, $color) = @_;
+    my ($depth, $timeToThink, $color, $activeMoves) = @_;
     print "thinking ... $depth, $timeToThink, $color\n";
 
     ### global

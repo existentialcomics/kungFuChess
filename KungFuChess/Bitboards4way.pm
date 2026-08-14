@@ -13,6 +13,11 @@ use base 'Exporter';
 # 1 for tree debugging, 2 for addition eval debugging
 my $aiDebug = 0;
 
+# 1 to safegaurd, 8 for full board
+# NOT implemented in 4way
+my $blockers_depth = 1;
+my $allow_knight_self = 1;
+
 my $aiRandomness = 50; # in points, 100 = PAWN
 
 sub setRandomness {
@@ -2545,8 +2550,6 @@ sub clearAiFrozen {
 }
 sub getBBfromSquare {
     return 0
-}
-sub isMoving {
 }
 sub loadFENstring {
 }

@@ -1,0 +1,8 @@
+dbuser		corey
+dbpassword	kazhonno
+dbhost		localhost
+database	kungfuchess
+path_to_stockfish   /home/corey/Stockfish/src/stockfish
+ws_domain_main  localhost:9999
+ws_domain  localhost:3001
+ws_protocol  ws

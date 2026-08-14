@@ -1,15 +1,10 @@
-#
-# this file is generated via docker-builder/generate.pl
-#
-# do not edit it directly
-#
-FROM perl:5.40.2
+FROM ubuntu:24.04
 
 WORKDIR /usr/src/app
 EXPOSE 3000 3001 8080
 
-RUN groupadd --gid 1000 perl \
-  && useradd --uid 1000 --gid perl --shell /bin/bash --create-home perl
+#RUN groupadd --gid 1000 perl \
+  #&& useradd --uid 1000 --gid perl --shell /bin/bash --create-home perl
 
 RUN set -ex \
   && apt-get update && apt-get install -y --no-install-recommends \
@@ -35,20 +30,21 @@ RUN set -ex \
     libwww-perl \
     libsys-meminfo-perl \
     libnet-http-perl \
-  && cpanm \
+    libnet-ssleay-perl
+
+RUN cpanm \
     Cpanel::JSON::XS \
     CryptX \
     DBI \
     EV \
     Future::AsyncAwait \
     IO::Socket::Socks \
-    Net::SSLeay \
     IO::Socket::SSL \
     Net::DNS::Native \
     Role::Tiny \
-    SQL::Abstract \
-  && rm -r /var/lib/apt/lists/* \
-  && rm -r /root/.cpanm
+    SQL::Abstract 
+  #&& rm -r /var/lib/apt/lists/* \
+  #&& rm -r /root/.cpanm
 
 ENV MOJO_VERSION=9.40
 
@@ -72,10 +68,11 @@ RUN cpanm Mojolicious@"$MOJO_VERSION" \
   Inline::CPP \
   && rm -r /root/.cpanm
 
-RUN git clone https://github.com/existentialcomics/existentialcomics.git
-WORKDIR /kungFuChess
+WORKDIR /kungfuchess
 
-USER perl
+COPY . /kungfuchess/
+RUN cp kungFuChess.cnf.docker kungFuChess.cnf
+RUN mkdir -p /var/log/kungfuchess
 
 ARG NOW=not-set
 #LABEL org.opencontainers.image.authors="Corey Mohler"
@@ -89,4 +86,5 @@ ARG NOW=not-set
 #LABEL org.opencontainers.image.version=9.40
 
 #CMD ["morbo KungFuWeb.pl -l 'http://localhost:3000' -w templates/ -w KungFuChess/"]
-CMD ["/bin/bash", "-c"]
+#CMD ["/bin/bash", "-c"]
+ENTRYPOINT ["/kungfuchess/entrypoint.sh"]

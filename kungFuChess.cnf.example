@@ -4,5 +4,7 @@ dbhost		{db_host}
 database	kungfuchess
 path_to_stockfish   /usr/local/bin/stockfish ### stockfish binary, not used anymore
 ws_domain_main  127.0.0.1:3000 # must be non-load balanced
-ws_domain  127.0.0.1:3000 must be the server THIS is running on
+ws_domain  127.0.0.1:3000 # must be the server THIS is running on (i.e. how the user connects to the game)
+# the connection the game server relays back to, i.e. the port of what is above for localhost
+local_ws_conn ws://localhost:3001/ws 
 ws_protocol  ws

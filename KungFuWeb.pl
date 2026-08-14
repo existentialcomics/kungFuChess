@@ -724,10 +724,58 @@ sub handleChatCommandGame {
                 'c' => 'gamechat',
                 'author' => 'SYSTEM',
                 'color' => 'red',
-                'message' => "Commands: /boot <color>, /ai <color>, /switch <color1> <color2>, /berserk <color>",
+                'message' => "Commands: /boot <color>, /ai <color>, /switch <color1> <color2>, /berserk <color>, /classic <on|off>",
                 'text_color' => '#666666',
             };
             connectionBroadcast($self, $return);
+    } elsif ($command eq 'classic') {
+        my ($color, $gameRow, $successAuth) = authGameColor($msg->{auth}, $msg->{uid}, $msg->{gameId});
+        if ($args !~ m/^on|off$/) {
+            my $return = {
+                'c' => 'gamechat',
+                'author' => 'SYSTEM',
+                'color' => 'red',
+                'message' => "/classic on OR /classic off",
+                'text_color' => '#666666',
+            };
+            connectionBroadcast($self, $return);
+            return 0;
+        }
+        if ($game->gameBegan() > 0) {
+            my $return = {
+                'c' => 'gamechat',
+                'author' => 'SYSTEM',
+                'color' => 'red',
+                'message' => "Cannot change to classic mode after game start.",
+                'text_color' => '#666666',
+            };
+            connectionBroadcast($self, $return);
+            return 0;
+        }
+        if ($args eq 'on') {
+            app()->db->do(
+                "UPDATE games SET is_classic_mode = 1 WHERE game_id = ? limit 1",
+                {},
+                $game->{id}
+            );
+            $game->serverBroadcast({'c' => 'setClassic'});
+        } else {
+            app()->db->do(
+                "UPDATE games SET is_classic_mode = 0 WHERE game_id = ? limit 1",
+                {},
+                $game->{id}
+            );
+            $game->serverBroadcast({'c' => 'setClassicOff'});
+        }
+
+        my $returnGame = {
+            'c' => 'gamechat',
+            'author' => 'SYSTEM',
+            'color' => 'red',
+            'message' => "Classic mode set to $args",
+            'text_color' => '#666666',
+        };
+        gameBroadcast($returnGame, $game->{id});
     } elsif ($command eq 'boot') {
         my ($color, $gameRow, $successAuth) = authGameColor($msg->{auth}, $msg->{uid}, $msg->{gameId});
         if ($args !~ m/^red|green|white|black$/) {
@@ -1854,6 +1902,7 @@ sub createRematchGame {
                 'piece_speed' => $gameRow->{piece_speed},
                 'piece_recharge' => $gameRow->{piece_recharge},
                 'fen' => $gameRow->{starting_fen},
+                'is_classic_mode' => $gameRow->{is_classic_mode},
             },
         )
     }
@@ -1972,9 +2021,10 @@ sub createGame {
          teams,
          piece_speed,
          piece_recharge,
-         starting_fen
+         starting_fen,
+         is_classic_mode
          )
-        VALUES (NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+        VALUES (NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
     $sth->execute(
         $boardId,
         $speed,
@@ -1994,7 +2044,8 @@ sub createGame {
         $teams,
         $pieceSpeed,
         $pieceRecharge,
-        $options->{fen} // undef
+        $options->{fen} // undef,
+        $options->{is_classic_mode} // 0
     );
 
     my $gameId = $sth->{mysql_insertid};
@@ -3505,12 +3556,12 @@ sub getAchievementTypes {
 
 sub getAchievementByName {
     my $name = shift;
-    if (! %achievementsByName) { getAchievementsTypes(); } # populates hash
+    if (! %achievementsByName) { getAchievementTypes(); } # populates hash
     return $achievementsByName{$name};
 }
 sub getAchievementById {
     my $id = shift;
-    if (! %achievementsById) { getAchievementsTypes(); } # populates hash
+    if (! %achievementsById) { getAchievementTypes(); } # populates hash
     return $achievementsById{$id};
 }
 

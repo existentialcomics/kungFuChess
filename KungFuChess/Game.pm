@@ -7,6 +7,7 @@ use Data::Dumper;
 
 ### this is a representation of the game states only, it doesn't know about any of the pieces, that is handled by GameServer.pm
 ### possible this could go away and it could all be done in mysql
+### keeps connections to server and players
 
 sub new {
     my $class = shift;

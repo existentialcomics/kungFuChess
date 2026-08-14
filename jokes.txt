@@ -82,7 +82,7 @@ The best Kung Fu Chess players all share one common trait: they play the game a 
 
 As the ancient Kung Fu Masters often said, slow positional chess is boring just take all their pieces at once.
 
-Yes, the honorable way to end is single combat between the kings. Kings are not honorable though, and will sacrifice every piece on the board to save themselves.
+Yes, the honorable way to win is single combat between the kings. Kings are not honorable though, and will sacrifice every piece on the board to save themselves.
 
 Why is Kung Fu Chess better than normal chess? Because the addition of Kung Fu makes anything better. Musical? Kung Fu Musical. Romantic Comedy? Kung Fu Romantic Comedy. Office job? Kung Fu office job. Kung Fu? Kung Fu Kung Fu. See what I mean?
 
@@ -101,3 +101,5 @@ Long range moves are dangerous because the board can have totally changed by the
 It's a myth that "everybody" was Kung Fu Fighting. Only the cool people were doing it.
 
 Remember, Kung Fu Chess should only be used in self defense.
+
+Remember to keep your pawns connected. The working class must be united.

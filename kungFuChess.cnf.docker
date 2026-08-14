@@ -1,0 +1,11 @@
+dbuser      kungfuchess
+dbpassword  kungfuchesspass
+dbhost      mysql
+database    kungfuchess
+
+path_to_stockfish /usr/local/bin/stockfish
+
+ws_domain_main 127.0.0.1:3000
+ws_domain 127.0.0.1:3000
+ws_protocol ws
+local_ws_conn ws://localhost:3000/ws 

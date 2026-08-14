@@ -910,7 +910,7 @@ sub aiTick {
                 $self->{mode} eq '4way' ? 1 : $self->{color}, # 4way is always white
                 $self->{ai_simul_moves},
                 $self->{ai_depth_moves},
-                $self->{randomness}
+                $self->{randomness},
             );
 
             my $fr_moves = {};
@@ -998,6 +998,9 @@ sub aiTick {
             }
         }
         KungFuChess::Bitboards::setPosXS();
+        ### TODO set active moves here
+        #KungFuChess::Bitboards::setActiveMovesXS($self->{activeMoves});
+
         ### dodges or anticipated attacks
         foreach my $induced (@{$self->{inducedMoves}}) {
             ### no longer compatible with perl AI but only a few adjustments, it only used the to_bb

@@ -82,8 +82,7 @@ sub _init {
     print "game key: $gameKey, authkey: $authKey, speed: $pieceSpeed/$pieceRecharge, adj: $speedAdj, gameType: $gameType\n";
     
     $self->{continuous} = 1;
-    my $cfg = new Config::Simple('kungFuChess.cnf');
-    $self->{config} = $cfg;
+    $self->{config} = new Config::Simple('kungFuChess.cnf');
     $self->{gameType} = $gameType;
     if ($self->{gameType} eq '4way') {
         $self->{ranks} = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12'];
@@ -131,6 +130,9 @@ sub _init {
         #KungFuChess::Bitboards::GREEN => {},
     };
 
+    # emulate classic rules
+    $self->{classic} = 0;
+
     ### keep track of original move times for stopped pieces
     # for sweeps and achievements
     $self->{startMoves} = {};
@@ -161,7 +163,8 @@ sub _init {
         ssl_no_verify => 1,   
     );
 
-    my $wsDomain = 'ws://localhost:3001/ws';
+    my $wsDomain = $self->{config}->param('local_ws_conn') // 'ws://localhost:3001/ws';
+    print "connecting to $wsDomain...\n";
 
     $client->connect($wsDomain)->cb(sub {
         # make $connection an our variable rather than
@@ -218,6 +221,18 @@ sub _init {
     print "GAME ENDING\n";
 }
 
+sub setClassic {
+    my $self = shift;
+    $self->{classic} = 1;
+    KungFuChess::Bitboards::setClassic();
+}
+
+sub setClassicOff {
+    my $self = shift;
+    $self->{classic} = 0;
+    KungFuChess::Bitboards::setNoneClassic();
+}
+
 sub setupInitialBoard {
     my $self = shift;
     KungFuChess::Bitboards::setupInitialPosition();
@@ -252,6 +267,10 @@ sub handleMessage {
                 $self->send($msg);
             }
         }
+    } elsif ($msg->{c} eq 'setClassic'){
+        $self->setClassic();
+    } elsif ($msg->{c} eq 'setClassicOff'){
+        $self->setClassicOff();
     } elsif ($msg->{c} eq 'move'){
         if ($msg->{move}) {
             $self->moveIfLegal($msg->{color}, $msg->{move});
@@ -445,6 +464,10 @@ sub moveIfLegal {
 
     ### here we queue up a premove
     if (exists($self->{timeoutSquares}->{$move_fr_bb})) {
+        ### no premove in classic
+        if ($self->{classic}) {
+            return 0;
+        }
         # can't use the key because it is converted to string secretly
         $self->{timeoutSquares}->{$move_fr_bb}->{'fr_bb'} = $move_fr_bb;
         $self->{timeoutSquares}->{$move_fr_bb}->{'to_bb'} = $move_to_bb;
@@ -628,7 +651,7 @@ sub moveIfLegal {
 
             ### enemy collision
             if ($themColor != 0 && $themColor != $usColor) {
-                ### active collision
+                ### active moving collision
                 if (exists($self->{activeMoves}->{$moving_to_bb})) {
                     my $themStartTime = $self->{activeMoves}->{$moving_to_bb}->{start_time};
                     if ($themStartTime < $startTime) {
@@ -652,10 +675,6 @@ sub moveIfLegal {
                         $self->send($msgStep);
                     }
                 } else { ### we hit a stopped enemy
-                    ### UNCOMMENT to restore full sweep
-                    ### stop unless the piece starting moving after us;
-                    #my $shouldStop = (! $self->{startMoves}->{$moving_to_bb}
-                        #|| $self->{startMoves}->{$moving_to_bb} < $startTime);
 
                     ### stop if the piece has been still for at least one beat (1 sec standard)
                     ### OR if the piece started before (i.e. would have swept us
@@ -666,6 +685,13 @@ sub moveIfLegal {
                             (! $self->{startMoves}->{$moving_to_bb}
                             || $self->{startMoves}->{$moving_to_bb} < $startTime)
                         );
+
+                    ### UNCOMMENT to restore full sweep
+                    ### stop unless the piece starting moving after us;
+                    if ($self->{classic}) {
+                        $shouldStop = (! $self->{startMoves}->{$moving_to_bb}
+                            || $self->{startMoves}->{$moving_to_bb} < $startTime);
+                    }
 
                     ### double pawn moves always stop if they hit something, even enemy
                     ### AND we don't move!
@@ -787,7 +813,7 @@ sub moveIfLegal {
             }
             #################### end TACTICS
 
-            ###------------------ comment this out to free horsey
+            ###------------------ comment this out to free horsey (make it kill anything, even sweeping pieces)
             ### enemy collision active
             my $themColor = KungFuChess::Bitboards::occupiedColor($to_bb);
             if ($themColor != 0
